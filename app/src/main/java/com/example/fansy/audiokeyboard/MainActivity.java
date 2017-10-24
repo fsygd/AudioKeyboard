@@ -21,9 +21,8 @@ public class MainActivity extends AppCompatActivity {
     MediaPlayer voices[] = new MediaPlayer[26];
     ArrayList<MediaPlayer> mediaPlayers = new ArrayList<>();
     ArrayList<Character> seq = new ArrayList<Character>();
-    String keys1 = "qwertyuiop";
-    String keys2 = "asdfghjkl";
-    String keys3 = "zxcvbnm";
+    String keys[] = new String[] {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
+    String keysNearby[] = new String[26];
     int key_left[] = new int[26];
     int key_right[] = new int[26];
     int key_top[] = new int[26];
@@ -33,37 +32,50 @@ public class MainActivity extends AppCompatActivity {
         key_right['q' - 'a'] = 137;
         key_bottom['q' - 'a'] = 167;
         key_top['q' - 'a'] = 0;
-        for (int i = 1; i < keys1.length(); ++i){
-            key_left[keys1.charAt(i) - 'a'] = key_left[keys1.charAt(i - 1) - 'a'] + 142;
-            key_right[keys1.charAt(i) - 'a'] = key_right[keys1.charAt(i - 1) - 'a'] + 142;
-            key_top[keys1.charAt(i) - 'a'] = key_top[keys1.charAt(i - 1) - 'a'];
-            key_bottom[keys1.charAt(i) - 'a'] = key_bottom[keys1.charAt(i - 1) - 'a'];
+        for (int i = 1; i < keys[0].length(); ++i){
+            key_left[keys[0].charAt(i) - 'a'] = key_left[keys[0].charAt(i - 1) - 'a'] + 142;
+            key_right[keys[0].charAt(i) - 'a'] = key_right[keys[0].charAt(i - 1) - 'a'] + 142;
+            key_top[keys[0].charAt(i) - 'a'] = key_top[keys[0].charAt(i - 1) - 'a'];
+            key_bottom[keys[0].charAt(i) - 'a'] = key_bottom[keys[0].charAt(i - 1) - 'a'];
         }
 
         key_left['a' - 'a'] = 87;
         key_right['a' - 'a'] = 209;
         key_bottom['a' - 'a'] = 354;
         key_top['a' - 'a'] = 187;
-        for (int i = 1; i < keys2.length(); ++i){
-            key_left[keys2.charAt(i) - 'a'] = key_left[keys2.charAt(i - 1) - 'a'] + 142;
-            key_right[keys2.charAt(i) - 'a'] = key_right[keys2.charAt(i - 1) - 'a'] + 142;
-            key_top[keys2.charAt(i) - 'a'] = key_top[keys2.charAt(i - 1) - 'a'];
-            key_bottom[keys2.charAt(i) - 'a'] = key_bottom[keys2.charAt(i - 1) - 'a'];
+        for (int i = 1; i < keys[1].length(); ++i){
+            key_left[keys[1].charAt(i) - 'a'] = key_left[keys[1].charAt(i - 1) - 'a'] + 142;
+            key_right[keys[1].charAt(i) - 'a'] = key_right[keys[1].charAt(i - 1) - 'a'] + 142;
+            key_top[keys[1].charAt(i) - 'a'] = key_top[keys[1].charAt(i - 1) - 'a'];
+            key_bottom[keys[1].charAt(i) - 'a'] = key_bottom[keys[1].charAt(i - 1) - 'a'];
         }
 
         key_left['z' - 'a'] = 230;
         key_right['z' - 'a'] = 352;
         key_bottom['z' - 'a'] = 541;
         key_top['z' - 'a'] = 374;
-        for (int i = 1; i < keys3.length(); ++i){
-            key_left[keys3.charAt(i) - 'a'] = key_left[keys3.charAt(i - 1) - 'a'] + 142;
-            key_right[keys3.charAt(i) - 'a'] = key_right[keys3.charAt(i - 1) - 'a'] + 142;
-            key_top[keys3.charAt(i) - 'a'] = key_top[keys3.charAt(i - 1) - 'a'];
-            key_bottom[keys3.charAt(i) - 'a'] = key_bottom[keys3.charAt(i - 1) - 'a'];
+        for (int i = 1; i < keys[2].length(); ++i){
+            key_left[keys[2].charAt(i) - 'a'] = key_left[keys[2].charAt(i - 1) - 'a'] + 142;
+            key_right[keys[2].charAt(i) - 'a'] = key_right[keys[2].charAt(i - 1) - 'a'] + 142;
+            key_top[keys[2].charAt(i) - 'a'] = key_top[keys[2].charAt(i - 1) - 'a'];
+            key_bottom[keys[2].charAt(i) - 'a'] = key_bottom[keys[2].charAt(i - 1) - 'a'];
         }
     }
 
     public void initKeyboard(){
+        int delta[][] = new int [][]{{-1, -1, 0, 0, 0, 1, 1},{0, 1, -1, 0, 1, -1, 0}};
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < keys[i].length(); ++j){
+                char ch = keys[i].charAt(j);
+                keysNearby[ch - 'a'] = "";
+                for (int k = 0; k < 7; ++k){
+                    int _i = i + delta[0][k], _j = j + delta[1][k];
+                    if (_i >= 0 && _i < 3 && _j >= 0 && _j < keys[_i].length())
+                        keysNearby[ch - 'a'] += keys[_i].charAt(_j);
+                }
+            }
+        for (int i = 0; i < 26; ++i)
+            Log.i("keyboard", (char)('a' + i) + " " + keysNearby[i]);
         keyboard.setOnTouchListener(new View.OnTouchListener(){
             @Override
             public boolean onTouch(View v, MotionEvent event){
