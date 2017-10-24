@@ -1,5 +1,6 @@
 package com.example.fansy.audiokeyboard;
 
+import android.media.MediaPlayer;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,6 +18,8 @@ public class MainActivity extends AppCompatActivity {
     TextView text;
     String currentWord = "";
     ArrayList<Word> dict = new ArrayList();
+    MediaPlayer voices[] = new MediaPlayer[26];
+    ArrayList<MediaPlayer> mediaPlayers = new ArrayList<>();
     ArrayList<Character> seq = new ArrayList<Character>();
     String keys1 = "qwertyuiop";
     String keys2 = "asdfghjkl";
@@ -83,6 +86,9 @@ public class MainActivity extends AppCompatActivity {
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_POINTER_UP:
                         seq.clear();
+                        if (mediaPlayers.size() > 0)
+                            mediaPlayers.get(0).pause();
+                        mediaPlayers.clear();
                         if (getKeyByPosition(x, y) != KEY_NOT_FOUND) {
                             currentWord += getKeyByPosition(x, y);
                             text.setText(currentWord);
@@ -114,10 +120,59 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void initVoice(){
+        voices[ 0] = MediaPlayer.create(this, R.raw.voiceover_a);
+        voices[ 1] = MediaPlayer.create(this, R.raw.voiceover_b);
+        voices[ 2] = MediaPlayer.create(this, R.raw.voiceover_c);
+        voices[ 3] = MediaPlayer.create(this, R.raw.voiceover_d);
+        voices[ 4] = MediaPlayer.create(this, R.raw.voiceover_e);
+        voices[ 5] = MediaPlayer.create(this, R.raw.voiceover_f);
+        voices[ 6] = MediaPlayer.create(this, R.raw.voiceover_g);
+        voices[ 7] = MediaPlayer.create(this, R.raw.voiceover_h);
+        voices[ 8] = MediaPlayer.create(this, R.raw.voiceover_i);
+        voices[ 9] = MediaPlayer.create(this, R.raw.voiceover_j);
+        voices[10] = MediaPlayer.create(this, R.raw.voiceover_k);
+        voices[11] = MediaPlayer.create(this, R.raw.voiceover_l);
+        voices[12] = MediaPlayer.create(this, R.raw.voiceover_m);
+        voices[13] = MediaPlayer.create(this, R.raw.voiceover_n);
+        voices[14] = MediaPlayer.create(this, R.raw.voiceover_o);
+        voices[15] = MediaPlayer.create(this, R.raw.voiceover_p);
+        voices[16] = MediaPlayer.create(this, R.raw.voiceover_q);
+        voices[17] = MediaPlayer.create(this, R.raw.voiceover_r);
+        voices[18] = MediaPlayer.create(this, R.raw.voiceover_s);
+        voices[19] = MediaPlayer.create(this, R.raw.voiceover_t);
+        voices[20] = MediaPlayer.create(this, R.raw.voiceover_u);
+        voices[21] = MediaPlayer.create(this, R.raw.voiceover_v);
+        voices[22] = MediaPlayer.create(this, R.raw.voiceover_w);
+        voices[23] = MediaPlayer.create(this, R.raw.voiceover_x);
+        voices[24] = MediaPlayer.create(this, R.raw.voiceover_y);
+        voices[25] = MediaPlayer.create(this, R.raw.voiceover_z);
+        for (int i = 0; i < 26; ++i){
+            voices[i].setOnCompletionListener(new MediaPlayer.OnCompletionListener(){
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    if (mediaPlayers.size() > 0)
+                        mediaPlayers.remove(0);
+                    if (mediaPlayers.size() > 0)
+                        mediaPlayers.get(0).start();
+                }
+            });
+        }
+    }
+
+    public void playMedia(int idx){
+        mediaPlayers.add(voices[idx]);
+        if (mediaPlayers.size() == 1)
+            mediaPlayers.get(0).start();
+    }
+
     public void addToSeq(char ch){
         if (ch != KEY_NOT_FOUND){
-            if (seq.size() == 0 || seq.get(seq.size() - 1) != ch)
+            if (seq.size() == 0 || seq.get(seq.size() - 1) != ch) {
                 seq.add(ch);
+                Log.i("voice", ch + "");
+                playMedia(ch - 'a');
+            }
         }
     }
 
@@ -140,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
         initKeyPosition();
         initKeyboard();
         initDict();
+        initVoice();
         //left 0 right 1440 top 1554 bottom 2320
     }
 
