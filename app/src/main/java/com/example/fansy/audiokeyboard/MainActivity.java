@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
     ImageView keyboard;
     TextView text, candidatesView;
+    Button confirmButton;
     String currentWord = "";
     ArrayList<Word> dict = new ArrayList();
     MediaPlayer voices[] = new MediaPlayer[26];
@@ -93,6 +95,13 @@ public class MainActivity extends AppCompatActivity {
         refresh();
     }
 
+    public void stopInput(){
+        seq.clear();
+        if (mediaPlayers.size() > 0)
+            mediaPlayers.get(0).pause();
+        mediaPlayers.clear();
+    }
+
     public void initKeyboard(){
         int delta[][] = new int [][]{{-1, -1, 0, 0, 0, 1, 1},{0, 1, -1, 0, 1, -1, 0}};
         for (int i = 0; i < 3; ++i)
@@ -128,10 +137,7 @@ public class MainActivity extends AppCompatActivity {
 
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_POINTER_UP:
-                        seq.clear();
-                        if (mediaPlayers.size() > 0)
-                            mediaPlayers.get(0).pause();
-                        mediaPlayers.clear();
+                        stopInput();
                         if (getKeyByPosition(x, y) != KEY_NOT_FOUND) {
                             currentWord += getKeyByPosition(x, y);
                             predict(currentWord);
@@ -204,6 +210,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void initButtons(){
+        confirmButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopInput();
+                currentWord = "";
+                predict("");
+                refresh();
+            }
+        });
+    }
+
     public void playMedia(int idx){
         mediaPlayers.add(voices[idx]);
         if (mediaPlayers.size() == 1)
@@ -236,11 +254,13 @@ public class MainActivity extends AppCompatActivity {
         keyboard = (ImageView)findViewById(R.id.keyboard);
         text = (TextView)findViewById(R.id.text);
         candidatesView = (TextView)findViewById(R.id.candidates);
+        confirmButton = (Button)findViewById(R.id.confirm_button);
 
         initKeyPosition();
         initKeyboard();
         initDict();
         initVoice();
+        initButtons();
         //left 0 right 1440 top 1554 bottom 2320
     }
 
