@@ -233,7 +233,8 @@ public class MainActivity extends AppCompatActivity {
             if (seq.size() == 0 || seq.get(seq.size() - 1) != ch) {
                 seq.add(ch);
                 Log.i("voice", ch + "");
-                playMedia(ch - 'a');
+                for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
+                    playMedia(keysNearby[ch - 'a'].charAt(i) - 'a');
             }
         }
     }
