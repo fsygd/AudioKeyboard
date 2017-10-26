@@ -24,4 +24,14 @@
         android:layout_alignParentTop="true"
         android:layout_alignParentStart="true" />
 
+    <TextView
+        android:id="@+id/candidates"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/text"
+        android:layout_below="@+id/text"
+        android:layout_marginTop="24dp"
+        android:textSize="30sp"
+        android:text="" />
+
 </RelativeLayout>

@@ -15,7 +15,7 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
     ImageView keyboard;
-    TextView text;
+    TextView text, candidatesView;
     String currentWord = "";
     ArrayList<Word> dict = new ArrayList();
     MediaPlayer voices[] = new MediaPlayer[26];
@@ -62,6 +62,37 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void refresh(){
+        text.setText(currentWord);
+        String str = "";
+        for (int i = 0; i < candidates.size(); ++i)
+            str += candidates.get(i).text + "\n";
+        candidatesView.setText(str);
+    }
+
+    final int MAX_CANDIDATE = 5;
+    public ArrayList<Word> candidates = new ArrayList<Word>();
+    public void predict(String currentWord){
+        candidates.clear();
+        for (int i = 0; i < dict.size(); ++i){
+            if (candidates.size() >= MAX_CANDIDATE)
+                break;
+            Word candidate = dict.get(i);
+            if (candidate.text.length() != currentWord.length())
+                continue;
+
+            boolean flag = true;
+            for (int j = 0; j < currentWord.length(); ++j)
+                if (keysNearby[currentWord.charAt(j) - 'a'].indexOf(candidate.text.charAt(j)) == -1){
+                    flag = false;
+                    break;
+                }
+            if (flag)
+                candidates.add(candidate);
+        }
+        refresh();
+    }
+
     public void initKeyboard(){
         int delta[][] = new int [][]{{-1, -1, 0, 0, 0, 1, 1},{0, 1, -1, 0, 1, -1, 0}};
         for (int i = 0; i < 3; ++i)
@@ -103,7 +134,8 @@ public class MainActivity extends AppCompatActivity {
                         mediaPlayers.clear();
                         if (getKeyByPosition(x, y) != KEY_NOT_FOUND) {
                             currentWord += getKeyByPosition(x, y);
-                            text.setText(currentWord);
+                            predict(currentWord);
+                            refresh();
                         }
                         break;
                 }
@@ -203,6 +235,7 @@ public class MainActivity extends AppCompatActivity {
 
         keyboard = (ImageView)findViewById(R.id.keyboard);
         text = (TextView)findViewById(R.id.text);
+        candidatesView = (TextView)findViewById(R.id.candidates);
 
         initKeyPosition();
         initKeyboard();
