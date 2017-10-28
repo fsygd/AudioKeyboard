@@ -43,4 +43,14 @@
         android:layout_marginBottom="24dp"
         android:text="Confirm" />
 
+    <TextView
+        android:id="@+id/readList"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/candidates"
+        android:layout_marginStart="84dp"
+        android:layout_toEndOf="@+id/text"
+        android:textSize="30sp"
+        android:text="" />
+
 </RelativeLayout>

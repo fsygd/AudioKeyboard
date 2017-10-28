@@ -13,10 +13,11 @@ import android.widget.TextView;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
     ImageView keyboard;
-    TextView text, candidatesView;
+    TextView text, candidatesView, readList;
     Button confirmButton;
     String currentWord = "";
     ArrayList<Word> dict = new ArrayList();
@@ -233,8 +234,36 @@ public class MainActivity extends AppCompatActivity {
             if (seq.size() == 0 || seq.get(seq.size() - 1) != ch) {
                 seq.add(ch);
                 Log.i("voice", ch + "");
+                ArrayList<Word> letters = new ArrayList<Word>();
                 for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
-                    playMedia(keysNearby[ch - 'a'].charAt(i) - 'a');
+                    letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
+                String str = currentWord + ch;
+                for (int i = 0; i < dict.size(); ++i)
+                    if (dict.get(i).text.length() >= str.length()){
+                        boolean flag = true;
+                        Word word = dict.get(i);
+                        for (int j = 0; j < str.length(); ++j)
+                            if (keysNearby[str.charAt(j) - 'a'].indexOf(word.text.charAt(j)) == -1){
+                                flag = false;
+                                break;
+                            }
+                        if (flag){
+                            for (int j = 0; j < letters.size(); ++j)
+                                if (letters.get(j).text.charAt(0) == word.text.charAt(str.length() - 1))
+                                    letters.get(j).freq += word.freq;
+                        }
+                    }
+                Collections.sort(letters);
+                String rlist = "";
+                rlist += ch;
+                playMedia(ch - 'a');
+                for (int i = 0; i < letters.size(); ++i)
+                if (letters.get(i).text.charAt(0) != ch){
+                    Log.i("letters", letters.get(i).text + " " + letters.get(i).freq);
+                    rlist += letters.get(i).text.charAt(0);
+                    playMedia(letters.get(i).text.charAt(0) - 'a');
+                }
+                readList.setText(rlist);
             }
         }
     }
@@ -256,6 +285,7 @@ public class MainActivity extends AppCompatActivity {
         text = (TextView)findViewById(R.id.text);
         candidatesView = (TextView)findViewById(R.id.candidates);
         confirmButton = (Button)findViewById(R.id.confirm_button);
+        readList = (TextView)findViewById(R.id.readList);
 
         initKeyPosition();
         initKeyboard();
@@ -265,12 +295,19 @@ public class MainActivity extends AppCompatActivity {
         //left 0 right 1440 top 1554 bottom 2320
     }
 
-    class Word{
+    class Word implements Comparable<Word>{
         String text;
         int freq;
         Word(String text, int freq){
             this.text = text;
             this.freq = freq;
+        }
+
+        @Override
+        public int compareTo(Word o){
+            if (this.freq > o.freq) return -1;
+            if (this.freq < o.freq) return 1;
+            return 0;
         }
     }
 }
