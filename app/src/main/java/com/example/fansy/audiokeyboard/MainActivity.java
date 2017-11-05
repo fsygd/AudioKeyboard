@@ -16,9 +16,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
+    final int INIT_MODE_ABSOLUTE = 0;
+    final int INIT_MODE_RELATIVE = 1;
+    int initMode = INIT_MODE_ABSOLUTE;
     ImageView keyboard;
     TextView text, candidatesView, readList;
-    Button confirmButton;
+    Button confirmButton, initModeButton;
     String currentWord = "";
     ArrayList<Word> dict = new ArrayList();
     MediaPlayer voices[] = new MediaPlayer[26];
@@ -32,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     int key_right[] = new int[26];
     int key_top[] = new int[26];
     int key_bottom[] = new int[26];
+    int deltaX, deltaY;
     public void initKeyPosition(){
         key_left['q' - 'a'] = 15;
         key_right['q' - 'a'] = 137;
@@ -73,6 +77,10 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < candidates.size(); ++i)
             str += candidates.get(i).text + "\n";
         candidatesView.setText(str);
+        if (initMode == INIT_MODE_ABSOLUTE)
+            initModeButton.setText("absolute");
+        else
+            initModeButton.setText("relative");
     }
 
     final int MAX_CANDIDATE = 5;
@@ -105,6 +113,28 @@ public class MainActivity extends AppCompatActivity {
         mediaPlayers.clear();
     }
 
+    public void newPoint(int x, int y){
+        if (seq.size() == 0){
+            if (initMode == INIT_MODE_ABSOLUTE)
+                addToSeq(getKeyByPosition(x, y), true);
+            else {
+                deltaX = 0;
+                deltaY = 0;
+                char ch = getKeyByPosition(x, y);
+                if (ch == KEY_NOT_FOUND)
+                    return;
+                char best = addToSeq(ch, false);
+                Log.i("best", best + "");
+                deltaX = key_left[best - 'a'] - key_left[ch - 'a'];
+                deltaY = key_top[best - 'a'] - key_top[ch - 'a'];
+                addToSeq(best, true);
+            }
+        }
+        else{
+            addToSeq(getKeyByPosition(x, y), true);
+        }
+    }
+
     public void initKeyboard(){
         int delta[][] = new int [][]{{-1, -1, 0, 0, 0, 1, 1},{0, 1, -1, 0, 1, -1, 0}};
         for (int i = 0; i < 3; ++i)
@@ -129,12 +159,12 @@ public class MainActivity extends AppCompatActivity {
                 switch (event.getActionMasked()){
                     case MotionEvent.ACTION_DOWN:
                     case MotionEvent.ACTION_POINTER_DOWN:
-                        addToSeq(getKeyByPosition(x, y));
+                        newPoint(x, y);
                         //action down
                         break;
 
                     case MotionEvent.ACTION_MOVE:
-                        addToSeq(getKeyByPosition(x, y));
+                        newPoint(x, y);
                         //action move
                         break;
 
@@ -234,6 +264,17 @@ public class MainActivity extends AppCompatActivity {
                 refresh();
             }
         });
+
+        initModeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (initMode == INIT_MODE_ABSOLUTE)
+                    initMode = INIT_MODE_RELATIVE;
+                else
+                    initMode = INIT_MODE_ABSOLUTE;
+                refresh();
+            }
+        });
     }
 
     public void playMedia(MediaPlayer mp){
@@ -242,11 +283,13 @@ public class MainActivity extends AppCompatActivity {
             mediaPlayers.get(0).start();
     }
 
-    public void addToSeq(char ch){
+    public char addToSeq(char ch, boolean write){
         if (ch != KEY_NOT_FOUND){
             if (seq.size() == 0 || seq.get(seq.size() - 1) != ch) {
-                seq.add(ch);
-                Log.i("voice", ch + "");
+                if (write) {
+                    seq.add(ch);
+                    Log.i("voice", ch + "");
+                }
                 ArrayList<Word> letters = new ArrayList<Word>();
                 for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
                     letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
@@ -267,6 +310,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 Collections.sort(letters);
+                if (!write)
+                    return letters.get(0).text.charAt(0);
                 String rlist = "";
                 rlist += ch;
                 playMedia(voices[ch - 'a']);
@@ -283,10 +328,15 @@ public class MainActivity extends AppCompatActivity {
                 readList.setText(rlist);
             }
         }
+        return 'a';
     }
 
     final char KEY_NOT_FOUND = 0;
     char getKeyByPosition(int x, int y){
+        if (initMode == INIT_MODE_RELATIVE){
+            x += deltaX;
+            y += deltaY;
+        }
         for (int i = 0; i < 26; ++i)
             if (x >= key_left[i] && x <= key_right[i] && y >= key_top[i] && y <= key_bottom[i])
                 return (char)('a' + i);
@@ -303,6 +353,7 @@ public class MainActivity extends AppCompatActivity {
         candidatesView = (TextView)findViewById(R.id.candidates);
         confirmButton = (Button)findViewById(R.id.confirm_button);
         readList = (TextView)findViewById(R.id.readList);
+        initModeButton = (Button)findViewById(R.id.init_mode_button);
 
         initKeyPosition();
         initKeyboard();

@@ -38,10 +38,10 @@
         android:id="@+id/confirm_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="23dp"
+        android:text="Confirm"
         android:layout_above="@+id/keyboard"
-        android:layout_alignStart="@+id/candidates"
-        android:layout_marginBottom="24dp"
-        android:text="Confirm" />
+        android:layout_alignEnd="@+id/init_mode_button" />
 
     <TextView
         android:id="@+id/readList"
@@ -52,5 +52,14 @@
         android:layout_toEndOf="@+id/text"
         android:textSize="30sp"
         android:text="" />
+
+    <Button
+        android:id="@+id/init_mode_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="absolute"
+        android:layout_marginTop="29dp"
+        android:layout_alignParentTop="true"
+        />
 
 </RelativeLayout>
