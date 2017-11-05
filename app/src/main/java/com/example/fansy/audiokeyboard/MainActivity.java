@@ -106,11 +106,15 @@ public class MainActivity extends AppCompatActivity {
         refresh();
     }
 
-    public void stopInput(){
-        seq.clear();
+    public void stopVoice(){
         if (mediaPlayers.size() > 0)
             mediaPlayers.get(0).pause();
         mediaPlayers.clear();
+    }
+
+    public void stopInput(){
+        seq.clear();
+        stopVoice();
     }
 
     public void newPoint(int x, int y){
@@ -312,6 +316,7 @@ public class MainActivity extends AppCompatActivity {
                 Collections.sort(letters);
                 if (!write)
                     return letters.get(0).text.charAt(0);
+                stopVoice();
                 String rlist = "";
                 rlist += ch;
                 playMedia(voices[ch - 'a']);
