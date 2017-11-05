@@ -22,6 +22,8 @@ public class MainActivity extends AppCompatActivity {
     String currentWord = "";
     ArrayList<Word> dict = new ArrayList();
     MediaPlayer voices[] = new MediaPlayer[26];
+    final int emptyTimes = 4;
+    MediaPlayer voiceEmpty = new MediaPlayer();
     ArrayList<MediaPlayer> mediaPlayers = new ArrayList<>();
     ArrayList<Character> seq = new ArrayList<Character>();
     String keys[] = new String[] {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
@@ -171,17 +173,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void initVoice(){
-        voices[ 0] = MediaPlayer.create(this, R.raw.voiceover_a);
-        voices[ 1] = MediaPlayer.create(this, R.raw.voiceover_b);
-        voices[ 2] = MediaPlayer.create(this, R.raw.voiceover_c);
-        voices[ 3] = MediaPlayer.create(this, R.raw.voiceover_d);
-        voices[ 4] = MediaPlayer.create(this, R.raw.voiceover_e);
-        voices[ 5] = MediaPlayer.create(this, R.raw.voiceover_f);
-        voices[ 6] = MediaPlayer.create(this, R.raw.voiceover_g);
-        voices[ 7] = MediaPlayer.create(this, R.raw.voiceover_h);
-        voices[ 8] = MediaPlayer.create(this, R.raw.voiceover_i);
-        voices[ 9] = MediaPlayer.create(this, R.raw.voiceover_j);
+    public void initVoice() {
+        voices[0] = MediaPlayer.create(this, R.raw.voiceover_a);
+        voices[1] = MediaPlayer.create(this, R.raw.voiceover_b);
+        voices[2] = MediaPlayer.create(this, R.raw.voiceover_c);
+        voices[3] = MediaPlayer.create(this, R.raw.voiceover_d);
+        voices[4] = MediaPlayer.create(this, R.raw.voiceover_e);
+        voices[5] = MediaPlayer.create(this, R.raw.voiceover_f);
+        voices[6] = MediaPlayer.create(this, R.raw.voiceover_g);
+        voices[7] = MediaPlayer.create(this, R.raw.voiceover_h);
+        voices[8] = MediaPlayer.create(this, R.raw.voiceover_i);
+        voices[9] = MediaPlayer.create(this, R.raw.voiceover_j);
         voices[10] = MediaPlayer.create(this, R.raw.voiceover_k);
         voices[11] = MediaPlayer.create(this, R.raw.voiceover_l);
         voices[12] = MediaPlayer.create(this, R.raw.voiceover_m);
@@ -198,8 +200,9 @@ public class MainActivity extends AppCompatActivity {
         voices[23] = MediaPlayer.create(this, R.raw.voiceover_x);
         voices[24] = MediaPlayer.create(this, R.raw.voiceover_y);
         voices[25] = MediaPlayer.create(this, R.raw.voiceover_z);
-        for (int i = 0; i < 26; ++i){
-            voices[i].setOnCompletionListener(new MediaPlayer.OnCompletionListener(){
+        voiceEmpty = MediaPlayer.create(this, R.raw.blank);
+        for (int i = 0; i < 26; ++i) {
+            voices[i].setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
                     if (mediaPlayers.size() > 0)
@@ -209,6 +212,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+        voiceEmpty.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                if (mediaPlayers.size() > 0)
+                    mediaPlayers.remove(0);
+                if (mediaPlayers.size() > 0)
+                    mediaPlayers.get(0).start();
+            }
+        });
     }
 
     public void initButtons(){
@@ -223,8 +236,8 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void playMedia(int idx){
-        mediaPlayers.add(voices[idx]);
+    public void playMedia(MediaPlayer mp){
+        mediaPlayers.add(mp);
         if (mediaPlayers.size() == 1)
             mediaPlayers.get(0).start();
     }
@@ -256,12 +269,16 @@ public class MainActivity extends AppCompatActivity {
                 Collections.sort(letters);
                 String rlist = "";
                 rlist += ch;
-                playMedia(ch - 'a');
+                playMedia(voices[ch - 'a']);
+                for (int i = 0; i < emptyTimes; ++i)
+                    playMedia(voiceEmpty);
                 for (int i = 0; i < letters.size(); ++i)
                 if (letters.get(i).text.charAt(0) != ch){
                     Log.i("letters", letters.get(i).text + " " + letters.get(i).freq);
                     rlist += letters.get(i).text.charAt(0);
-                    playMedia(letters.get(i).text.charAt(0) - 'a');
+                    playMedia(voices[letters.get(i).text.charAt(0) - 'a']);
+                    for (int j = 0; j < emptyTimes; ++j)
+                        playMedia(voiceEmpty);
                 }
                 readList.setText(rlist);
             }
