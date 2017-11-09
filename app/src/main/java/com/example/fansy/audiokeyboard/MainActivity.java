@@ -23,6 +23,9 @@ public class MainActivity extends AppCompatActivity {
     TextView text, candidatesView, readList;
     Button confirmButton, initModeButton;
     String currentWord = "";
+    String currentWord2 = "";
+    char nowCh = 0;
+    char nowCh2 = 0;
     ArrayList<Word> dict = new ArrayList();
     MediaPlayer voices[] = new MediaPlayer[26];
     final int emptyTimes = 4;
@@ -72,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void refresh(){
-        text.setText(currentWord);
+        text.setText(currentWord + "\n" + currentWord2);
         String str = "";
         for (int i = 0; i < candidates.size(); ++i)
             str += candidates.get(i).text + "\n";
@@ -85,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
 
     final int MAX_CANDIDATE = 5;
     public ArrayList<Word> candidates = new ArrayList<Word>();
-    public void predict(String currentWord){
+    public void predict(String currentWord, String currentWord2){
         candidates.clear();
         for (int i = 0; i < dict.size(); ++i){
             if (candidates.size() >= MAX_CANDIDATE)
@@ -96,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
 
             boolean flag = true;
             for (int j = 0; j < currentWord.length(); ++j)
-                if (keysNearby[currentWord.charAt(j) - 'a'].indexOf(candidate.text.charAt(j)) == -1){
+                if (candidate.text.charAt(j) != currentWord.charAt(j) && candidate.text.charAt(j) != currentWord2.charAt(j)){
                     flag = false;
                     break;
                 }
@@ -175,11 +178,10 @@ public class MainActivity extends AppCompatActivity {
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_POINTER_UP:
                         stopInput();
-                        if (getKeyByPosition(x, y) != KEY_NOT_FOUND) {
-                            currentWord += getKeyByPosition(x, y);
-                            predict(currentWord);
-                            refresh();
-                        }
+                        currentWord += nowCh;
+                        currentWord2 += nowCh2;
+                        predict(currentWord, currentWord2);
+                        refresh();
                         break;
                 }
                 return true;
@@ -264,7 +266,9 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 stopInput();
                 currentWord = "";
-                predict("");
+                currentWord2 = "";
+                readList.setText("");
+                predict("", "");
                 refresh();
             }
         });
@@ -297,19 +301,18 @@ public class MainActivity extends AppCompatActivity {
                 ArrayList<Word> letters = new ArrayList<Word>();
                 for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
                     letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
-                String str = currentWord + ch;
                 for (int i = 0; i < dict.size(); ++i)
-                    if (dict.get(i).text.length() >= str.length()){
+                    if (dict.get(i).text.length() >= currentWord.length() + 1){
                         boolean flag = true;
                         Word word = dict.get(i);
-                        for (int j = 0; j < str.length(); ++j)
-                            if (keysNearby[str.charAt(j) - 'a'].indexOf(word.text.charAt(j)) == -1){
+                        for (int j = 0; j < currentWord.length(); ++j)
+                            if (word.text.charAt(j) != currentWord.charAt(j) && word.text.charAt(j) != currentWord2.charAt(j)){
                                 flag = false;
                                 break;
                             }
                         if (flag){
                             for (int j = 0; j < letters.size(); ++j)
-                                if (letters.get(j).text.charAt(0) == word.text.charAt(str.length() - 1))
+                                if (letters.get(j).text.charAt(0) == word.text.charAt(currentWord.length()))
                                     letters.get(j).freq += word.freq;
                         }
                     }
@@ -318,17 +321,41 @@ public class MainActivity extends AppCompatActivity {
                     return letters.get(0).text.charAt(0);
                 stopVoice();
                 String rlist = "";
-                rlist += ch;
-                playMedia(voices[ch - 'a']);
-                for (int i = 0; i < emptyTimes; ++i)
-                    playMedia(voiceEmpty);
-                for (int i = 0; i < letters.size(); ++i)
-                if (letters.get(i).text.charAt(0) != ch){
-                    Log.i("letters", letters.get(i).text + " " + letters.get(i).freq);
-                    rlist += letters.get(i).text.charAt(0);
-                    playMedia(voices[letters.get(i).text.charAt(0) - 'a']);
-                    for (int j = 0; j < emptyTimes; ++j)
+                nowCh = ' ';
+                nowCh2 = ' ';
+
+                if (letters.get(0).freq > 0 && letters.get(0).text.charAt(0) != ch){
+                    nowCh = letters.get(0).text.charAt(0);
+                    nowCh2 = ch;
+                    playMedia(voices[nowCh - 'a']);
+                    for (int i = 0; i < emptyTimes; ++i)
                         playMedia(voiceEmpty);
+                    playMedia(voices[nowCh2 - 'a']);
+                    for (int i = 0; i < emptyTimes; ++i)
+                        playMedia(voiceEmpty);
+                    rlist += nowCh;
+                    rlist += nowCh2;
+                }
+                else if (letters.get(0).freq > 0){
+                    nowCh = ch;
+                    playMedia(voices[nowCh - 'a']);
+                    for (int i = 0; i < emptyTimes; ++i)
+                        playMedia(voiceEmpty);
+                    rlist += nowCh;
+                    if (letters.size() >= 2 && letters.get(1).freq > 0){
+                        nowCh2 = letters.get(1).text.charAt(0);
+                        playMedia(voices[nowCh2 - 'a']);
+                        for (int i = 0; i < emptyTimes; ++i)
+                            playMedia(voiceEmpty);
+                        rlist += nowCh2;
+                    }
+                }
+                else{
+                    nowCh = ch;
+                    playMedia(voices[nowCh - 'a']);
+                    for (int i = 0; i < emptyTimes; ++i)
+                        playMedia(voiceEmpty);
+                    rlist += nowCh;
                 }
                 readList.setText(rlist);
             }
@@ -361,10 +388,10 @@ public class MainActivity extends AppCompatActivity {
         initModeButton = (Button)findViewById(R.id.init_mode_button);
 
         initKeyPosition();
-        initKeyboard();
         initDict();
         initVoice();
         initButtons();
+        initKeyboard();
         //left 0 right 1440 top 1554 bottom 2320
     }
 
