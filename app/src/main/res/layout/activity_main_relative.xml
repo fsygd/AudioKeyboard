@@ -38,10 +38,10 @@
         android:id="@+id/confirm_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="23dp"
         android:text="Confirm"
-        android:layout_above="@+id/keyboard"
-        android:layout_alignEnd="@+id/init_mode_button" />
+        android:layout_alignBaseline="@+id/init_mode_button"
+        android:layout_alignBottom="@+id/init_mode_button"
+        android:layout_alignParentEnd="true" />
 
     <TextView
         android:id="@+id/readList"

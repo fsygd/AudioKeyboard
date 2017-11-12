@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     int key_right[] = new int[26];
     int key_top[] = new int[26];
     int key_bottom[] = new int[26];
-    int deltaX, deltaY;
+    int deltaX = 0, deltaY = 0;
     public void initKeyPosition(){
         key_left['q' - 'a'] = 15;
         key_right['q' - 'a'] = 137;
@@ -124,8 +124,15 @@ public class MainActivity extends AppCompatActivity {
 
     public void newPoint(int x, int y){
         if (seq.size() == 0){
-            if (initMode == INIT_MODE_ABSOLUTE)
+            if (initMode == INIT_MODE_ABSOLUTE) {
+                deltaX = 0;
+                deltaY = 0;
+                char ch = getKeyByPosition(x, y);
+                if (ch == KEY_NOT_FOUND)
+                    return;
+                deltaY = (key_top[ch - 'a'] + key_bottom[ch - 'a']) / 2 - y;
                 addToSeq(getKeyByPosition(x, y), true);
+            }
             else {
                 deltaX = 0;
                 deltaY = 0;
@@ -135,7 +142,7 @@ public class MainActivity extends AppCompatActivity {
                 char best = addToSeq(ch, false);
                 Log.i("best", best + "");
                 deltaX = key_left[best - 'a'] - key_left[ch - 'a'];
-                deltaY = key_top[best - 'a'] - key_top[ch - 'a'];
+                deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
                 addToSeq(best, true);
             }
         }
@@ -158,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
             }
         for (int i = 0; i < 26; ++i)
             Log.i("keyboard", (char)('a' + i) + " " + keysNearby[i]);
-        keyboard.setOnTouchListener(new View.OnTouchListener(){
+        /*keyboard.setOnTouchListener(new View.OnTouchListener(){
             @Override
             public boolean onTouch(View v, MotionEvent event){
                 if (event.getPointerCount() >= 2)
@@ -188,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             }
-        });
+        });*/
     }
 
     final int DICT_SIZE = 10000;
@@ -373,14 +380,20 @@ public class MainActivity extends AppCompatActivity {
 
     final char KEY_NOT_FOUND = 0;
     char getKeyByPosition(int x, int y){
-        if (initMode == INIT_MODE_RELATIVE){
-            x += deltaX;
-            y += deltaY;
+        x += deltaX;
+        y += deltaY;
+        Log.i("test", "getKey x:" + x + " y:" + y);
+        char key = KEY_NOT_FOUND;
+        int min_dist = Integer.MAX_VALUE;
+        for (int i = 0; i < 26; ++i){
+            int _x = (key_left[i] + key_right[i]) / 2;
+            int _y = (key_top[i] + key_bottom[i]) / 2;
+            if ((x - _x) * (x - _x) + (y - _y) * (y - _y) < min_dist){
+                key = (char)('a' + i);
+                min_dist = (x - _x) * (x - _x) + (y - _y) * (y - _y);
+            }
         }
-        for (int i = 0; i < 26; ++i)
-            if (x >= key_left[i] && x <= key_right[i] && y >= key_top[i] && y <= key_bottom[i])
-                return (char)('a' + i);
-        return KEY_NOT_FOUND;
+        return key;
     }
 
     @Override
@@ -401,6 +414,37 @@ public class MainActivity extends AppCompatActivity {
         initButtons();
         initKeyboard();
         //left 0 right 1440 top 1554 bottom 2320
+    }
+
+    public boolean onTouchEvent(MotionEvent event){
+        if (event.getPointerCount() == 1 && event.getY() >= 1500) {
+            int x = (int) event.getX();
+            int y = (int) event.getY();
+            int[] location = new int[2];
+            keyboard.getLocationOnScreen(location);
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    newPoint(x, y - location[1]);
+                    //action down
+                    break;
+
+                case MotionEvent.ACTION_MOVE:
+                    newPoint(x, y - location[1]);
+                    //action move
+                    break;
+
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_POINTER_UP:
+                    stopInput();
+                    currentWord += nowCh;
+                    currentWord2 += nowCh2;
+                    predict(currentWord, currentWord2);
+                    refresh();
+                    break;
+            }
+        }
+        return super.onTouchEvent(event);
     }
 
     class Word implements Comparable<Word>{
