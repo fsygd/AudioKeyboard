@@ -1,6 +1,8 @@
 package com.example.fansy.audiokeyboard;
 
+import android.content.Context;
 import android.media.MediaPlayer;
+import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -294,6 +296,12 @@ public class MainActivity extends AppCompatActivity {
     public char addToSeq(char ch, boolean write){
         if (ch != KEY_NOT_FOUND){
             if (seq.size() == 0 || seq.get(seq.size() - 1) != ch) {
+                if (seq.size() != 0){
+                    Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+                    long[] pattern = {0, 30};
+                    vibrator.vibrate(pattern, -1);
+                }
+
                 if (write) {
                     seq.add(ch);
                     Log.i("voice", ch + "");
