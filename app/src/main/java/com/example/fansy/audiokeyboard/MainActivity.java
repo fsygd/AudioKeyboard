@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<Character> seq = new ArrayList<Character>();
     String keys[] = new String[] {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
     String keysNearby[] = new String[26];
+    double keysNearbyProb[][] = new double[26][10];
     int key_left[] = new int[26];
     int key_right[] = new int[26];
     int key_top[] = new int[26];
@@ -153,14 +154,17 @@ public class MainActivity extends AppCompatActivity {
 
     public void initKeyboard(){
         int delta[][] = new int [][]{{-1, -1, 0, 0, 0, 1, 1},{0, 1, -1, 0, 1, -1, 0}};
-        for (int i = 0; i < 3; ++i)
+        double prob[] = new double[]{0.042, 0.042, 0.192, 0.376, 0.192, 0.044, 0.023};
+        for (int  i= 0; i < 3; ++i)
             for (int j = 0; j < keys[i].length(); ++j){
                 char ch = keys[i].charAt(j);
                 keysNearby[ch - 'a'] = "";
                 for (int k = 0; k < 7; ++k){
                     int _i = i + delta[0][k], _j = j + delta[1][k];
-                    if (_i >= 0 && _i < 3 && _j >= 0 && _j < keys[_i].length())
+                    if (_i >= 0 && _i < 3 && _j >= 0 && _j < keys[_i].length()) {
                         keysNearby[ch - 'a'] += keys[_i].charAt(_j);
+                        keysNearbyProb[ch - 'a'][keysNearby[ch - 'a'].length() - 1] = prob[k];
+                    }
                 }
             }
         for (int i = 0; i < 26; ++i)
@@ -207,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
             while ((line = reader.readLine()) != null){
                 lineNo++;
                 String[] ss = line.split(" ");
-                dict.add(new Word(ss[0], Integer.valueOf(ss[1])));
+                dict.add(new Word(ss[0], Double.valueOf(ss[1])));
                 if (lineNo == DICT_SIZE)
                     break;
             }
@@ -331,14 +335,53 @@ public class MainActivity extends AppCompatActivity {
                                     letters.get(j).freq += word.freq;
                         }
                     }
+                for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
+                    letters.get(i).freq *= keysNearbyProb[ch - 'a'][i];
                 Collections.sort(letters);
                 if (!write)
                     return letters.get(0).text.charAt(0);
                 stopVoice();
                 String rlist = "";
-                nowCh = ' ';
-                nowCh2 = ' ';
+                nowCh = '*';
+                nowCh2 = '*';
 
+                if (seq.size() == 1){
+                    //prob top 2
+                    if (letters.get(0).freq > 0) {
+                        nowCh = letters.get(0).text.charAt(0);
+                        playMedia(voices[nowCh - 'a']);
+                        for (int i = 0; i < emptyTimes; ++i)
+                            playMedia(voiceEmpty);
+                        rlist += nowCh;
+                        if (letters.get(1).freq * 10 > letters.get(0).freq){
+                            nowCh2 = letters.get(1).text.charAt(0);
+                            playMedia(voices[nowCh2 - 'a']);
+                            for (int i = 0; i < emptyTimes; ++i)
+                                playMedia(voiceEmpty);
+                            rlist += nowCh2;
+                        }
+                    }
+                    else {
+                        //current key
+                        nowCh = ch;
+                        playMedia(voices[nowCh - 'a']);
+                        for (int i = 0; i < emptyTimes; ++i)
+                            playMedia(voiceEmpty);
+                        rlist += nowCh;
+                    }
+                }
+                else{
+                    //current key
+                    nowCh = ch;
+                    playMedia(voices[nowCh - 'a']);
+                    for (int i = 0; i < emptyTimes; ++i)
+                        playMedia(voiceEmpty);
+                    rlist += nowCh;
+                }
+
+                //todo ...
+
+                /*
                 if (letters.get(0).freq > 0 && letters.get(0).text.charAt(0) != ch){
                     nowCh = letters.get(0).text.charAt(0);
                     nowCh2 = ch;
@@ -371,8 +414,8 @@ public class MainActivity extends AppCompatActivity {
                     for (int i = 0; i < emptyTimes; ++i)
                         playMedia(voiceEmpty);
                     rlist += nowCh;
-                }
-                readList.setText(rlist);
+                }*/
+                    readList.setText(rlist);
             }
         }
         return 'a';
@@ -449,8 +492,8 @@ public class MainActivity extends AppCompatActivity {
 
     class Word implements Comparable<Word>{
         String text;
-        int freq;
-        Word(String text, int freq){
+        double freq;
+        Word(String text, double freq){
             this.text = text;
             this.freq = freq;
         }
