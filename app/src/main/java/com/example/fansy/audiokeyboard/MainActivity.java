@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
     char nowCh2 = 0;
     ArrayList<Word> dict = new ArrayList();
     MediaPlayer voices[] = new MediaPlayer[26];
+    MediaPlayer voices_second[] = new MediaPlayer[26];
     final int emptyTimes = 4;
     MediaPlayer voiceEmpty = new MediaPlayer();
     ArrayList<MediaPlayer> mediaPlayers = new ArrayList<>();
@@ -249,9 +250,47 @@ public class MainActivity extends AppCompatActivity {
         voices[23] = MediaPlayer.create(this, R.raw.voiceover_x);
         voices[24] = MediaPlayer.create(this, R.raw.voiceover_y);
         voices[25] = MediaPlayer.create(this, R.raw.voiceover_z);
+        voices_second[0] = MediaPlayer.create(this, R.raw.second_a);
+        voices_second[1] = MediaPlayer.create(this, R.raw.second_b);
+        voices_second[2] = MediaPlayer.create(this, R.raw.second_c);
+        voices_second[3] = MediaPlayer.create(this, R.raw.second_d);
+        voices_second[4] = MediaPlayer.create(this, R.raw.second_e);
+        voices_second[5] = MediaPlayer.create(this, R.raw.second_f);
+        voices_second[6] = MediaPlayer.create(this, R.raw.second_g);
+        voices_second[7] = MediaPlayer.create(this, R.raw.second_h);
+        voices_second[8] = MediaPlayer.create(this, R.raw.second_i);
+        voices_second[9] = MediaPlayer.create(this, R.raw.second_j);
+        voices_second[10] = MediaPlayer.create(this, R.raw.second_k);
+        voices_second[11] = MediaPlayer.create(this, R.raw.second_l);
+        voices_second[12] = MediaPlayer.create(this, R.raw.second_m);
+        voices_second[13] = MediaPlayer.create(this, R.raw.second_n);
+        voices_second[14] = MediaPlayer.create(this, R.raw.second_o);
+        voices_second[15] = MediaPlayer.create(this, R.raw.second_p);
+        voices_second[16] = MediaPlayer.create(this, R.raw.second_q);
+        voices_second[17] = MediaPlayer.create(this, R.raw.second_r);
+        voices_second[18] = MediaPlayer.create(this, R.raw.second_s);
+        voices_second[19] = MediaPlayer.create(this, R.raw.second_t);
+        voices_second[20] = MediaPlayer.create(this, R.raw.second_u);
+        voices_second[21] = MediaPlayer.create(this, R.raw.second_v);
+        voices_second[22] = MediaPlayer.create(this, R.raw.second_w);
+        voices_second[23] = MediaPlayer.create(this, R.raw.second_x);
+        voices_second[24] = MediaPlayer.create(this, R.raw.second_y);
+        voices_second[25] = MediaPlayer.create(this, R.raw.second_z);
         voiceEmpty = MediaPlayer.create(this, R.raw.blank);
         for (int i = 0; i < 26; ++i) {
             voices[i].setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    if (mediaPlayers.size() > 0)
+                        mediaPlayers.remove(0);
+                    if (mediaPlayers.size() > 0)
+                        mediaPlayers.get(0).start();
+                }
+            });
+        }
+
+        for (int i = 0; i < 26; ++i) {
+            voices_second[i].setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
                     if (mediaPlayers.size() > 0)
@@ -350,14 +389,14 @@ public class MainActivity extends AppCompatActivity {
                     if (letters.get(0).freq > 0) {
                         nowCh = letters.get(0).text.charAt(0);
                         playMedia(voices[nowCh - 'a']);
-                        for (int i = 0; i < emptyTimes; ++i)
-                            playMedia(voiceEmpty);
+                        //for (int i = 0; i < emptyTimes; ++i)
+                        //    playMedia(voiceEmpty);
                         rlist += nowCh;
                         if (letters.get(1).freq * 10 > letters.get(0).freq){
                             nowCh2 = letters.get(1).text.charAt(0);
-                            playMedia(voices[nowCh2 - 'a']);
-                            for (int i = 0; i < emptyTimes; ++i)
-                                playMedia(voiceEmpty);
+                            playMedia(voices_second[nowCh2 - 'a']);
+                            //for (int i = 0; i < emptyTimes; ++i)
+                            //    playMedia(voiceEmpty);
                             rlist += nowCh2;
                         }
                     }
@@ -365,8 +404,8 @@ public class MainActivity extends AppCompatActivity {
                         //current key
                         nowCh = ch;
                         playMedia(voices[nowCh - 'a']);
-                        for (int i = 0; i < emptyTimes; ++i)
-                            playMedia(voiceEmpty);
+                        //for (int i = 0; i < emptyTimes; ++i)
+                        //    playMedia(voiceEmpty);
                         rlist += nowCh;
                     }
                 }
@@ -374,8 +413,8 @@ public class MainActivity extends AppCompatActivity {
                     //current key
                     nowCh = ch;
                     playMedia(voices[nowCh - 'a']);
-                    for (int i = 0; i < emptyTimes; ++i)
-                        playMedia(voiceEmpty);
+                    //for (int i = 0; i < emptyTimes; ++i)
+                    //    playMedia(voiceEmpty);
                     rlist += nowCh;
                 }
 
