@@ -324,16 +324,20 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    public void confirmWord(){
+        stopInput();
+        currentWord = "";
+        currentWord2 = "";
+        readList.setText("");
+        predict("", "");
+        refresh();
+    }
+
     public void initButtons(){
         confirmButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                stopInput();
-                currentWord = "";
-                currentWord2 = "";
-                readList.setText("");
-                predict("", "");
-                refresh();
+                confirmWord();
             }
         });
 
@@ -527,7 +531,16 @@ public class MainActivity extends AppCompatActivity {
         //left 0 right 1440 top 1554 bottom 2320
     }
 
-    final int STAYTIME = 400;
+    public void deleteLastCharacter(){
+        if (currentWord.length() > 0){
+            currentWord = currentWord.substring(0, currentWord.length() - 1);
+            currentWord2 = currentWord2.substring(0, currentWord2.length() - 1);
+            predict(currentWord, currentWord2);
+            refresh();
+        }
+    }
+
+    final int STAYTIME = 100;
     final int SLIPDIST = 90;
 
     public boolean onTouchEvent(MotionEvent event){
@@ -563,8 +576,13 @@ public class MainActivity extends AppCompatActivity {
                     Log.i("touch", String.valueOf(flag));
                     if (!flag && x < touchEventList.get(0).downX - SLIPDIST) {
                         Log.i("touch", "left wipe!");
+                        deleteLastCharacter();
                     }
-                    else {
+                    else if (!flag && x > touchEventList.get(0).downX + SLIPDIST){
+                        Log.i("touch", "righj wipe!");
+                        confirmWord();
+                    }
+                    else if (flag){
                         currentWord += nowCh;
                         currentWord2 += nowCh2;
                         predict(currentWord, currentWord2);
