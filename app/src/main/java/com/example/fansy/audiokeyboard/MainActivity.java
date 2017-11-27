@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     Button confirmButton, initModeButton;
     String currentWord = "";
     String currentWord2 = "";
+    String currentWordBaseline="";
     char nowCh = 0;
     char nowCh2 = 0;
     ArrayList<Word> dict = new ArrayList();
@@ -80,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void refresh(){
-        text.setText(currentWord + "\n" + currentWord2);
+        text.setText(currentWord + "\n" + currentWord2 + "\n" + currentWordBaseline);
         String str = "";
         for (int i = 0; i < candidates.size(); ++i)
             str += candidates.get(i).text + "\n";
@@ -328,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
         stopInput();
         currentWord = "";
         currentWord2 = "";
+        currentWordBaseline = "";
         readList.setText("");
         predict("", "");
         refresh();
@@ -535,6 +537,7 @@ public class MainActivity extends AppCompatActivity {
         if (currentWord.length() > 0){
             currentWord = currentWord.substring(0, currentWord.length() - 1);
             currentWord2 = currentWord2.substring(0, currentWord2.length() - 1);
+            currentWordBaseline = currentWordBaseline.substring(0, currentWordBaseline.length() - 1);
             predict(currentWord, currentWord2);
             refresh();
         }
@@ -585,6 +588,7 @@ public class MainActivity extends AppCompatActivity {
                     else if (flag){
                         currentWord += nowCh;
                         currentWord2 += nowCh2;
+                        currentWordBaseline += getBaseLineKey(x, y - location[1]);
                         predict(currentWord, currentWord2);
                         refresh();
                     }
