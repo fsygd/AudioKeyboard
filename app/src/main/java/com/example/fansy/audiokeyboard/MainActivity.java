@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     MediaPlayer voiceEmpty = new MediaPlayer();
     ArrayList<MediaPlayer> mediaPlayers = new ArrayList<>();
     ArrayList<Character> seq = new ArrayList<Character>();
+    ArrayList<TouchEvent> touchEventList = new ArrayList<>();
     String keys[] = new String[] {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
     String keysNearby[] = new String[26];
     double keysNearbyProb[][] = new double[26][10];
@@ -125,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void newPoint(int x, int y){
+        char temp;
         if (seq.size() == 0){
             if (initMode == INIT_MODE_ABSOLUTE) {
                 deltaX = 0;
@@ -133,7 +135,8 @@ public class MainActivity extends AppCompatActivity {
                 if (ch == KEY_NOT_FOUND)
                     return;
                 deltaY = (key_top[ch - 'a'] + key_bottom[ch - 'a']) / 2 - y;
-                addToSeq(getKeyByPosition(x, y), true);
+                temp = getKeyByPosition(x, y);
+//                addToSeq(getKeyByPosition(x, y), true);
             }
             else {
                 deltaX = 0;
@@ -145,12 +148,21 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("best", best + "");
                 deltaX = key_left[best - 'a'] - key_left[ch - 'a'];
                 deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
-                addToSeq(best, true);
+                temp = best;
+                //addToSeq(best, true);
             }
         }
-        else{
-            addToSeq(getKeyByPosition(x, y), true);
+        else {
+            temp = getKeyByPosition(x, y);
+            //addToSeq(getKeyByPosition(x, y), true);
         }
+        if (temp != KEY_NOT_FOUND && (touchEventList.size() == 0 || temp != touchEventList.get(touchEventList.size() - 1).downCh)){
+            TouchEvent touchEvent = new TouchEvent(x, y);
+            touchEvent.downCh = temp;
+            touchEvent.downTime = System.currentTimeMillis();
+            touchEventList.add(touchEvent);
+        }
+        addToSeq(temp, true);
     }
 
     public void initKeyboard(){
@@ -345,7 +357,9 @@ public class MainActivity extends AppCompatActivity {
 
     public char addToSeq(char ch, boolean write){
         if (ch != KEY_NOT_FOUND){
-            if (seq.size() == 0 || seq.get(seq.size() - 1) != ch) {
+            int last = touchEventList.size() - 1;
+            if (!write || (touchEventList.get(last).downCh == ch && touchEventList.get(last).isRead == false &&
+                    System.currentTimeMillis() - touchEventList.get(last).downTime > STAYTIME)) {
                 if (seq.size() != 0){
                     Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
                     long[] pattern = {0, 30};
@@ -379,6 +393,7 @@ public class MainActivity extends AppCompatActivity {
                 Collections.sort(letters);
                 if (!write)
                     return letters.get(0).text.charAt(0);
+                touchEventList.get(last).isRead = true;
                 stopVoice();
                 String rlist = "";
                 nowCh = '*';
@@ -454,7 +469,7 @@ public class MainActivity extends AppCompatActivity {
                         playMedia(voiceEmpty);
                     rlist += nowCh;
                 }*/
-                    readList.setText(rlist);
+                readList.setText(rlist);
             }
         }
         return 'a';
@@ -465,6 +480,20 @@ public class MainActivity extends AppCompatActivity {
         x += deltaX;
         y += deltaY;
         Log.i("test", "getKey x:" + x + " y:" + y);
+        char key = KEY_NOT_FOUND;
+        int min_dist = Integer.MAX_VALUE;
+        for (int i = 0; i < 26; ++i){
+            int _x = (key_left[i] + key_right[i]) / 2;
+            int _y = (key_top[i] + key_bottom[i]) / 2;
+            if ((x - _x) * (x - _x) + (y - _y) * (y - _y) < min_dist){
+                key = (char)('a' + i);
+                min_dist = (x - _x) * (x - _x) + (y - _y) * (y - _y);
+            }
+        }
+        return key;
+    }
+
+    char getBaseLineKey(int x, int y){
         char key = KEY_NOT_FOUND;
         int min_dist = Integer.MAX_VALUE;
         for (int i = 0; i < 26; ++i){
@@ -498,6 +527,9 @@ public class MainActivity extends AppCompatActivity {
         //left 0 right 1440 top 1554 bottom 2320
     }
 
+    final int STAYTIME = 400;
+    final int SLIPDIST = 90;
+
     public boolean onTouchEvent(MotionEvent event){
         if (event.getPointerCount() == 1 && event.getY() >= 1500) {
             int x = (int) event.getX();
@@ -507,11 +539,14 @@ public class MainActivity extends AppCompatActivity {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_POINTER_DOWN:
+                    touchEventList.clear();
+                    //Log.i("touch", "down!");
                     newPoint(x, y - location[1]);
                     //action down
                     break;
 
                 case MotionEvent.ACTION_MOVE:
+                    //Log.i("touch", "move!");
                     newPoint(x, y - location[1]);
                     //action move
                     break;
@@ -519,10 +554,22 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
                     stopInput();
-                    currentWord += nowCh;
-                    currentWord2 += nowCh2;
-                    predict(currentWord, currentWord2);
-                    refresh();
+                    boolean flag = false;
+                    for (int i = 0; i < touchEventList.size(); ++i)
+                        if (touchEventList.get(i).isRead == true) {
+                            flag = true;
+                            break;
+                        }
+                    Log.i("touch", String.valueOf(flag));
+                    if (!flag && x < touchEventList.get(0).downX - SLIPDIST) {
+                        Log.i("touch", "left wipe!");
+                    }
+                    else {
+                        currentWord += nowCh;
+                        currentWord2 += nowCh2;
+                        predict(currentWord, currentWord2);
+                        refresh();
+                    }
                     break;
             }
         }
@@ -542,6 +589,18 @@ public class MainActivity extends AppCompatActivity {
             if (this.freq > o.freq) return -1;
             if (this.freq < o.freq) return 1;
             return 0;
+        }
+    }
+
+    class TouchEvent{
+        public int downX, downY;
+        public boolean isRead;
+        long downTime;
+        char downCh;
+        public TouchEvent(int downX, int downY){
+            this.downX = downX;
+            this.downY = downY;
+            isRead = false;
         }
     }
 }
