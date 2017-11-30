@@ -505,6 +505,13 @@ public class MainActivity extends AppCompatActivity {
         refresh();
     }
 
+    public void deleteAllChar(){
+        currentWord = "";
+        currentWord2 = "";
+        predict(currentWord, currentWord2);
+        refresh();
+    }
+
     int downX, downY;
     long downTime;
     final long STAY_TIME = 200;
@@ -534,9 +541,14 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
                     stopInput();
+                    Log.i("gesture", downX + "," + downTime + " " + x + "," + System.currentTimeMillis());
                     if (x < downX - SLIP_DIST && System.currentTimeMillis() < downTime + STAY_TIME) {
                         Log.i("gesture", "left wipe");
                         deleteLastChar();
+                    }
+                    else if (x > downX + SLIP_DIST && System.currentTimeMillis() < downTime + STAY_TIME) {
+                        Log.i("gesture", "right wipe");
+                        deleteAllChar();
                     }
                     else {
                         currentWord += nowCh;
