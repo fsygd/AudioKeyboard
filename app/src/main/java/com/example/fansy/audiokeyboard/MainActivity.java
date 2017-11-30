@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     Button confirmButton, initModeButton;
     String currentWord = "";
     String currentWord2 = "";
+    String currentBaseline = "";
     char nowCh = 0;
     char nowCh2 = 0;
     ArrayList<Word> dict = new ArrayList();
@@ -79,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void refresh(){
-        text.setText(currentWord + "\n" + currentWord2);
+        text.setText(currentWord + "\n" + currentWord2 + "\n" + currentBaseline);
         String str = "";
         for (int i = 0; i < candidates.size(); ++i)
             str += candidates.get(i).text + "\n";
@@ -317,6 +318,7 @@ public class MainActivity extends AppCompatActivity {
                 stopInput();
                 currentWord = "";
                 currentWord2 = "";
+                currentBaseline = "";
                 readList.setText("");
                 predict("", "");
                 refresh();
@@ -476,6 +478,20 @@ public class MainActivity extends AppCompatActivity {
         return key;
     }
 
+    char getKeyBaseLine(int x, int y){
+        char key = KEY_NOT_FOUND;
+        int min_dist = Integer.MAX_VALUE;
+        for (int i = 0; i < 26; ++i){
+            int _x = (key_left[i] + key_right[i]) / 2;
+            int _y = (key_top[i] + key_bottom[i]) / 2;
+            if ((x - _x) * (x - _x) + (y - _y) * (y - _y) < min_dist){
+                key = (char)('a' + i);
+                min_dist = (x - _x) * (x - _x) + (y - _y) * (y - _y);
+            }
+        }
+        return key;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -500,6 +516,7 @@ public class MainActivity extends AppCompatActivity {
         if (currentWord.length() > 0) {
             currentWord = currentWord.substring(0, currentWord.length() - 1);
             currentWord2 = currentWord2.substring(0, currentWord2.length() - 1);
+            currentBaseline = currentBaseline.substring(0, currentBaseline.length() - 1);
         }
         predict(currentWord, currentWord2);
         refresh();
@@ -508,6 +525,7 @@ public class MainActivity extends AppCompatActivity {
     public void deleteAllChar(){
         currentWord = "";
         currentWord2 = "";
+        currentBaseline = "";
         predict(currentWord, currentWord2);
         refresh();
     }
@@ -553,6 +571,7 @@ public class MainActivity extends AppCompatActivity {
                     else {
                         currentWord += nowCh;
                         currentWord2 += nowCh2;
+                        currentBaseline += getKeyBaseLine(x, y - location[1]);
                         predict(currentWord, currentWord2);
                         refresh();
                     }

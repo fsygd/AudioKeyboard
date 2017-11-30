@@ -18,7 +18,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="50dp"
-        android:layout_marginTop="160dp"
+        android:layout_marginTop="130dp"
         android:text="TextView"
         android:textSize="30sp"
         android:layout_alignParentTop="true"
@@ -30,7 +30,7 @@
         android:layout_height="wrap_content"
         android:layout_alignStart="@+id/text"
         android:layout_below="@+id/text"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="54dp"
         android:textSize="30sp"
         android:text="" />
 
