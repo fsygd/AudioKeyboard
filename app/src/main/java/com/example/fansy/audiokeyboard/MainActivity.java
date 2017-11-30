@@ -496,6 +496,20 @@ public class MainActivity extends AppCompatActivity {
         //left 0 right 1440 top 1554 bottom 2320
     }
 
+    public void deleteLastChar() {
+        if (currentWord.length() > 0) {
+            currentWord = currentWord.substring(0, currentWord.length() - 1);
+            currentWord2 = currentWord2.substring(0, currentWord2.length() - 1);
+        }
+        predict(currentWord, currentWord2);
+        refresh();
+    }
+
+    int downX, downY;
+    long downTime;
+    final long STAY_TIME = 200;
+    final int SLIP_DIST = 90;
+
     public boolean onTouchEvent(MotionEvent event){
         if (event.getPointerCount() == 1 && event.getY() >= 1500) {
             int x = (int) event.getX();
@@ -505,6 +519,9 @@ public class MainActivity extends AppCompatActivity {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_POINTER_DOWN:
+                    downX = x;
+                    downY = y;
+                    downTime = System.currentTimeMillis();
                     newPoint(x, y - location[1]);
                     //action down
                     break;
@@ -517,10 +534,16 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
                     stopInput();
-                    currentWord += nowCh;
-                    currentWord2 += nowCh2;
-                    predict(currentWord, currentWord2);
-                    refresh();
+                    if (x < downX - SLIP_DIST && System.currentTimeMillis() < downTime + STAY_TIME) {
+                        Log.i("gesture", "left wipe");
+                        deleteLastChar();
+                    }
+                    else {
+                        currentWord += nowCh;
+                        currentWord2 += nowCh2;
+                        predict(currentWord, currentWord2);
+                        refresh();
+                    }
                     break;
             }
         }
