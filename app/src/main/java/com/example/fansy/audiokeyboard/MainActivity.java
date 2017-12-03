@@ -22,28 +22,29 @@ public class MainActivity extends AppCompatActivity {
     final int INIT_MODE_RELATIVE = 1;
     int initMode = INIT_MODE_ABSOLUTE;
     ImageView keyboard;
-    TextView text, candidatesView, readList;
+    TextView text, candidatesView, readListView;
     Button confirmButton, initModeButton;
-    String currentWord = "";
-    String currentWord2 = "";
+    String readList = ""; //current voice list
+    String currentWord = ""; //most possible char sequence
+    String currentWord2 = ""; //second possible char sequence
     String currentBaseline = "";
-    char nowCh = 0;
-    char nowCh2 = 0;
+    char nowCh = 0; //the most possible char
+    char nowCh2 = 0; //the second possible char, '*' if less than 1/10 of the most possible char
     ArrayList<Word> dict = new ArrayList();
     MediaPlayer voices[] = new MediaPlayer[26];
     MediaPlayer voices_second[] = new MediaPlayer[26];
-    final int emptyTimes = 4;
     MediaPlayer voiceEmpty = new MediaPlayer();
-    ArrayList<MediaPlayer> mediaPlayers = new ArrayList<>();
-    ArrayList<Character> seq = new ArrayList<Character>();
+    ArrayList<MediaPlayer> mediaPlayers = new ArrayList<>(); //mediaPlayer
+    ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keys[] = new String[] {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
     String keysNearby[] = new String[26];
-    double keysNearbyProb[][] = new double[26][10];
+    double keysNearbyProb[][] = new double[26][26];
     int key_left[] = new int[26];
     int key_right[] = new int[26];
     int key_top[] = new int[26];
     int key_bottom[] = new int[26];
-    int deltaX = 0, deltaY = 0;
+    int deltaX = 0, deltaY = 0; //translation of XY coordinate
+    // init the coordinates of the key a-z on phone
     public void initKeyPosition(){
         key_left['q' - 'a'] = 15;
         key_right['q' - 'a'] = 137;
@@ -79,12 +80,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //redraw the views
     public void refresh(){
         text.setText(currentWord + "\n" + currentWord2 + "\n" + currentBaseline);
         String str = "";
         for (int i = 0; i < candidates.size(); ++i)
             str += candidates.get(i).text + "\n";
         candidatesView.setText(str);
+        readListView.setText(readList);
         if (initMode == INIT_MODE_ABSOLUTE)
             initModeButton.setText("absolute");
         else
@@ -93,6 +96,8 @@ public class MainActivity extends AppCompatActivity {
 
     final int MAX_CANDIDATE = 5;
     public ArrayList<Word> candidates = new ArrayList<Word>();
+
+    //predict the candidates according the currentWord and currentWord2 and refresh
     public void predict(String currentWord, String currentWord2){
         candidates.clear();
         for (int i = 0; i < dict.size(); ++i){
@@ -114,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
         refresh();
     }
 
+    //todo reconstruct
     public void stopVoice(){
         if (mediaPlayers.size() > 0)
             mediaPlayers.get(0).pause();
@@ -123,16 +129,22 @@ public class MainActivity extends AppCompatActivity {
     public void stopInput(){
         seq.clear();
         stopVoice();
+        currentWord = "";
+        currentWord2 = "";
+        currentBaseline = "";
+        readList = "";
+        predict(currentWord, currentWord2);
+        refresh();
     }
 
+    //new touch point in keyboard area
     public void newPoint(int x, int y){
-        if (seq.size() == 0){
+        if (seq.size() == 0){//first touch
             if (initMode == INIT_MODE_ABSOLUTE) {
                 deltaX = 0;
                 deltaY = 0;
                 char ch = getKeyByPosition(x, y);
-                if (ch == KEY_NOT_FOUND)
-                    return;
+                deltaX = (key_left[ch - 'a'] + key_right[ch - 'a']) / 2 - x; //move to the centre of the key
                 deltaY = (key_top[ch - 'a'] + key_bottom[ch - 'a']) / 2 - y;
                 addToSeq(getKeyByPosition(x, y), true);
             }
@@ -140,11 +152,8 @@ public class MainActivity extends AppCompatActivity {
                 deltaX = 0;
                 deltaY = 0;
                 char ch = getKeyByPosition(x, y);
-                if (ch == KEY_NOT_FOUND)
-                    return;
                 char best = addToSeq(ch, false);
-                Log.i("best", best + "");
-                deltaX = key_left[best - 'a'] - key_left[ch - 'a'];
+                deltaX = (key_left[best - 'a'] + key_right[best - 'a']) / 2 - x; //move to the centre of the most possible key
                 deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
                 addToSeq(best, true);
             }
@@ -154,6 +163,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //init keysNearby and keysNearbyProb
     public void initKeyboard(){
         int delta[][] = new int [][]{{-1, -1, 0, 0, 0, 1, 1},{0, 1, -1, 0, 1, -1, 0}};
         double prob[] = new double[]{0.042, 0.042, 0.192, 0.376, 0.192, 0.044, 0.023};
@@ -169,40 +179,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-        for (int i = 0; i < 26; ++i)
-            Log.i("keyboard", (char)('a' + i) + " " + keysNearby[i]);
-        /*keyboard.setOnTouchListener(new View.OnTouchListener(){
-            @Override
-            public boolean onTouch(View v, MotionEvent event){
-                if (event.getPointerCount() >= 2)
-                    return false;
-                int x = (int)event.getX();
-                int y = (int)event.getY();
-                switch (event.getActionMasked()){
-                    case MotionEvent.ACTION_DOWN:
-                    case MotionEvent.ACTION_POINTER_DOWN:
-                        newPoint(x, y);
-                        //action down
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        newPoint(x, y);
-                        //action move
-                        break;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_POINTER_UP:
-                        stopInput();
-                        currentWord += nowCh;
-                        currentWord2 += nowCh2;
-                        predict(currentWord, currentWord2);
-                        refresh();
-                        break;
-                }
-                return true;
-            }
-        });*/
     }
 
     final int DICT_SIZE = 10000;
+    //read dict from file
     public void initDict(){
         BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict)));
         String line;
@@ -218,10 +198,11 @@ public class MainActivity extends AppCompatActivity {
             reader.close();
             Log.i("init", "read dictionary finished " + dict.size());
         } catch (Exception e){
-            Log.i("error", "read dictionary failed");
+            Log.i("init", "read dictionary failed");
         }
     }
 
+    //todo reconstruct
     public void initVoice() {
         voices[0] = MediaPlayer.create(this, R.raw.voiceover_a);
         voices[1] = MediaPlayer.create(this, R.raw.voiceover_b);
@@ -316,12 +297,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 stopInput();
-                currentWord = "";
-                currentWord2 = "";
-                currentBaseline = "";
-                readList.setText("");
-                predict("", "");
-                refresh();
             }
         });
 
@@ -337,25 +312,22 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    //todo reconstruct
     public void playMedia(MediaPlayer mp){
         mediaPlayers.add(mp);
         if (mediaPlayers.size() == 1)
             mediaPlayers.get(0).start();
     }
 
+    //if write=false, just return the most possible key
     public char addToSeq(char ch, boolean write){
         if (ch != KEY_NOT_FOUND){
             if (seq.size() == 0 || seq.get(seq.size() - 1) != ch) {
-                if (seq.size() != 0){
-                    Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
-                    long[] pattern = {0, 30};
-                    vibrator.vibrate(pattern, -1);
-                }
+                //make a vibrate
+                Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+                long[] pattern = {0, 30};
+                vibrator.vibrate(pattern, -1);
 
-                if (write) {
-                    seq.add(ch);
-                    Log.i("voice", ch + "");
-                }
                 ArrayList<Word> letters = new ArrayList<Word>();
                 for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
                     letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
@@ -377,10 +349,16 @@ public class MainActivity extends AppCompatActivity {
                 for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
                     letters.get(i).freq *= keysNearbyProb[ch - 'a'][i];
                 Collections.sort(letters);
-                if (!write)
-                    return letters.get(0).text.charAt(0);
+                if (!write) {
+                    if (letters.get(0).freq > 0)
+                        return letters.get(0).text.charAt(0);
+                    else
+                        return ch;
+                }
+                //write=true
+                seq.add(ch);
                 stopVoice();
-                String rlist = "";
+                readList = "";
                 nowCh = '*';
                 nowCh2 = '*';
 
@@ -389,82 +367,37 @@ public class MainActivity extends AppCompatActivity {
                     if (letters.get(0).freq > 0) {
                         nowCh = letters.get(0).text.charAt(0);
                         playMedia(voices[nowCh - 'a']);
-                        //for (int i = 0; i < emptyTimes; ++i)
-                        //    playMedia(voiceEmpty);
-                        rlist += nowCh;
+                        readList += nowCh;
                         if (letters.get(1).freq * 10 > letters.get(0).freq){
                             nowCh2 = letters.get(1).text.charAt(0);
                             playMedia(voices_second[nowCh2 - 'a']);
-                            //for (int i = 0; i < emptyTimes; ++i)
-                            //    playMedia(voiceEmpty);
-                            rlist += nowCh2;
+                            readList += nowCh2;
                         }
                     }
                     else {
                         //current key
                         nowCh = ch;
                         playMedia(voices[nowCh - 'a']);
-                        //for (int i = 0; i < emptyTimes; ++i)
-                        //    playMedia(voiceEmpty);
-                        rlist += nowCh;
+                        readList += nowCh;
                     }
                 }
                 else{
                     //current key
                     nowCh = ch;
                     playMedia(voices[nowCh - 'a']);
-                    //for (int i = 0; i < emptyTimes; ++i)
-                    //    playMedia(voiceEmpty);
-                    rlist += nowCh;
+                    readList += nowCh;
                 }
-
-                //todo ...
-
-                /*
-                if (letters.get(0).freq > 0 && letters.get(0).text.charAt(0) != ch){
-                    nowCh = letters.get(0).text.charAt(0);
-                    nowCh2 = ch;
-                    playMedia(voices[nowCh - 'a']);
-                    for (int i = 0; i < emptyTimes; ++i)
-                        playMedia(voiceEmpty);
-                    playMedia(voices[nowCh2 - 'a']);
-                    for (int i = 0; i < emptyTimes; ++i)
-                        playMedia(voiceEmpty);
-                    rlist += nowCh;
-                    rlist += nowCh2;
-                }
-                else if (letters.get(0).freq > 0){
-                    nowCh = ch;
-                    playMedia(voices[nowCh - 'a']);
-                    for (int i = 0; i < emptyTimes; ++i)
-                        playMedia(voiceEmpty);
-                    rlist += nowCh;
-                    if (letters.size() >= 2 && letters.get(1).freq > 0){
-                        nowCh2 = letters.get(1).text.charAt(0);
-                        playMedia(voices[nowCh2 - 'a']);
-                        for (int i = 0; i < emptyTimes; ++i)
-                            playMedia(voiceEmpty);
-                        rlist += nowCh2;
-                    }
-                }
-                else{
-                    nowCh = ch;
-                    playMedia(voices[nowCh - 'a']);
-                    for (int i = 0; i < emptyTimes; ++i)
-                        playMedia(voiceEmpty);
-                    rlist += nowCh;
-                }*/
-                readList.setText(rlist);
+                refresh();
             }
         }
         return 'a';
     }
 
     final char KEY_NOT_FOUND = 0;
+    //get key with translation
     char getKeyByPosition(int x, int y){
         x += deltaX;
         y += deltaY;
-        Log.i("test", "getKey x:" + x + " y:" + y);
         char key = KEY_NOT_FOUND;
         int min_dist = Integer.MAX_VALUE;
         for (int i = 0; i < 26; ++i){
@@ -478,6 +411,7 @@ public class MainActivity extends AppCompatActivity {
         return key;
     }
 
+    //get key without translation
     char getKeyBaseLine(int x, int y){
         char key = KEY_NOT_FOUND;
         int min_dist = Integer.MAX_VALUE;
@@ -501,7 +435,7 @@ public class MainActivity extends AppCompatActivity {
         text = (TextView)findViewById(R.id.text);
         candidatesView = (TextView)findViewById(R.id.candidates);
         confirmButton = (Button)findViewById(R.id.confirm_button);
-        readList = (TextView)findViewById(R.id.readList);
+        readListView = (TextView)findViewById(R.id.readList);
         initModeButton = (Button)findViewById(R.id.init_mode_button);
 
         initKeyPosition();
@@ -536,7 +470,7 @@ public class MainActivity extends AppCompatActivity {
     final int SLIP_DIST = 90;
 
     public boolean onTouchEvent(MotionEvent event){
-        if (event.getPointerCount() == 1 && event.getY() >= 1500) {
+        if (event.getPointerCount() == 1 && event.getY() >= 1500) {//in the keyboard area
             int x = (int) event.getX();
             int y = (int) event.getY();
             int[] location = new int[2];
@@ -559,13 +493,10 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
                     stopInput();
-                    Log.i("gesture", downX + "," + downTime + " " + x + "," + System.currentTimeMillis());
                     if (x < downX - SLIP_DIST && System.currentTimeMillis() < downTime + STAY_TIME) {
-                        Log.i("gesture", "left wipe");
                         deleteLastChar();
                     }
                     else if (x > downX + SLIP_DIST && System.currentTimeMillis() < downTime + STAY_TIME) {
-                        Log.i("gesture", "right wipe");
                         deleteAllChar();
                     }
                     else {
