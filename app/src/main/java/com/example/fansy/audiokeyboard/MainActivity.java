@@ -446,12 +446,21 @@ public class MainActivity extends AppCompatActivity {
         //left 0 right 1440 top 1554 bottom 2320
     }
 
+    @Override
+    public void onDestroy(){
+        if (current != null){
+            current.release();
+            current = null;
+        }
+        super.onDestroy();
+    }
     public void deleteLastChar() {
         if (currentWord.length() > 0) {
             currentWord = currentWord.substring(0, currentWord.length() - 1);
             currentWord2 = currentWord2.substring(0, currentWord2.length() - 1);
             currentBaseline = currentBaseline.substring(0, currentBaseline.length() - 1);
         }
+        readList = "";
         predict(currentWord, currentWord2);
         refresh();
     }
@@ -460,6 +469,7 @@ public class MainActivity extends AppCompatActivity {
         currentWord = "";
         currentWord2 = "";
         currentBaseline = "";
+        readList = "";
         predict(currentWord, currentWord2);
         refresh();
     }
