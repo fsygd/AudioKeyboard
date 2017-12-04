@@ -16,8 +16,14 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
+    //voice manager
+    HashMap<String, int[]> voice = new HashMap<>();
+    ArrayList<Integer> myPlayList = new ArrayList<>();
+    MediaPlayer current;
+
     final int INIT_MODE_ABSOLUTE = 0;
     final int INIT_MODE_RELATIVE = 1;
     int initMode = INIT_MODE_ABSOLUTE;
@@ -121,14 +127,21 @@ public class MainActivity extends AppCompatActivity {
 
     //todo reconstruct
     public void stopVoice(){
-        if (mediaPlayers.size() > 0)
-            mediaPlayers.get(0).pause();
-        mediaPlayers.clear();
+        if (current != null) {
+            current.stop();
+            current.reset();
+            current.release();
+            current = null;
+        }
+        myPlayList.clear();
     }
 
     public void stopInput(){
         seq.clear();
         stopVoice();
+    }
+
+    public void finishWord(){
         currentWord = "";
         currentWord2 = "";
         currentBaseline = "";
@@ -204,92 +217,62 @@ public class MainActivity extends AppCompatActivity {
 
     //todo reconstruct
     public void initVoice() {
-        voices[0] = MediaPlayer.create(this, R.raw.voiceover_a);
-        voices[1] = MediaPlayer.create(this, R.raw.voiceover_b);
-        voices[2] = MediaPlayer.create(this, R.raw.voiceover_c);
-        voices[3] = MediaPlayer.create(this, R.raw.voiceover_d);
-        voices[4] = MediaPlayer.create(this, R.raw.voiceover_e);
-        voices[5] = MediaPlayer.create(this, R.raw.voiceover_f);
-        voices[6] = MediaPlayer.create(this, R.raw.voiceover_g);
-        voices[7] = MediaPlayer.create(this, R.raw.voiceover_h);
-        voices[8] = MediaPlayer.create(this, R.raw.voiceover_i);
-        voices[9] = MediaPlayer.create(this, R.raw.voiceover_j);
-        voices[10] = MediaPlayer.create(this, R.raw.voiceover_k);
-        voices[11] = MediaPlayer.create(this, R.raw.voiceover_l);
-        voices[12] = MediaPlayer.create(this, R.raw.voiceover_m);
-        voices[13] = MediaPlayer.create(this, R.raw.voiceover_n);
-        voices[14] = MediaPlayer.create(this, R.raw.voiceover_o);
-        voices[15] = MediaPlayer.create(this, R.raw.voiceover_p);
-        voices[16] = MediaPlayer.create(this, R.raw.voiceover_q);
-        voices[17] = MediaPlayer.create(this, R.raw.voiceover_r);
-        voices[18] = MediaPlayer.create(this, R.raw.voiceover_s);
-        voices[19] = MediaPlayer.create(this, R.raw.voiceover_t);
-        voices[20] = MediaPlayer.create(this, R.raw.voiceover_u);
-        voices[21] = MediaPlayer.create(this, R.raw.voiceover_v);
-        voices[22] = MediaPlayer.create(this, R.raw.voiceover_w);
-        voices[23] = MediaPlayer.create(this, R.raw.voiceover_x);
-        voices[24] = MediaPlayer.create(this, R.raw.voiceover_y);
-        voices[25] = MediaPlayer.create(this, R.raw.voiceover_z);
-        voices_second[0] = MediaPlayer.create(this, R.raw.second_a);
-        voices_second[1] = MediaPlayer.create(this, R.raw.second_b);
-        voices_second[2] = MediaPlayer.create(this, R.raw.second_c);
-        voices_second[3] = MediaPlayer.create(this, R.raw.second_d);
-        voices_second[4] = MediaPlayer.create(this, R.raw.second_e);
-        voices_second[5] = MediaPlayer.create(this, R.raw.second_f);
-        voices_second[6] = MediaPlayer.create(this, R.raw.second_g);
-        voices_second[7] = MediaPlayer.create(this, R.raw.second_h);
-        voices_second[8] = MediaPlayer.create(this, R.raw.second_i);
-        voices_second[9] = MediaPlayer.create(this, R.raw.second_j);
-        voices_second[10] = MediaPlayer.create(this, R.raw.second_k);
-        voices_second[11] = MediaPlayer.create(this, R.raw.second_l);
-        voices_second[12] = MediaPlayer.create(this, R.raw.second_m);
-        voices_second[13] = MediaPlayer.create(this, R.raw.second_n);
-        voices_second[14] = MediaPlayer.create(this, R.raw.second_o);
-        voices_second[15] = MediaPlayer.create(this, R.raw.second_p);
-        voices_second[16] = MediaPlayer.create(this, R.raw.second_q);
-        voices_second[17] = MediaPlayer.create(this, R.raw.second_r);
-        voices_second[18] = MediaPlayer.create(this, R.raw.second_s);
-        voices_second[19] = MediaPlayer.create(this, R.raw.second_t);
-        voices_second[20] = MediaPlayer.create(this, R.raw.second_u);
-        voices_second[21] = MediaPlayer.create(this, R.raw.second_v);
-        voices_second[22] = MediaPlayer.create(this, R.raw.second_w);
-        voices_second[23] = MediaPlayer.create(this, R.raw.second_x);
-        voices_second[24] = MediaPlayer.create(this, R.raw.second_y);
-        voices_second[25] = MediaPlayer.create(this, R.raw.second_z);
-        voiceEmpty = MediaPlayer.create(this, R.raw.blank);
-        for (int i = 0; i < 26; ++i) {
-            voices[i].setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    if (mediaPlayers.size() > 0)
-                        mediaPlayers.remove(0);
-                    if (mediaPlayers.size() > 0)
-                        mediaPlayers.get(0).start();
-                }
-            });
-        }
+        voice.put("first", new int[26]);
+        voice.put("second", new int[26]);
 
-        for (int i = 0; i < 26; ++i) {
-            voices_second[i].setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mp) {
-                    if (mediaPlayers.size() > 0)
-                        mediaPlayers.remove(0);
-                    if (mediaPlayers.size() > 0)
-                        mediaPlayers.get(0).start();
-                }
-            });
-        }
+        voice.get("first")[0] = R.raw.voiceover_a;
+        voice.get("first")[1] = R.raw.voiceover_b;
+        voice.get("first")[2] = R.raw.voiceover_c;
+        voice.get("first")[3] = R.raw.voiceover_d;
+        voice.get("first")[4] = R.raw.voiceover_e;
+        voice.get("first")[5] = R.raw.voiceover_f;
+        voice.get("first")[6] = R.raw.voiceover_g;
+        voice.get("first")[7] = R.raw.voiceover_h;
+        voice.get("first")[8] = R.raw.voiceover_i;
+        voice.get("first")[9] = R.raw.voiceover_j;
+        voice.get("first")[10] = R.raw.voiceover_k;
+        voice.get("first")[11] = R.raw.voiceover_l;
+        voice.get("first")[12] = R.raw.voiceover_m;
+        voice.get("first")[13] = R.raw.voiceover_n;
+        voice.get("first")[14] = R.raw.voiceover_o;
+        voice.get("first")[15] = R.raw.voiceover_p;
+        voice.get("first")[16] = R.raw.voiceover_q;
+        voice.get("first")[17] = R.raw.voiceover_r;
+        voice.get("first")[18] = R.raw.voiceover_s;
+        voice.get("first")[19] = R.raw.voiceover_t;
+        voice.get("first")[20] = R.raw.voiceover_u;
+        voice.get("first")[21] = R.raw.voiceover_v;
+        voice.get("first")[22] = R.raw.voiceover_w;
+        voice.get("first")[23] = R.raw.voiceover_x;
+        voice.get("first")[24] = R.raw.voiceover_y;
+        voice.get("first")[25] = R.raw.voiceover_z;
 
-        voiceEmpty.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                if (mediaPlayers.size() > 0)
-                    mediaPlayers.remove(0);
-                if (mediaPlayers.size() > 0)
-                    mediaPlayers.get(0).start();
-            }
-        });
+        voice.get("second")[0] = R.raw.second_a;
+        voice.get("second")[1] = R.raw.second_b;
+        voice.get("second")[2] = R.raw.second_c;
+        voice.get("second")[3] = R.raw.second_d;
+        voice.get("second")[4] = R.raw.second_e;
+        voice.get("second")[5] = R.raw.second_f;
+        voice.get("second")[6] = R.raw.second_g;
+        voice.get("second")[7] = R.raw.second_h;
+        voice.get("second")[8] = R.raw.second_i;
+        voice.get("second")[9] = R.raw.second_j;
+        voice.get("second")[10] = R.raw.second_k;
+        voice.get("second")[11] = R.raw.second_l;
+        voice.get("second")[12] = R.raw.second_m;
+        voice.get("second")[13] = R.raw.second_n;
+        voice.get("second")[14] = R.raw.second_o;
+        voice.get("second")[15] = R.raw.second_p;
+        voice.get("second")[16] = R.raw.second_q;
+        voice.get("second")[17] = R.raw.second_r;
+        voice.get("second")[18] = R.raw.second_s;
+        voice.get("second")[19] = R.raw.second_t;
+        voice.get("second")[20] = R.raw.second_u;
+        voice.get("second")[21] = R.raw.second_v;
+        voice.get("second")[22] = R.raw.second_w;
+        voice.get("second")[23] = R.raw.second_x;
+        voice.get("second")[24] = R.raw.second_y;
+        voice.get("second")[25] = R.raw.second_z;
     }
 
     public void initButtons(){
@@ -297,6 +280,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 stopInput();
+                finishWord();
             }
         });
 
@@ -312,11 +296,26 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    public void playFirstVoice(){
+        if (current == null && !myPlayList.isEmpty()){
+            current = MediaPlayer.create(this, myPlayList.get(0));
+            myPlayList.remove(0);
+            current.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    mp.release();
+                    current = null;
+                    playFirstVoice();
+                }
+            });
+            current.start();
+        }
+    }
+
     //todo reconstruct
-    public void playMedia(MediaPlayer mp){
-        mediaPlayers.add(mp);
-        if (mediaPlayers.size() == 1)
-            mediaPlayers.get(0).start();
+    public void playMedia(String tag, int index){
+        myPlayList.add(voice.get(tag)[index]);
+        playFirstVoice();
     }
 
     //if write=false, just return the most possible key
@@ -357,6 +356,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 //write=true
                 seq.add(ch);
+                Log.i("seq", ch + "");
                 stopVoice();
                 readList = "";
                 nowCh = '*';
@@ -366,25 +366,25 @@ public class MainActivity extends AppCompatActivity {
                     //prob top 2
                     if (letters.get(0).freq > 0) {
                         nowCh = letters.get(0).text.charAt(0);
-                        playMedia(voices[nowCh - 'a']);
+                        playMedia("first", nowCh - 'a');
                         readList += nowCh;
                         if (letters.get(1).freq * 10 > letters.get(0).freq){
                             nowCh2 = letters.get(1).text.charAt(0);
-                            playMedia(voices_second[nowCh2 - 'a']);
+                            playMedia("second", nowCh2 - 'a');
                             readList += nowCh2;
                         }
                     }
                     else {
                         //current key
                         nowCh = ch;
-                        playMedia(voices[nowCh - 'a']);
+                        playMedia("first", nowCh - 'a');
                         readList += nowCh;
                     }
                 }
                 else{
                     //current key
                     nowCh = ch;
-                    playMedia(voices[nowCh - 'a']);
+                    playMedia("first", nowCh - 'a');
                     readList += nowCh;
                 }
                 refresh();
