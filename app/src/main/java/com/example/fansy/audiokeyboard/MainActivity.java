@@ -220,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
         voice.put("first", new int[26]);
         voice.put("second", new int[26]);
         voice.put("ios11_50", new int[26]);
+        voice.put("ios11da", new int[1]);
 
         voice.get("first")[ 0] = R.raw.voiceover_a;
         voice.get("first")[ 1] = R.raw.voiceover_b;
@@ -301,6 +302,8 @@ public class MainActivity extends AppCompatActivity {
         voice.get("ios11_50")[23] = R.raw.ios11_50_x;
         voice.get("ios11_50")[24] = R.raw.ios11_50_y;
         voice.get("ios11_50")[25] = R.raw.ios11_50_z;
+
+        voice.get("ios11da")[0] = R.raw.ios11_da;
     }
 
     public void initButtons(){
@@ -390,6 +393,7 @@ public class MainActivity extends AppCompatActivity {
                 nowCh = '*';
                 nowCh2 = '*';
 
+                playMedia("ios11da", 0);
                 if (seq.size() == 1){
                     //prob top 2
                     if (letters.get(0).freq > 0) {
