@@ -219,17 +219,18 @@ public class MainActivity extends AppCompatActivity {
     public void initVoice() {
         voice.put("first", new int[26]);
         voice.put("second", new int[26]);
+        voice.put("ios11_50", new int[26]);
 
-        voice.get("first")[0] = R.raw.voiceover_a;
-        voice.get("first")[1] = R.raw.voiceover_b;
-        voice.get("first")[2] = R.raw.voiceover_c;
-        voice.get("first")[3] = R.raw.voiceover_d;
-        voice.get("first")[4] = R.raw.voiceover_e;
-        voice.get("first")[5] = R.raw.voiceover_f;
-        voice.get("first")[6] = R.raw.voiceover_g;
-        voice.get("first")[7] = R.raw.voiceover_h;
-        voice.get("first")[8] = R.raw.voiceover_i;
-        voice.get("first")[9] = R.raw.voiceover_j;
+        voice.get("first")[ 0] = R.raw.voiceover_a;
+        voice.get("first")[ 1] = R.raw.voiceover_b;
+        voice.get("first")[ 2] = R.raw.voiceover_c;
+        voice.get("first")[ 3] = R.raw.voiceover_d;
+        voice.get("first")[ 4] = R.raw.voiceover_e;
+        voice.get("first")[ 5] = R.raw.voiceover_f;
+        voice.get("first")[ 6] = R.raw.voiceover_g;
+        voice.get("first")[ 7] = R.raw.voiceover_h;
+        voice.get("first")[ 8] = R.raw.voiceover_i;
+        voice.get("first")[ 9] = R.raw.voiceover_j;
         voice.get("first")[10] = R.raw.voiceover_k;
         voice.get("first")[11] = R.raw.voiceover_l;
         voice.get("first")[12] = R.raw.voiceover_m;
@@ -247,16 +248,16 @@ public class MainActivity extends AppCompatActivity {
         voice.get("first")[24] = R.raw.voiceover_y;
         voice.get("first")[25] = R.raw.voiceover_z;
 
-        voice.get("second")[0] = R.raw.second_a;
-        voice.get("second")[1] = R.raw.second_b;
-        voice.get("second")[2] = R.raw.second_c;
-        voice.get("second")[3] = R.raw.second_d;
-        voice.get("second")[4] = R.raw.second_e;
-        voice.get("second")[5] = R.raw.second_f;
-        voice.get("second")[6] = R.raw.second_g;
-        voice.get("second")[7] = R.raw.second_h;
-        voice.get("second")[8] = R.raw.second_i;
-        voice.get("second")[9] = R.raw.second_j;
+        voice.get("second")[ 0] = R.raw.second_a;
+        voice.get("second")[ 1] = R.raw.second_b;
+        voice.get("second")[ 2] = R.raw.second_c;
+        voice.get("second")[ 3] = R.raw.second_d;
+        voice.get("second")[ 4] = R.raw.second_e;
+        voice.get("second")[ 5] = R.raw.second_f;
+        voice.get("second")[ 6] = R.raw.second_g;
+        voice.get("second")[ 7] = R.raw.second_h;
+        voice.get("second")[ 8] = R.raw.second_i;
+        voice.get("second")[ 9] = R.raw.second_j;
         voice.get("second")[10] = R.raw.second_k;
         voice.get("second")[11] = R.raw.second_l;
         voice.get("second")[12] = R.raw.second_m;
@@ -273,6 +274,33 @@ public class MainActivity extends AppCompatActivity {
         voice.get("second")[23] = R.raw.second_x;
         voice.get("second")[24] = R.raw.second_y;
         voice.get("second")[25] = R.raw.second_z;
+
+        voice.get("ios11_50")[ 0] = R.raw.ios11_50_a;
+        voice.get("ios11_50")[ 1] = R.raw.ios11_50_b;
+        voice.get("ios11_50")[ 2] = R.raw.ios11_50_c;
+        voice.get("ios11_50")[ 3] = R.raw.ios11_50_d;
+        voice.get("ios11_50")[ 4] = R.raw.ios11_50_e;
+        voice.get("ios11_50")[ 5] = R.raw.ios11_50_f;
+        voice.get("ios11_50")[ 6] = R.raw.ios11_50_g;
+        voice.get("ios11_50")[ 7] = R.raw.ios11_50_h;
+        voice.get("ios11_50")[ 8] = R.raw.ios11_50_i;
+        voice.get("ios11_50")[ 9] = R.raw.ios11_50_j;
+        voice.get("ios11_50")[10] = R.raw.ios11_50_k;
+        voice.get("ios11_50")[11] = R.raw.ios11_50_l;
+        voice.get("ios11_50")[12] = R.raw.ios11_50_m;
+        voice.get("ios11_50")[13] = R.raw.ios11_50_n;
+        voice.get("ios11_50")[14] = R.raw.ios11_50_o;
+        voice.get("ios11_50")[15] = R.raw.ios11_50_p;
+        voice.get("ios11_50")[16] = R.raw.ios11_50_q;
+        voice.get("ios11_50")[17] = R.raw.ios11_50_r;
+        voice.get("ios11_50")[18] = R.raw.ios11_50_s;
+        voice.get("ios11_50")[19] = R.raw.ios11_50_t;
+        voice.get("ios11_50")[20] = R.raw.ios11_50_u;
+        voice.get("ios11_50")[21] = R.raw.ios11_50_v;
+        voice.get("ios11_50")[22] = R.raw.ios11_50_w;
+        voice.get("ios11_50")[23] = R.raw.ios11_50_x;
+        voice.get("ios11_50")[24] = R.raw.ios11_50_y;
+        voice.get("ios11_50")[25] = R.raw.ios11_50_z;
     }
 
     public void initButtons(){
@@ -366,25 +394,25 @@ public class MainActivity extends AppCompatActivity {
                     //prob top 2
                     if (letters.get(0).freq > 0) {
                         nowCh = letters.get(0).text.charAt(0);
-                        playMedia("first", nowCh - 'a');
+                        playMedia("ios11_50", nowCh - 'a');
                         readList += nowCh;
                         if (letters.get(1).freq * 10 > letters.get(0).freq){
                             nowCh2 = letters.get(1).text.charAt(0);
-                            playMedia("second", nowCh2 - 'a');
+                            playMedia("ios11_50", nowCh2 - 'a');
                             readList += nowCh2;
                         }
                     }
                     else {
                         //current key
                         nowCh = ch;
-                        playMedia("first", nowCh - 'a');
+                        playMedia("ios11_50", nowCh - 'a');
                         readList += nowCh;
                     }
                 }
                 else{
                     //current key
                     nowCh = ch;
-                    playMedia("first", nowCh - 'a');
+                    playMedia("ios11_50", nowCh - 'a');
                     readList += nowCh;
                 }
                 refresh();
