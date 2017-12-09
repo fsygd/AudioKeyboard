@@ -37,10 +37,6 @@ public class MainActivity extends AppCompatActivity {
     char nowCh = 0; //the most possible char
     char nowCh2 = 0; //the second possible char, '*' if less than 1/10 of the most possible char
     ArrayList<Word> dict = new ArrayList();
-    MediaPlayer voices[] = new MediaPlayer[26];
-    MediaPlayer voices_second[] = new MediaPlayer[26];
-    MediaPlayer voiceEmpty = new MediaPlayer();
-    ArrayList<MediaPlayer> mediaPlayers = new ArrayList<>(); //mediaPlayer
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keys[] = new String[] {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
     String keysNearby[] = new String[26];
@@ -221,6 +217,7 @@ public class MainActivity extends AppCompatActivity {
         voice.put("second", new int[26]);
         voice.put("ios11_50", new int[26]);
         voice.put("ios11da", new int[1]);
+        voice.put("delete", new int[1]);
 
         voice.get("first")[ 0] = R.raw.voiceover_a;
         voice.get("first")[ 1] = R.raw.voiceover_b;
@@ -304,6 +301,8 @@ public class MainActivity extends AppCompatActivity {
         voice.get("ios11_50")[25] = R.raw.ios11_50_z;
 
         voice.get("ios11da")[0] = R.raw.ios11_da;
+
+        voice.get("delete")[0] = R.raw.delete;
     }
 
     public void initButtons(){
@@ -508,7 +507,7 @@ public class MainActivity extends AppCompatActivity {
 
     int downX, downY;
     long downTime;
-    final long STAY_TIME = 200;
+    final long STAY_TIME = 400;
     final int SLIP_DIST = 90;
 
     public boolean onTouchEvent(MotionEvent event){
@@ -537,9 +536,11 @@ public class MainActivity extends AppCompatActivity {
                     stopInput();
                     if (x < downX - SLIP_DIST && System.currentTimeMillis() < downTime + STAY_TIME) {
                         deleteLastChar();
+                        playMedia("delete", 0);
                     }
                     else if (x > downX + SLIP_DIST && System.currentTimeMillis() < downTime + STAY_TIME) {
                         deleteAllChar();
+                        playMedia("delete", 0);
                     }
                     else {
                         currentWord += nowCh;
