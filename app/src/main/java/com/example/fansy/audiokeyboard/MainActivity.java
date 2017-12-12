@@ -28,7 +28,8 @@ public class MainActivity extends AppCompatActivity {
 
     final int INIT_MODE_ABSOLUTE = 0;
     final int INIT_MODE_RELATIVE = 1;
-    int initMode = INIT_MODE_ABSOLUTE;
+    final int INIT_MODE_NOTHING = 2;
+    int initMode = INIT_MODE_RELATIVE;
     ImageView keyboard;
     TextView text, candidatesView, readListView;
     Button confirmButton, initModeButton;
@@ -106,8 +107,10 @@ public class MainActivity extends AppCompatActivity {
         readListView.setText(readList);
         if (initMode == INIT_MODE_ABSOLUTE)
             initModeButton.setText("absolute");
-        else
+        else if(initMode == INIT_MODE_RELATIVE)
             initModeButton.setText("relative");
+        else
+            initModeButton.setText("nothing");
     }
 
     final int MAX_CANDIDATE = 5;
@@ -169,20 +172,25 @@ public class MainActivity extends AppCompatActivity {
                 char ch = getKeyByPosition(x, y);
                 deltaX = (key_left[ch - 'a'] + key_right[ch - 'a']) / 2 - x; //move to the centre of the key
                 deltaY = (key_top[ch - 'a'] + key_bottom[ch - 'a']) / 2 - y;
-                addToSeq(getKeyByPosition(x, y), true);
+                addToSeq(getKeyByPosition(x, y), true,true);
             }
-            else {
+            else if(initMode == INIT_MODE_RELATIVE){
                 deltaX = 0;
                 deltaY = 0;
                 char ch = getKeyByPosition(x, y);
-                char best = addToSeq(ch, false);
+                char best = addToSeq(ch, false,true);
                 deltaX = (key_left[best - 'a'] + key_right[best - 'a']) / 2 - x; //move to the centre of the most possible key
                 deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
-                addToSeq(best, true);
+                addToSeq(best, true,true);
+            }else{
+                deltaX = 0;
+                deltaY = 0;
+                char ch = getKeyByPosition(x,y);
+                addToSeq(ch,true,false);
             }
         }
         else{
-            addToSeq(getKeyByPosition(x, y), true);
+            addToSeq(getKeyByPosition(x, y), true,true);
         }
     }
 
@@ -333,6 +341,8 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (initMode == INIT_MODE_ABSOLUTE)
                     initMode = INIT_MODE_RELATIVE;
+                else if(initMode == INIT_MODE_RELATIVE)
+                    initMode = INIT_MODE_NOTHING;
                 else
                     initMode = INIT_MODE_ABSOLUTE;
                 refresh();
@@ -363,41 +373,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //if write=false, just return the most possible key
-    public char addToSeq(char ch, boolean write){
+    public char addToSeq(char ch, boolean write, boolean predictMode){
         if (ch != KEY_NOT_FOUND){
             if (seq.size() == 0 || seq.get(seq.size() - 1) != ch) {
                 //make a vibrate
                 Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
                 long[] pattern = {0, 30};
                 vibrator.vibrate(pattern, -1);
-
                 ArrayList<Word> letters = new ArrayList<Word>();
-                for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
-                    letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
-                for (int i = 0; i < dict.size(); ++i)
-                    if (dict.get(i).text.length() >= currentWord.length() + 1){
-                        boolean flag = true;
-                        Word word = dict.get(i);
-                        for (int j = 0; j < currentWord.length(); ++j)
-                            if (word.text.charAt(j) != currentWord.charAt(j) && word.text.charAt(j) != currentWord2.charAt(j)){
-                                flag = false;
-                                break;
+                if(predictMode){
+                    for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
+                        letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
+                    for (int i = 0; i < dict.size(); ++i)
+                        if (dict.get(i).text.length() >= currentWord.length() + 1){
+                            boolean flag = true;
+                            Word word = dict.get(i);
+                            for (int j = 0; j < currentWord.length(); ++j)
+                                if (word.text.charAt(j) != currentWord.charAt(j) && word.text.charAt(j) != currentWord2.charAt(j)){
+                                    flag = false;
+                                    break;
+                                }
+                            if (flag){
+                                for (int j = 0; j < letters.size(); ++j)
+                                    if (letters.get(j).text.charAt(0) == word.text.charAt(currentWord.length()))
+                                        letters.get(j).freq += word.freq;
                             }
-                        if (flag){
-                            for (int j = 0; j < letters.size(); ++j)
-                                if (letters.get(j).text.charAt(0) == word.text.charAt(currentWord.length()))
-                                    letters.get(j).freq += word.freq;
                         }
+                    for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
+                        letters.get(i).freq *= keysNearbyProb[ch - 'a'][i];
+                    Collections.sort(letters);
+                    if (!write) {
+                        if (letters.get(0).freq > 0)
+                            return letters.get(0).text.charAt(0);
+                        else
+                            return ch;
                     }
-                for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
-                    letters.get(i).freq *= keysNearbyProb[ch - 'a'][i];
-                Collections.sort(letters);
-                if (!write) {
-                    if (letters.get(0).freq > 0)
-                        return letters.get(0).text.charAt(0);
-                    else
-                        return ch;
                 }
+
                 //write=true
                 seq.add(ch);
                 Log.i("seq", ch + "");
@@ -407,31 +419,38 @@ public class MainActivity extends AppCompatActivity {
                 nowCh2 = '*';
 
                 playMedia("ios11da", 0);
-                if (seq.size() == 1){
-                    //prob top 2
-                    if (letters.get(0).freq > 0) {
-                        nowCh = letters.get(0).text.charAt(0);
-                        playMedia("ios11_50", nowCh - 'a');
-                        readList += nowCh;
-                        if (letters.get(1).freq * 10 > letters.get(0).freq){
-                            nowCh2 = letters.get(1).text.charAt(0);
-                            playMedia("ios11_50", nowCh2 - 'a');
-                            readList += nowCh2;
+                if (predictMode){
+                    if (seq.size() == 1){
+                        //prob top 2
+                        if (letters.get(0).freq > 0) {
+                            nowCh = letters.get(0).text.charAt(0);
+                            playMedia("ios11_50", nowCh - 'a');
+                            readList += nowCh;
+                            if (letters.get(1).freq * 10 > letters.get(0).freq){
+                                nowCh2 = letters.get(1).text.charAt(0);
+                                playMedia("ios11_50", nowCh2 - 'a');
+                                readList += nowCh2;
+                            }
+                        }
+                        else {
+                            //current key
+                            nowCh = ch;
+                            playMedia("ios11_50", nowCh - 'a');
+                            readList += nowCh;
                         }
                     }
-                    else {
+                    else{
                         //current key
                         nowCh = ch;
                         playMedia("ios11_50", nowCh - 'a');
                         readList += nowCh;
                     }
-                }
-                else{
-                    //current key
+                }else{
                     nowCh = ch;
                     playMedia("ios11_50", nowCh - 'a');
                     readList += nowCh;
                 }
+
                 refresh();
             }
         }
