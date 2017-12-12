@@ -5,6 +5,7 @@ import android.media.MediaPlayer;
 import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -46,37 +47,49 @@ public class MainActivity extends AppCompatActivity {
     int key_top[] = new int[26];
     int key_bottom[] = new int[26];
     int deltaX = 0, deltaY = 0; //translation of XY coordinate
+
+
+    float screen_width_ratio = 1F;
+    float screen_height_ratio = 1F;
+
+    public void getScreenSizeRatio(){
+        DisplayMetrics metrics =new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
+        screen_width_ratio = metrics.widthPixels/1440F;
+        screen_height_ratio = metrics.heightPixels/2560F;
+    }
+
     // init the coordinates of the key a-z on phone
     public void initKeyPosition(){
-        key_left['q' - 'a'] = 15;
-        key_right['q' - 'a'] = 137;
-        key_bottom['q' - 'a'] = 167;
-        key_top['q' - 'a'] = 0;
+        key_left['q' - 'a'] = (int)(15F*screen_width_ratio);
+        key_right['q' - 'a'] = (int)(137F*screen_width_ratio);
+        key_bottom['q' - 'a'] = (int)(167F*screen_width_ratio);
+        key_top['q' - 'a'] = (int)(0F*screen_width_ratio);
         for (int i = 1; i < keys[0].length(); ++i){
-            key_left[keys[0].charAt(i) - 'a'] = key_left[keys[0].charAt(i - 1) - 'a'] + 142;
-            key_right[keys[0].charAt(i) - 'a'] = key_right[keys[0].charAt(i - 1) - 'a'] + 142;
+            key_left[keys[0].charAt(i) - 'a'] = key_left[keys[0].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
+            key_right[keys[0].charAt(i) - 'a'] = key_right[keys[0].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
             key_top[keys[0].charAt(i) - 'a'] = key_top[keys[0].charAt(i - 1) - 'a'];
             key_bottom[keys[0].charAt(i) - 'a'] = key_bottom[keys[0].charAt(i - 1) - 'a'];
         }
 
-        key_left['a' - 'a'] = 87;
-        key_right['a' - 'a'] = 209;
-        key_bottom['a' - 'a'] = 354;
-        key_top['a' - 'a'] = 187;
+        key_left['a' - 'a'] = (int)(142F*screen_width_ratio);
+        key_right['a' - 'a'] = (int)(209F*screen_width_ratio);
+        key_bottom['a' - 'a'] = (int)(354F*screen_width_ratio);
+        key_top['a' - 'a'] = (int)(187F*screen_width_ratio);
         for (int i = 1; i < keys[1].length(); ++i){
-            key_left[keys[1].charAt(i) - 'a'] = key_left[keys[1].charAt(i - 1) - 'a'] + 142;
-            key_right[keys[1].charAt(i) - 'a'] = key_right[keys[1].charAt(i - 1) - 'a'] + 142;
+            key_left[keys[1].charAt(i) - 'a'] = key_left[keys[1].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
+            key_right[keys[1].charAt(i) - 'a'] = key_right[keys[1].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
             key_top[keys[1].charAt(i) - 'a'] = key_top[keys[1].charAt(i - 1) - 'a'];
             key_bottom[keys[1].charAt(i) - 'a'] = key_bottom[keys[1].charAt(i - 1) - 'a'];
         }
 
-        key_left['z' - 'a'] = 230;
-        key_right['z' - 'a'] = 352;
-        key_bottom['z' - 'a'] = 541;
-        key_top['z' - 'a'] = 374;
+        key_left['z' - 'a'] = (int)(230F*screen_width_ratio);
+        key_right['z' - 'a'] = (int)(352F*screen_width_ratio);
+        key_bottom['z' - 'a'] = (int)(541F*screen_width_ratio);
+        key_top['z' - 'a'] = (int)(374F*screen_width_ratio);
         for (int i = 1; i < keys[2].length(); ++i){
-            key_left[keys[2].charAt(i) - 'a'] = key_left[keys[2].charAt(i - 1) - 'a'] + 142;
-            key_right[keys[2].charAt(i) - 'a'] = key_right[keys[2].charAt(i - 1) - 'a'] + 142;
+            key_left[keys[2].charAt(i) - 'a'] = key_left[keys[2].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
+            key_right[keys[2].charAt(i) - 'a'] = key_right[keys[2].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
             key_top[keys[2].charAt(i) - 'a'] = key_top[keys[2].charAt(i - 1) - 'a'];
             key_bottom[keys[2].charAt(i) - 'a'] = key_bottom[keys[2].charAt(i - 1) - 'a'];
         }
@@ -469,6 +482,7 @@ public class MainActivity extends AppCompatActivity {
         readListView = (TextView)findViewById(R.id.readList);
         initModeButton = (Button)findViewById(R.id.init_mode_button);
 
+        getScreenSizeRatio();
         initKeyPosition();
         initDict();
         initVoice();
@@ -511,7 +525,7 @@ public class MainActivity extends AppCompatActivity {
     final int SLIP_DIST = 90;
 
     public boolean onTouchEvent(MotionEvent event){
-        if (event.getPointerCount() == 1 && event.getY() >= 1500) {//in the keyboard area
+        if (event.getPointerCount() == 1 && event.getY() >= (int)(1500F*screen_width_ratio)) {//in the keyboard area
             int x = (int) event.getX();
             int y = (int) event.getY();
             int[] location = new int[2];
