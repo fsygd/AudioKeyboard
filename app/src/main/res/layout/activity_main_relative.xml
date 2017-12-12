@@ -19,8 +19,8 @@
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/init_mode_button"
-        android:layout_marginStart="17dp"
-        android:layout_marginTop="14dp"
+        android:layout_marginStart="13dp"
+        android:layout_marginTop="18dp"
         android:text="TextView"
         android:textSize="30sp" />
 
@@ -38,10 +38,9 @@
         android:id="@+id/confirm_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Confirm"
-        android:layout_alignBaseline="@+id/init_mode_button"
-        android:layout_alignBottom="@+id/init_mode_button"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        android:text="Confirm" />
 
     <TextView
         android:id="@+id/readList"
@@ -57,8 +56,35 @@
         android:id="@+id/init_mode_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="29dp"
         android:text="relative" />
+
+    <Button
+        android:id="@+id/speed_m_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/confirm_button"
+        android:text="speed-" />
+
+    <Button
+        android:id="@+id/speed_p_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/speed_m_button"
+        android:text="speed+" />
+
+    <TextView
+        android:id="@+id/voice_speed_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/speed_p_button"
+        android:layout_marginEnd="16dp"
+        android:layout_toStartOf="@+id/speed_m_button"
+        android:text="50"
+        android:textAppearance="@android:style/TextAppearance.Material.Large"
+        android:textSize="30sp" />
 
 </RelativeLayout>
