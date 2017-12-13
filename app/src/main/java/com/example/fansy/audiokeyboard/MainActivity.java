@@ -434,14 +434,14 @@ public class MainActivity extends AppCompatActivity {
                 refresh();
             }
         });
-        //todo textview setText bug
+
         speedmbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(voiceSpeed>=60){
                     voiceSpeed -= 10;
                 }
-                //voiceSpeedText.setText(voiceSpeed);
+                voiceSpeedText.setText(voiceSpeed+"");
             }
         });
 
@@ -451,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
                 if(voiceSpeed<=90){
                     voiceSpeed += 10;
                 }
-                //voiceSpeedText.setText(voiceSpeed);
+                voiceSpeedText.setText(voiceSpeed+"");
             }
         });
     }
