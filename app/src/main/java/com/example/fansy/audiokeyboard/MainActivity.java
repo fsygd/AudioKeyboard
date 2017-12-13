@@ -441,7 +441,7 @@ public class MainActivity extends AppCompatActivity {
                 if(voiceSpeed>=60){
                     voiceSpeed -= 10;
                 }
-                //voiceSpeedText.setText(voiceSpeed);
+                voiceSpeedText.setText(voiceSpeed+"");
             }
         });
 
@@ -451,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
                 if(voiceSpeed<=90){
                     voiceSpeed += 10;
                 }
-                //voiceSpeedText.setText(voiceSpeed);
+                voiceSpeedText.setText(voiceSpeed+"");
             }
         });
     }
