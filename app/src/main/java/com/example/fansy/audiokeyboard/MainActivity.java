@@ -434,7 +434,7 @@ public class MainActivity extends AppCompatActivity {
                 refresh();
             }
         });
-        //todo textview setText bug
+
         speedmbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
