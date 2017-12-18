@@ -30,15 +30,21 @@ public class MainActivity extends AppCompatActivity {
     final int INIT_MODE_RELATIVE = 1;
     final int INIT_MODE_NOTHING = 2;
     int initMode = INIT_MODE_RELATIVE;
+    final int CONFIRM_MODE_UP = 0;
+    final int CONFIRM_MODE_DOUBLECLICK = 1;
+    int confirmMode = CONFIRM_MODE_UP;
     ImageView keyboard;
     TextView text, candidatesView, readListView,voiceSpeedText;
-    Button confirmButton, initModeButton,speedpbutton,speedmbutton;
+    Button confirmButton, initModeButton, confirmModeButton, speedpbutton, speedmbutton;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
     String currentWord2 = ""; //second possible char sequence
     String currentBaseline = "";
     char nowCh = 0; //the most possible char
     char nowCh2 = 0; //the second possible char, '*' if less than 1/10 of the most possible char
+    char nowChSaved = 0;
+    char nowCh2Saved = 0;
+    char nowChBaselineSaved = 0;
     ArrayList<Word> dict = new ArrayList();
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keys[] = new String[] {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
@@ -112,6 +118,10 @@ public class MainActivity extends AppCompatActivity {
             initModeButton.setText("relative");
         else
             initModeButton.setText("nothing");
+        if (confirmMode == CONFIRM_MODE_UP)
+            confirmModeButton.setText("up");
+        else
+            confirmModeButton.setText("double click");
     }
 
     final int MAX_CANDIDATE = 5;
@@ -435,6 +445,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        confirmModeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (confirmMode == CONFIRM_MODE_UP)
+                    confirmMode = CONFIRM_MODE_DOUBLECLICK;
+                else
+                    confirmMode = CONFIRM_MODE_UP;
+                refresh();
+            }
+        });
+
         speedmbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -608,6 +629,7 @@ public class MainActivity extends AppCompatActivity {
         confirmButton = (Button)findViewById(R.id.confirm_button);
         readListView = (TextView)findViewById(R.id.readList);
         initModeButton = (Button)findViewById(R.id.init_mode_button);
+        confirmModeButton = (Button)findViewById(R.id.confirm_mode_button);
         speedmbutton = (Button)findViewById(R.id.speed_m_button);
         speedpbutton = (Button)findViewById(R.id.speed_p_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
@@ -650,7 +672,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     int downX, downY;
-    long downTime;
+    long downTime = 0;
+    long firstDownTime = 0, lastDownTime = 0; // used for check double-click
     final long STAY_TIME = 400;
     final int SLIP_DIST = 90;
 
@@ -666,6 +689,12 @@ public class MainActivity extends AppCompatActivity {
                     downX = x;
                     downY = y;
                     downTime = System.currentTimeMillis();
+                    if (downTime - firstDownTime > 400){
+                        firstDownTime = downTime;
+                    }
+                    else{
+                        lastDownTime = downTime;
+                    }
                     newPoint(x, y - location[1]);
                     //action down
                     break;
@@ -677,23 +706,57 @@ public class MainActivity extends AppCompatActivity {
 
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
+                    long tempTime = System.currentTimeMillis();
                     stopInput();
-                    if (x < downX - SLIP_DIST && System.currentTimeMillis() < downTime + STAY_TIME) {
-                        deleteLastChar();
-                        playMedia("delete", 0);
+                    if (confirmMode == CONFIRM_MODE_UP) {
+                        if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                            deleteLastChar();
+                            playMedia("delete", 0);
+                        } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                            deleteAllChar();
+                            playMedia("delete", 0);
+                        } else {
+                            currentWord += nowCh;
+                            currentWord2 += nowCh2;
+                            currentBaseline += getKeyBaseLine(x, y - location[1]);
+                            predict(currentWord, currentWord2);
+                            refresh();
+                        }
+                        break;
                     }
-                    else if (x > downX + SLIP_DIST && System.currentTimeMillis() < downTime + STAY_TIME) {
-                        deleteAllChar();
-                        playMedia("delete", 0);
+                    else{
+                        if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                            deleteLastChar();
+                            nowChSaved = '*';
+                            nowCh2Saved = '*';
+                            playMedia("delete", 0);
+                        } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                            deleteAllChar();
+                            nowChSaved = '*';
+                            nowCh2Saved = '*';
+                            playMedia("delete", 0);
+                        } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
+                            //double click
+                            if (nowChSaved != '*'){
+                                currentWord += nowChSaved;
+                                currentWord2 += nowCh2Saved;
+                                currentBaseline += nowChBaselineSaved;
+                                predict(currentWord, currentWord2);
+                                playMedia("delete", 0);
+                                refresh();
+                                nowChSaved = '*';
+                                nowCh2Saved = '*';
+                            }
+                        }
+                        else{
+                            if (tempTime - downTime > 500) {
+                                nowChSaved = nowCh;
+                                nowCh2Saved = nowCh2;
+                                nowChBaselineSaved = getKeyBaseLine(x, y - location[1]);
+                            }
+                        }
+                        break;
                     }
-                    else {
-                        currentWord += nowCh;
-                        currentWord2 += nowCh2;
-                        currentBaseline += getKeyBaseLine(x, y - location[1]);
-                        predict(currentWord, currentWord2);
-                        refresh();
-                    }
-                    break;
             }
         }
         return super.onTouchEvent(event);
