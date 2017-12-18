@@ -707,6 +707,10 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
                     long tempTime = System.currentTimeMillis();
+                    boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
+                    if (predictLetterFlag == false){
+                        nowCh2 = '*';
+                    }
                     stopInput();
                     if (confirmMode == CONFIRM_MODE_UP) {
                         if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
