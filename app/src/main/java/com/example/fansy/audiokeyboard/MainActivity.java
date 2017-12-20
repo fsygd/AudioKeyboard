@@ -61,6 +61,9 @@ public class MainActivity extends AppCompatActivity {
     float screen_width_ratio = 1F;
     float screen_height_ratio = 1F;
 
+    boolean playDaFlag = false;
+    boolean slideFlag = false;
+
     public void getScreenSizeRatio(){
         DisplayMetrics metrics =new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
@@ -255,6 +258,7 @@ public class MainActivity extends AppCompatActivity {
         voice.put("ios11_100", new int[26]);
         voice.put("ios11da", new int[1]);
         voice.put("delete", new int[1]);
+        voice.put("blank", new int[1]);
 
         voice.get("ios11_50")[ 0] = R.raw.ios11_50_a;
         voice.get("ios11_50")[ 1] = R.raw.ios11_50_b;
@@ -421,6 +425,8 @@ public class MainActivity extends AppCompatActivity {
         voice.get("ios11da")[0] = R.raw.ios11_da;
 
         voice.get("delete")[0] = R.raw.delete;
+
+        voice.get("blank")[0] = R.raw.blank;
     }
 
     public void initButtons(){
@@ -484,6 +490,8 @@ public class MainActivity extends AppCompatActivity {
             current.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
+                    playDaFlag = false;
+                    slideFlag = true;
                     mp.release();
                     current = null;
                     playFirstVoice();
@@ -502,11 +510,13 @@ public class MainActivity extends AppCompatActivity {
     //if write=false, just return the most possible key
     public char addToSeq(char ch, boolean write, boolean predictMode){
         if (ch != KEY_NOT_FOUND){
-            if (seq.size() == 0 || seq.get(seq.size() - 1) != ch) {
+            if (seq.size() == 0 || seq.get(seq.size() - 1) != ch ) {
                 //make a vibrate
+
                 Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
                 long[] pattern = {0, 30};
                 vibrator.vibrate(pattern, -1);
+
                 ArrayList<Word> letters = new ArrayList<Word>();
                 if(predictMode){
                     for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
@@ -547,7 +557,7 @@ public class MainActivity extends AppCompatActivity {
 
                 playMedia("ios11da", 0);
                 if (predictMode){
-                    if (seq.size() == 1){
+                    if (seq.size() == 1 ||(playDaFlag&&!slideFlag)){
                         //prob top 2
                         if (letters.get(0).freq > 0) {
                             nowCh = letters.get(0).text.charAt(0);
@@ -577,7 +587,7 @@ public class MainActivity extends AppCompatActivity {
                     playMedia("ios11_"+voiceSpeed, nowCh - 'a');
                     readList += nowCh;
                 }
-
+                playDaFlag = true;
                 refresh();
             }
         }
@@ -706,6 +716,7 @@ public class MainActivity extends AppCompatActivity {
 
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
+                    slideFlag = false;
                     long tempTime = System.currentTimeMillis();
                     boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
                     if (predictLetterFlag == false){
