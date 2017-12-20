@@ -34,8 +34,8 @@ public class MainActivity extends AppCompatActivity {
     final int CONFIRM_MODE_DOUBLECLICK = 1;
     int confirmMode = CONFIRM_MODE_UP;
     ImageView keyboard;
-    TextView text, candidatesView, readListView,voiceSpeedText;
-    Button confirmButton, initModeButton, confirmModeButton, speedpbutton, speedmbutton;
+    TextView text, candidatesView, readListView,voiceSpeedText,predictionRepeatText;
+    Button confirmButton, initModeButton, confirmModeButton, speedpbutton, speedmbutton,predictionRepeatPButton,predictionRepeatMButton;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
     String currentWord2 = ""; //second possible char sequence
@@ -63,6 +63,11 @@ public class MainActivity extends AppCompatActivity {
 
     boolean playDaFlag = false;
     boolean slideFlag = false;
+
+    String charsPlayed = "";
+    String charsInPlaylist = "";
+    int predictionCount = 0;
+    int predictionRepeatTime = 1;
 
     public void getScreenSizeRatio(){
         DisplayMetrics metrics =new DisplayMetrics();
@@ -161,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
             current = null;
         }
         myPlayList.clear();
+        charsInPlaylist = "";
     }
 
     public void stopInput(){
@@ -481,12 +487,35 @@ public class MainActivity extends AppCompatActivity {
                 voiceSpeedText.setText(voiceSpeed+"");
             }
         });
+
+        predictionRepeatPButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                predictionRepeatTime++;
+                predictionRepeatText.setText(predictionRepeatTime+"");
+            }
+        });
+
+        predictionRepeatMButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(predictionRepeatTime>1) predictionRepeatTime--;
+                predictionRepeatText.setText(predictionRepeatTime+"");
+            }
+        });
+
     }
 
     public void playFirstVoice(){
         if (current == null && !myPlayList.isEmpty()){
             current = MediaPlayer.create(this, myPlayList.get(0));
             myPlayList.remove(0);
+            if(myPlayList.isEmpty()) {
+                if(!charsInPlaylist.equals("")){
+                    charsPlayed += charsInPlaylist;
+                    predictionCount += 1;
+                }
+            }
             current.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
@@ -502,8 +531,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //todo reconstruct
-    public void playMedia(String tag, int index){
+    public void playMedia(String tag, int index,boolean isChar){
         myPlayList.add(voice.get(tag)[index]);
+        if(isChar) charsInPlaylist += (char)('a'+index);
         playFirstVoice();
     }
 
@@ -519,8 +549,13 @@ public class MainActivity extends AppCompatActivity {
 
                 ArrayList<Word> letters = new ArrayList<Word>();
                 if(predictMode){
-                    for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
-                        letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
+                    for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i){
+                        if((!charsPlayed.contains(keysNearby[ch-'a'].charAt(i)+"")) && (predictionCount<predictionRepeatTime)) {
+                            letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
+                        }else if(predictionCount >= predictionRepeatTime){
+                            letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
+                        }
+                    }
                     for (int i = 0; i < dict.size(); ++i)
                         if (dict.get(i).text.length() >= currentWord.length() + 1){
                             boolean flag = true;
@@ -536,8 +571,8 @@ public class MainActivity extends AppCompatActivity {
                                         letters.get(j).freq += word.freq;
                             }
                         }
-                    for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i)
-                        letters.get(i).freq *= keysNearbyProb[ch - 'a'][i];
+                    for (int i = 0; i < letters.size(); ++i)
+                        letters.get(i).freq *= keysNearbyProb[ch - 'a'][keysNearby[ch-'a'].indexOf(letters.get(i).text)];
                     Collections.sort(letters);
                     if (!write) {
                         if (letters.get(0).freq > 0)
@@ -555,36 +590,36 @@ public class MainActivity extends AppCompatActivity {
                 nowCh = '*';
                 nowCh2 = '*';
 
-                playMedia("ios11da", 0);
+                playMedia("ios11da", 0,false);
                 if (predictMode){
-                    if (seq.size() == 1 ||(playDaFlag&&!slideFlag)){
+                    if (seq.size() == 1 ||(playDaFlag&&!slideFlag)||(predictionCount<predictionRepeatTime)){
                         //prob top 2
                         if (letters.get(0).freq > 0) {
                             nowCh = letters.get(0).text.charAt(0);
-                            playMedia("ios11_"+voiceSpeed, nowCh - 'a');
+                            playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
                             readList += nowCh;
                             if (letters.get(1).freq * 10 > letters.get(0).freq){
                                 nowCh2 = letters.get(1).text.charAt(0);
-                                playMedia("ios11_"+voiceSpeed, nowCh2 - 'a');
+                                playMedia("ios11_"+voiceSpeed, nowCh2 - 'a',true);
                                 readList += nowCh2;
                             }
                         }
                         else {
                             //current key
                             nowCh = ch;
-                            playMedia("ios11_"+voiceSpeed, nowCh - 'a');
+                            playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
                             readList += nowCh;
                         }
                     }
                     else{
                         //current key
                         nowCh = ch;
-                        playMedia("ios11_"+voiceSpeed, nowCh - 'a');
+                        playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
                         readList += nowCh;
                     }
                 }else{
                     nowCh = ch;
-                    playMedia("ios11_"+voiceSpeed, nowCh - 'a');
+                    playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
                     readList += nowCh;
                 }
                 playDaFlag = true;
@@ -643,6 +678,9 @@ public class MainActivity extends AppCompatActivity {
         speedmbutton = (Button)findViewById(R.id.speed_m_button);
         speedpbutton = (Button)findViewById(R.id.speed_p_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
+        predictionRepeatPButton = (Button)findViewById(R.id.predictionRepeat_p);
+        predictionRepeatMButton = (Button)findViewById(R.id.predictionRepeat_m);
+        predictionRepeatText = (TextView)findViewById(R.id.predictionReoeatText);
 
         getScreenSizeRatio();
         initKeyPosition();
@@ -717,6 +755,8 @@ public class MainActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
                     slideFlag = false;
+                    charsPlayed = "";
+                    predictionCount = 0;
                     long tempTime = System.currentTimeMillis();
                     boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
                     if (predictLetterFlag == false){
@@ -726,10 +766,10 @@ public class MainActivity extends AppCompatActivity {
                     if (confirmMode == CONFIRM_MODE_UP) {
                         if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteLastChar();
-                            playMedia("delete", 0);
+                            playMedia("delete", 0,false);
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
-                            playMedia("delete", 0);
+                            playMedia("delete", 0,false);
                         } else {
                             currentWord += nowCh;
                             currentWord2 += nowCh2;
@@ -744,12 +784,12 @@ public class MainActivity extends AppCompatActivity {
                             deleteLastChar();
                             nowChSaved = '*';
                             nowCh2Saved = '*';
-                            playMedia("delete", 0);
+                            playMedia("delete", 0,false);
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
                             nowChSaved = '*';
                             nowCh2Saved = '*';
-                            playMedia("delete", 0);
+                            playMedia("delete", 0,false);
                         } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
                             //double click
                             if (nowChSaved != '*'){
@@ -757,7 +797,7 @@ public class MainActivity extends AppCompatActivity {
                                 currentWord2 += nowCh2Saved;
                                 currentBaseline += nowChBaselineSaved;
                                 predict(currentWord, currentWord2);
-                                playMedia("delete", 0);
+                                playMedia("delete", 0,false);
                                 refresh();
                                 nowChSaved = '*';
                                 nowCh2Saved = '*';

@@ -84,7 +84,7 @@
         android:layout_marginEnd="16dp"
         android:layout_toStartOf="@+id/speed_m_button"
         android:text="50"
-        android:textAppearance="@android:style/TextAppearance.Material.Large"
+        android:textAppearance="@android:style/TextAppearance.Material.Small"
         android:textSize="30sp" />
 
     <Button
@@ -95,5 +95,30 @@
         android:layout_marginStart="14dp"
         android:layout_toEndOf="@+id/init_mode_button"
         android:text="UP" />
+
+    <Button
+        android:id="@+id/predictionRepeat_p"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/speed_p_button"
+        android:text="PreRT+" />
+
+    <Button
+        android:id="@+id/predictionRepeat_m"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/predictionRepeat_p"
+        android:text="PRERT-" />
+
+    <TextView
+        android:id="@+id/predictionReoeatText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignEnd="@+id/voice_speed_text"
+        android:layout_below="@+id/speed_p_button"
+        android:text="1"
+        android:textSize="30sp" />
 
 </RelativeLayout>
