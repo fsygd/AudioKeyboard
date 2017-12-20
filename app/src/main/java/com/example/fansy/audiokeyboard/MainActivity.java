@@ -451,8 +451,6 @@ public class MainActivity extends AppCompatActivity {
                     initMode = INIT_MODE_RELATIVE;
                 else if(initMode == INIT_MODE_RELATIVE) {
                     initMode = INIT_MODE_NOTHING;
-                    predictionRepeatTime = 1;
-                    predictionRepeatText.setText(predictionRepeatTime+"");
                 }else
                     initMode = INIT_MODE_ABSOLUTE;
                 refresh();
@@ -593,7 +591,7 @@ public class MainActivity extends AppCompatActivity {
                 nowCh2 = '*';
 
                 playMedia("ios11da", 0,false);
-                if (predictMode){
+                if (predictMode && initMode != INIT_MODE_NOTHING){
                     if (seq.size() == 1 ||(playDaFlag&&!slideFlag)||(predictionCount<predictionRepeatTime)){
                         //prob top 2
                         if (letters.get(0).freq > 0) {
