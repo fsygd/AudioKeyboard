@@ -449,9 +449,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (initMode == INIT_MODE_ABSOLUTE)
                     initMode = INIT_MODE_RELATIVE;
-                else if(initMode == INIT_MODE_RELATIVE)
+                else if(initMode == INIT_MODE_RELATIVE) {
                     initMode = INIT_MODE_NOTHING;
-                else
+                    predictionRepeatTime = 1;
+                    predictionRepeatText.setText(predictionRepeatTime+"");
+                }else
                     initMode = INIT_MODE_ABSOLUTE;
                 refresh();
             }
