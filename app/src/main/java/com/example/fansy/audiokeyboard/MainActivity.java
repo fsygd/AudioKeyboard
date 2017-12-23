@@ -726,11 +726,11 @@ public class MainActivity extends AppCompatActivity {
     final int SLIP_DIST = 90;
 
     public boolean onTouchEvent(MotionEvent event){
-        if (event.getPointerCount() == 1 && event.getY() >= (int)(1500F*screen_width_ratio)) {//in the keyboard area
+        int[] location = new int[2];
+        keyboard.getLocationOnScreen(location);
+        if (event.getPointerCount() == 1 && event.getY() - location[1] >= key_top['q' - 'a'] && event.getY() - location[1] <= key_bottom['z' - 'a']) {//in the keyboard area
             int x = (int) event.getX();
             int y = (int) event.getY();
-            int[] location = new int[2];
-            keyboard.getLocationOnScreen(location);
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_POINTER_DOWN:
