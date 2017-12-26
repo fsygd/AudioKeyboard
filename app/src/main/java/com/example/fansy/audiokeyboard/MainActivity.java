@@ -232,10 +232,10 @@ public class MainActivity extends AppCompatActivity {
             }
     }
 
-    final int DICT_SIZE = 50000;
+    final int DICT_SIZE = 10000;
     //read dict from file
     public void initDict(){
-        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict)));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.pydict)));
         String line;
         try{
             int lineNo = 0;
