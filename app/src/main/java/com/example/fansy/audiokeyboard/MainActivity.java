@@ -232,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
             }
     }
 
-    final int DICT_SIZE = 10000;
+    final int DICT_SIZE = 50000;
     //read dict from file
     public void initDict(){
         BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict)));
