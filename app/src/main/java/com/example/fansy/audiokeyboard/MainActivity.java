@@ -72,41 +72,41 @@ public class MainActivity extends AppCompatActivity {
     public void getScreenSizeRatio(){
         DisplayMetrics metrics =new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
-        screen_width_ratio = metrics.widthPixels/1440F;
-        screen_height_ratio = metrics.heightPixels/2560F;
+        screen_width_ratio = metrics.widthPixels/1080F;
+        screen_height_ratio = metrics.heightPixels/1920F;
     }
 
     // init the coordinates of the key a-z on phone
     public void initKeyPosition(){
-        key_left['q' - 'a'] = (int)(15F*screen_width_ratio);
-        key_right['q' - 'a'] = (int)(137F*screen_width_ratio);
-        key_bottom['q' - 'a'] = (int)(167F*screen_width_ratio);
+        key_left['q' - 'a'] = (int)(0F*screen_width_ratio);
+        key_right['q' - 'a'] = (int)(108F*screen_width_ratio);
+        key_bottom['q' - 'a'] = (int)(170F*screen_width_ratio);
         key_top['q' - 'a'] = (int)(0F*screen_width_ratio);
         for (int i = 1; i < keys[0].length(); ++i){
-            key_left[keys[0].charAt(i) - 'a'] = key_left[keys[0].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
-            key_right[keys[0].charAt(i) - 'a'] = key_right[keys[0].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
+            key_left[keys[0].charAt(i) - 'a'] = key_left[keys[0].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
+            key_right[keys[0].charAt(i) - 'a'] = key_right[keys[0].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
             key_top[keys[0].charAt(i) - 'a'] = key_top[keys[0].charAt(i - 1) - 'a'];
             key_bottom[keys[0].charAt(i) - 'a'] = key_bottom[keys[0].charAt(i - 1) - 'a'];
         }
 
-        key_left['a' - 'a'] = (int)(142F*screen_width_ratio);
-        key_right['a' - 'a'] = (int)(209F*screen_width_ratio);
-        key_bottom['a' - 'a'] = (int)(354F*screen_width_ratio);
-        key_top['a' - 'a'] = (int)(187F*screen_width_ratio);
+        key_left['a' - 'a'] = (int)(54F*screen_width_ratio);
+        key_right['a' - 'a'] = (int)(162F*screen_width_ratio);
+        key_bottom['a' - 'a'] = (int)(340F*screen_width_ratio);
+        key_top['a' - 'a'] = (int)(170F*screen_width_ratio);
         for (int i = 1; i < keys[1].length(); ++i){
-            key_left[keys[1].charAt(i) - 'a'] = key_left[keys[1].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
-            key_right[keys[1].charAt(i) - 'a'] = key_right[keys[1].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
+            key_left[keys[1].charAt(i) - 'a'] = key_left[keys[1].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
+            key_right[keys[1].charAt(i) - 'a'] = key_right[keys[1].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
             key_top[keys[1].charAt(i) - 'a'] = key_top[keys[1].charAt(i - 1) - 'a'];
             key_bottom[keys[1].charAt(i) - 'a'] = key_bottom[keys[1].charAt(i - 1) - 'a'];
         }
 
-        key_left['z' - 'a'] = (int)(230F*screen_width_ratio);
-        key_right['z' - 'a'] = (int)(352F*screen_width_ratio);
-        key_bottom['z' - 'a'] = (int)(541F*screen_width_ratio);
-        key_top['z' - 'a'] = (int)(374F*screen_width_ratio);
+        key_left['z' - 'a'] = (int)(162F*screen_width_ratio);
+        key_right['z' - 'a'] = (int)(270F*screen_width_ratio);
+        key_bottom['z' - 'a'] = (int)(510F*screen_width_ratio);
+        key_top['z' - 'a'] = (int)(340F*screen_width_ratio);
         for (int i = 1; i < keys[2].length(); ++i){
-            key_left[keys[2].charAt(i) - 'a'] = key_left[keys[2].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
-            key_right[keys[2].charAt(i) - 'a'] = key_right[keys[2].charAt(i - 1) - 'a'] + (int)(142F*screen_width_ratio);
+            key_left[keys[2].charAt(i) - 'a'] = key_left[keys[2].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
+            key_right[keys[2].charAt(i) - 'a'] = key_right[keys[2].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
             key_top[keys[2].charAt(i) - 'a'] = key_top[keys[2].charAt(i - 1) - 'a'];
             key_bottom[keys[2].charAt(i) - 'a'] = key_bottom[keys[2].charAt(i - 1) - 'a'];
         }
