@@ -594,11 +594,11 @@ public class MainActivity extends AppCompatActivity {
                 if (predictMode && initMode != INIT_MODE_NOTHING){
                     if (seq.size() == 1 ||(playDaFlag&&!slideFlag)||(predictionCount<predictionRepeatTime)){
                         //prob top 2
-                        if (letters.get(0).freq > 0) {
+                        if (letters.size() >= 1 && letters.get(0).freq > 0) {
                             nowCh = letters.get(0).text.charAt(0);
                             playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
                             readList += nowCh;
-                            if (letters.get(1).freq * 10 > letters.get(0).freq){
+                            if (letters.size() >= 2 && letters.get(1).freq * 10 > letters.get(0).freq){
                                 nowCh2 = letters.get(1).text.charAt(0);
                                 playMedia("ios11_"+voiceSpeed, nowCh2 - 'a',true);
                                 readList += nowCh2;
