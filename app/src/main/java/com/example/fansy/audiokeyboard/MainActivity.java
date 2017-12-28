@@ -731,7 +731,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onTouchEvent(MotionEvent event){
         int[] location = new int[2];
         keyboard.getLocationOnScreen(location);
-        if (event.getPointerCount() == 1 && event.getY() - location[1] >= key_top['q' - 'a'] && event.getY() - location[1] <= key_bottom['z' - 'a']) {//in the keyboard area
+        if (event.getPointerCount() == 1 && event.getY() - location[1] + deltaY >= key_top['q' - 'a'] && event.getY() - location[1] + deltaY <= key_bottom['z' - 'a']) {//in the keyboard area
             int x = (int) event.getX();
             int y = (int) event.getY();
             switch (event.getActionMasked()) {
@@ -780,7 +780,6 @@ public class MainActivity extends AppCompatActivity {
                             predict(currentWord, currentWord2);
                             refresh();
                         }
-                        break;
                     }
                     else{
                         if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
@@ -813,8 +812,10 @@ public class MainActivity extends AppCompatActivity {
                                 nowChBaselineSaved = getKeyBaseLine(x, y - location[1]);
                             }
                         }
-                        break;
                     }
+                    deltaX = 0;
+                    deltaY = 0;
+                    break;
             }
         }
         return super.onTouchEvent(event);
