@@ -21,6 +21,8 @@ import java.util.Collections;
 import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
+    final char KEY_NOT_FOUND = 0;
+
     //voice manager
     HashMap<String, int[]> voice = new HashMap<>();
     ArrayList<Integer> myPlayList = new ArrayList<>();
@@ -45,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
     char nowChSaved = 0;
     char nowCh2Saved = 0;
     char nowChBaselineSaved = 0;
+    char firstTouchSaved1 = KEY_NOT_FOUND;
+    char firstTouchSaved2 = KEY_NOT_FOUND;
     ArrayList<Word> dict = new ArrayList();
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keys[] = new String[] {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
@@ -205,6 +209,8 @@ public class MainActivity extends AppCompatActivity {
                 deltaX = (key_left[best - 'a'] + key_right[best - 'a']) / 2 - x; //move to the centre of the most possible key
                 deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
                 addToSeq(best, true,true);
+                firstTouchSaved1 = KEY_NOT_FOUND;
+                firstTouchSaved2 = KEY_NOT_FOUND;
             }else{
                 deltaX = 0;
                 deltaY = 0;
@@ -578,6 +584,8 @@ public class MainActivity extends AppCompatActivity {
                         letters.get(i).freq *= keysNearbyProb[ch - 'a'][keysNearby[ch-'a'].indexOf(letters.get(i).text)];
                     Collections.sort(letters);
                     if (!write) {
+                        firstTouchSaved1 = letters.get(0).text.charAt(0);
+                        firstTouchSaved2 = letters.get(1).text.charAt(0);
                         if (letters.get(0).freq > 0)
                             return letters.get(0).text.charAt(0);
                         else
@@ -596,8 +604,17 @@ public class MainActivity extends AppCompatActivity {
                 playMedia("ios11da", 0,false);
                 if (predictMode && initMode != INIT_MODE_NOTHING){
                     if (seq.size() == 1 ||(playDaFlag&&!slideFlag)||(predictionCount<predictionRepeatTime)){
+                        if (firstTouchSaved1 != KEY_NOT_FOUND){
+                            nowCh = firstTouchSaved1;
+                            playMedia("ios11_"+voiceSpeed, firstTouchSaved1 - 'a',true);
+                            readList += firstTouchSaved1;
+
+                            nowCh2 = firstTouchSaved2;
+                            playMedia("ios11_"+voiceSpeed, firstTouchSaved2 - 'a',true);
+                            readList += firstTouchSaved2;
+                        }
                         //prob top 2
-                        if (letters.size() >= 1 && letters.get(0).freq > 0) {
+                        else if (letters.size() >= 1 && letters.get(0).freq > 0) {
                             nowCh = letters.get(0).text.charAt(0);
                             playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
                             readList += nowCh;
@@ -631,8 +648,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return 'a';
     }
-
-    final char KEY_NOT_FOUND = 0;
     //get key with translation
     char getKeyByPosition(int x, int y){
         x += deltaX;
