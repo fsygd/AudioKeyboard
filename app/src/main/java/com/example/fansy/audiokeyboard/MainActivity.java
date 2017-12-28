@@ -199,6 +199,9 @@ public class MainActivity extends AppCompatActivity {
                 deltaY = 0;
                 char ch = getKeyByPosition(x, y);
                 char best = addToSeq(ch, false,true);
+                if (ch == 'q' || ch == 'p'){
+                    best = ch;
+                }
                 deltaX = (key_left[best - 'a'] + key_right[best - 'a']) / 2 - x; //move to the centre of the most possible key
                 deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
                 addToSeq(best, true,true);
