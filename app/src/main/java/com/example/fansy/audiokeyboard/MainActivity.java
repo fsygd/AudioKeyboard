@@ -585,7 +585,12 @@ public class MainActivity extends AppCompatActivity {
                     Collections.sort(letters);
                     if (!write) {
                         firstTouchSaved1 = letters.get(0).text.charAt(0);
-                        firstTouchSaved2 = letters.get(1).text.charAt(0);
+                        if (letters.get(1).freq * 10 >= letters.get(0).freq){
+                            firstTouchSaved2 = letters.get(1).text.charAt(0);
+                        }
+                        else{
+                            firstTouchSaved2 = '*';
+                        }
                         if (letters.get(0).freq > 0)
                             return letters.get(0).text.charAt(0);
                         else
@@ -609,9 +614,11 @@ public class MainActivity extends AppCompatActivity {
                             playMedia("ios11_"+voiceSpeed, firstTouchSaved1 - 'a',true);
                             readList += firstTouchSaved1;
 
-                            nowCh2 = firstTouchSaved2;
-                            playMedia("ios11_"+voiceSpeed, firstTouchSaved2 - 'a',true);
-                            readList += firstTouchSaved2;
+                            if (firstTouchSaved2 != '*') {
+                                nowCh2 = firstTouchSaved2;
+                                playMedia("ios11_" + voiceSpeed, firstTouchSaved2 - 'a', true);
+                                readList += firstTouchSaved2;
+                            }
                         }
                         //prob top 2
                         else if (letters.size() >= 1 && letters.get(0).freq > 0) {
