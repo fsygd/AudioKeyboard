@@ -36,8 +36,8 @@ public class MainActivity extends AppCompatActivity {
     final int CONFIRM_MODE_DOUBLECLICK = 1;
     int confirmMode = CONFIRM_MODE_UP;
     ImageView keyboard;
-    TextView text, candidatesView, readListView,voiceSpeedText,predictionRepeatText;
-    Button confirmButton, initModeButton, confirmModeButton, speedpbutton, speedmbutton,predictionRepeatPButton,predictionRepeatMButton;
+    TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText;
+    Button confirmButton, initModeButton, confirmModeButton, speedpbutton, speedmbutton, predictionRepeatPButton, predictionRepeatMButton;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
     String currentWord2 = ""; //second possible char sequence
@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     int key_right[] = new int[26];
     int key_top[] = new int[26];
     int key_bottom[] = new int[26];
-    int deltaX = 0, deltaY = 0; //translation of XY coordinate
+    //int deltaX = 0, deltaY = 0; //translation of XY coordinate
 
     int voiceSpeed = 50;
 
@@ -191,35 +191,45 @@ public class MainActivity extends AppCompatActivity {
     public void newPoint(int x, int y){
         if (seq.size() == 0){//first touch
             if (initMode == INIT_MODE_ABSOLUTE) {
-                deltaX = 0;
-                deltaY = 0;
-                char ch = getKeyByPosition(x, y);
-                deltaX = (key_left[ch - 'a'] + key_right[ch - 'a']) / 2 - x; //move to the centre of the key
-                deltaY = (key_top[ch - 'a'] + key_bottom[ch - 'a']) / 2 - y;
-                addToSeq(getKeyByPosition(x, y), true,true);
+                //deltaX = 0;
+                //deltaY = 0;
+                resetLayout();
+                //char ch = getKeyByPosition(x, y);
+                //deltaY = (key_top[ch - 'a'] + key_bottom[ch - 'a']) / 2 - y;
+                //deltaX = (key_left[ch - 'a'] + key_right[ch - 'a']) / 2 - x; //move to the centre of the key
+                addToSeq(getKeyByPosition(x, y, 0), true,true);
             }
             else if(initMode == INIT_MODE_RELATIVE){
-                deltaX = 0;
-                deltaY = 0;
-                char ch = getKeyByPosition(x, y);
+                //deltaX = 0;
+                //deltaY = 0;
+                char ch = getKeyByPosition(x, y, 1);
+                if (ch != upKey){
+                    resetLayout();
+                    ch = getKeyByPosition(x, y, 1);
+                }
                 char best = addToSeq(ch, false,true);
                 if (ch == 'q' || ch == 'p' || ch == 'a' || ch == 'l'){
                     best = ch;
                 }
-                deltaX = (key_left[best - 'a'] + key_right[best - 'a']) / 2 - x; //move to the centre of the most possible key
-                deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
+
+                if (tryLayout(best, x, y)){
+                    setLayout(best, x, y);
+                }
+
+                //deltaX = (key_left[best - 'a'] + key_right[best - 'a']) / 2 - x; //move to the centre of the most possible key
+                //deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
                 addToSeq(best, true,true);
                 firstTouchSaved1 = KEY_NOT_FOUND;
                 firstTouchSaved2 = KEY_NOT_FOUND;
             }else{
-                deltaX = 0;
-                deltaY = 0;
-                char ch = getKeyByPosition(x,y);
+                //deltaX = 0;
+                //deltaY = 0;
+                char ch = getKeyByPosition(x, y, 0);
                 addToSeq(ch,true,false);
             }
         }
         else{
-            addToSeq(getKeyByPosition(x, y), true,true);
+            addToSeq(getKeyByPosition(x, y, 1), true,true);
         }
     }
 
@@ -656,6 +666,7 @@ public class MainActivity extends AppCompatActivity {
         return 'a';
     }
     //get key with translation
+    /*
     char getKeyByPosition(int x, int y){
         x += deltaX;
         y += deltaY;
@@ -670,7 +681,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return key;
-    }
+    }*/
 
     //get key without translation
     char getKeyBaseLine(int x, int y){
@@ -749,13 +760,16 @@ public class MainActivity extends AppCompatActivity {
     long firstDownTime = 0, lastDownTime = 0; // used for check double-click
     final long STAY_TIME = 400;
     final int SLIP_DIST = 90;
+    char upKey = KEY_NOT_FOUND;
 
     public boolean onTouchEvent(MotionEvent event){
         int[] location = new int[2];
         keyboard.getLocationOnScreen(location);
-        if (event.getPointerCount() == 1 && event.getY() - location[1] + deltaY >= key_top['q' - 'a'] && event.getY() - location[1] + deltaY <= key_bottom['z' - 'a']) {//in the keyboard area
-            int x = (int) event.getX();
-            int y = (int) event.getY();
+        int x = (int)event.getX();
+        int y = (int)event.getY();
+
+        if (event.getPointerCount() == 1 && (getKeyByPosition(x, y - location[1], 1) == upKey || getKeyByPosition(x, y - location[1]) != KEY_NOT_FOUND)){ // in the keyboard area
+        //if (event.getPointerCount() == 1 && event.getY() - location[1] + deltaY >= key_top['q' - 'a'] && event.getY() - location[1] + deltaY <= key_bottom['z' - 'a']) {//in the keyboard area
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_POINTER_DOWN:
@@ -796,6 +810,7 @@ public class MainActivity extends AppCompatActivity {
                             deleteAllChar();
                             playMedia("delete", 0,false);
                         } else {
+                            upKey = getKeyByPosition(x, y - location[1], 1);
                             currentWord += nowCh;
                             currentWord2 += nowCh2;
                             currentBaseline += getKeyBaseLine(x, y - location[1]);
@@ -829,14 +844,15 @@ public class MainActivity extends AppCompatActivity {
                         }
                         else{
                             if (tempTime - downTime > 500) {
+                                upKey = getKeyByPosition(x, y - location[1], 1);
                                 nowChSaved = nowCh;
                                 nowCh2Saved = nowCh2;
                                 nowChBaselineSaved = getKeyBaseLine(x, y - location[1]);
                             }
                         }
                     }
-                    deltaX = 0;
-                    deltaY = 0;
+                    //deltaX = 0;
+                    //deltaY = 0;
                     break;
             }
         }
