@@ -203,22 +203,24 @@ public class MainActivity extends AppCompatActivity {
                 //deltaX = 0;
                 //deltaY = 0;
                 char ch = getKeyByPosition(x, y, 1);
+                if (ch == upKey){
+                    addToSeq(ch, true, false);
+                }
+                else
                 if (ch != upKey){
                     resetLayout();
                     ch = getKeyByPosition(x, y, 1);
+                    char best = addToSeq(ch, false,true);
+                    if (ch == 'q' || ch == 'p' || ch == 'a' || ch == 'l'){
+                        best = ch;
+                    }
+                    if (tryLayout(best, x, y)){
+                        setLayout(best, x, y);
+                    }
+                    addToSeq(best, true,true);
                 }
-                char best = addToSeq(ch, false,true);
-                if (ch == 'q' || ch == 'p' || ch == 'a' || ch == 'l'){
-                    best = ch;
-                }
-
-                if (tryLayout(best, x, y)){
-                    setLayout(best, x, y);
-                }
-
                 //deltaX = (key_left[best - 'a'] + key_right[best - 'a']) / 2 - x; //move to the centre of the most possible key
                 //deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
-                addToSeq(best, true,true);
                 firstTouchSaved1 = KEY_NOT_FOUND;
                 firstTouchSaved2 = KEY_NOT_FOUND;
             }else{
