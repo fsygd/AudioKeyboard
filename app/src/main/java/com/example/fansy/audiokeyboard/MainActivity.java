@@ -80,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
         screen_height_ratio = metrics.heightPixels/1920F;
     }
 
+    //todo:reconstruct
     // init the coordinates of the key a-z on phone
     public void initKeyPosition(){
         key_left['q' - 'a'] = (int)(0F*screen_width_ratio);
@@ -211,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
                     resetLayout();
                     ch = getKeyByPosition(x, y, 1);
                     char best = addToSeq(ch, false,true);
-                    if (ch == 'q' || ch == 'p' || ch == 'a' || ch == 'l'){
+                    if (ch == 'q' || ch == 'p' || ch == 'a' || ch == 'l'){      //todo:this should be implemented in tryLayout
                         best = ch;
                     }
                     if (tryLayout(best, x, y)){
