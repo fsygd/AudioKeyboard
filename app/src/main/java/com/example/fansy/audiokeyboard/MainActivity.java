@@ -82,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
 
     //todo:reconstruct
     // init the coordinates of the key a-z on phone
+    /*
     public void initKeyPosition(){
         key_left['q' - 'a'] = (int)(0F*screen_width_ratio);
         key_right['q' - 'a'] = (int)(108F*screen_width_ratio);
@@ -116,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
             key_bottom[keys[2].charAt(i) - 'a'] = key_bottom[keys[2].charAt(i - 1) - 'a'];
         }
     }
+    */
 
     //redraw the views
     public void refresh(){
@@ -237,7 +239,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //init keysNearby and keysNearbyProb
+    //import touch model
     public void initKeyboard(){
+        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.touchmodel)));
+        String line;
+        try{
+            String[] secondKeys = reader.readLine().split(",");
+            while ((line = reader.readLine()) != null){
+                String[] firstKeyAndPs = line.split(",");
+                char firstKey = firstKeyAndPs[0].charAt(0);
+                keysNearby[firstKey-'a'] = "";
+                for(int i=0;i!=26;i++){
+                    if(firstKeyAndPs[i+1]!="0"){
+                        keysNearby[firstKey-'a'] += secondKeys[i+1];
+                        keysNearbyProb[firstKey-'a'][keysNearby[firstKey-'a'].length()-1] = Float.parseFloat(firstKeyAndPs[i+1]);
+                    }
+                }
+            }
+            reader.close();
+            Log.i("init", "read touch model finished ");
+        } catch (Exception e){
+            Log.i("init", "read touch model failed");
+        }
+        /*
         int delta[][] = new int [][]{{-1, -1, 0, 0, 0, 1, 1},{0, 1, -1, 0, 1, -1, 0}};
         double prob[] = new double[]{0.042, 0.042, 0.192, 0.376, 0.192, 0.044, 0.023};
         for (int  i= 0; i < 3; ++i)
@@ -252,6 +276,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
+            */
     }
 
     final int DICT_SIZE = 50000;
