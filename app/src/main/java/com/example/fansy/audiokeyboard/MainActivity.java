@@ -252,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
                 for(int i=0;i!=26;i++){
                     if(firstKeyAndPs[i+1]!="0"){
                         keysNearby[firstKey-'a'] += secondKeys[i+1];
-                        keysNearbyProb[firstKey-'a'][keysNearby[firstKey-'a'].length()-1] = Float.parseFloat(firstKeyAndPs[i+1]);
+                        keysNearbyProb[firstKey-'a'][keysNearby[firstKey-'a'].length()-1] = Double.valueOf(firstKeyAndPs[i+1]);
                     }
                 }
             }
