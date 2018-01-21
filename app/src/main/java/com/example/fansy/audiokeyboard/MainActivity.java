@@ -171,7 +171,6 @@ public class MainActivity extends AppCompatActivity {
                 firstTouchSaved1 = KEY_NOT_FOUND;
                 firstTouchSaved2 = KEY_NOT_FOUND;
             }else{
-
                 char ch = autoKeyboard.getKeyByPosition(x, y, 0);
                 addToSeq(ch,true,false);
             }
@@ -547,7 +546,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     for (int i = 0; i < letters.size(); ++i)
-                        letters.get(i).freq *= keysNearbyProb[ch - 'a'][keysNearby[ch-'a'].indexOf(letters.get(i).text)];
+                        letters.get(i).freq = (letters.get(i).freq + 0.01) * keysNearbyProb[ch - 'a'][keysNearby[ch-'a'].indexOf(letters.get(i).text)];
                     Collections.sort(letters);
                     if (!write) {
                         firstTouchSaved1 = letters.get(0).text.charAt(0);
