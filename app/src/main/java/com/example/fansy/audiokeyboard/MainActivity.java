@@ -936,7 +936,7 @@ public class MainActivity extends AppCompatActivity {
                             this.keys[i].test_height=bottomHeight;
                         }
                     }else{// ��һ������ѹ��
-                        for (int i=0;i<9;i++){
+                        for (int i=0;i<10;i++){
                             this.keys[i].test_y=this.keys[i].init_y+dY;
                             this.keys[i].test_height=this.keys[i].init_height;
                         }
