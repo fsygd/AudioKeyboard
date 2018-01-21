@@ -57,14 +57,9 @@ public class MainActivity extends AppCompatActivity {
     char firstTouchSaved2 = KEY_NOT_FOUND;
     ArrayList<Word> dict = new ArrayList();
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
-    String keys[] = new String[] {"qwertyuiop", "asdfghjkl", "zxcvbnm"};
     String keysNearby[] = new String[26];
     double keysNearbyProb[][] = new double[26][26];
-    int key_left[] = new int[26];
-    int key_right[] = new int[26];
-    int key_top[] = new int[26];
-    int key_bottom[] = new int[26];
-    //int deltaX = 0, deltaY = 0; //translation of XY coordinate
+
 
     int voiceSpeed = 50;
 
@@ -78,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
     int predictionRepeatTime = 1;
 
     AutoKeyboard autoKeyboard;
-    //int[] location;
 
 
     //redraw the views
@@ -651,16 +645,15 @@ public class MainActivity extends AppCompatActivity {
         predictionRepeatMButton = (Button)findViewById(R.id.predictionRepeat_m);
         predictionRepeatText = (TextView)findViewById(R.id.predictionReoeatText);
 
-        autoKeyboard=new AutoKeyboard(keyboard);
         ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
         vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
                 keyboard.getViewTreeObserver().removeGlobalOnLayoutListener(this);
                 //autoKeyboard.drawLayout();
-                //keyboard.getLocationOnScreen(location);
             }
         });
+        autoKeyboard=new AutoKeyboard(keyboard);
 
 
         initDict();
