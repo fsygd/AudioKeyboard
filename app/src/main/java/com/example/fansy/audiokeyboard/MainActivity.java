@@ -645,14 +645,14 @@ public class MainActivity extends AppCompatActivity {
         predictionRepeatText = (TextView)findViewById(R.id.predictionReoeatText);
 
         ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
+        autoKeyboard=new AutoKeyboard(keyboard);
         vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
-                keyboard.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                //autoKeyboard.drawLayout();
+                keyboard.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                autoKeyboard.drawLayout();
             }
         });
-        autoKeyboard=new AutoKeyboard(keyboard);
 
 
         initDict();
