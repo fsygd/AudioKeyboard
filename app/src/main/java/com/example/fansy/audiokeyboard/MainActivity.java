@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
     int predictionRepeatTime = 1;
 
     AutoKeyboard autoKeyboard;
-    int[] location;
+    //int[] location;
 
 
     //redraw the views
@@ -667,16 +667,17 @@ public class MainActivity extends AppCompatActivity {
         predictionRepeatMButton = (Button)findViewById(R.id.predictionRepeat_m);
         predictionRepeatText = (TextView)findViewById(R.id.predictionReoeatText);
 
+        autoKeyboard=new AutoKeyboard(keyboard);
         ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
         vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
                 keyboard.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                autoKeyboard.drawLayout();
-                keyboard.getLocationOnScreen(location);
+                //autoKeyboard.drawLayout();
+                //keyboard.getLocationOnScreen(location);
             }
         });
-        autoKeyboard=new AutoKeyboard(keyboard);
+
 
         initDict();
         initVoice();
@@ -1193,7 +1194,7 @@ public class MainActivity extends AppCompatActivity {
                 this.keys[i].curr_x = this.keys[i].init_x;
                 this.keys[i].curr_y = this.keys[i].init_y;
             }
-            this.drawLayout();
+            //this.drawLayout();
         }
         public AutoKeyboard(ImageView keyBoard){
             this.backgroundPaint=new Paint();
