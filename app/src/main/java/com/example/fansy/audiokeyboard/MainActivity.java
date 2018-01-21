@@ -912,7 +912,7 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < 26; ++i){
                 float dist_temp=keys[i].getDist(x,y,mode);
                 if (dist_temp<min_dist){
-                    key=(char)('a'+i);
+                    key=keys[i].ch;
                     min_dist=dist_temp;
                 }
             }
