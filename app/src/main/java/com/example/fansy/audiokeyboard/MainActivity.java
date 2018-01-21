@@ -165,8 +165,10 @@ public class MainActivity extends AppCompatActivity {
                     char best = addToSeq(ch, false,true);
                     if (autoKeyboard.tryLayout(best, x, y)){
                         autoKeyboard.drawLayout();
+                        addToSeq(best, true,true);
+                    }else{
                     }
-                    addToSeq(best, true,true);
+
                 }
                 firstTouchSaved1 = KEY_NOT_FOUND;
                 firstTouchSaved2 = KEY_NOT_FOUND;
