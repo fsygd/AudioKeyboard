@@ -749,9 +749,13 @@ public class MainActivity extends AppCompatActivity {
                         if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteLastChar();
                             playMedia("delete", 0,false);
+                            autoKeyboard.resetLayout();
+                            autoKeyboard.drawLayout();
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
                             playMedia("delete", 0,false);
+                            autoKeyboard.resetLayout();
+                            autoKeyboard.drawLayout();
                         } else {
                             upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
                             currentWord += nowCh;
@@ -767,11 +771,15 @@ public class MainActivity extends AppCompatActivity {
                             nowChSaved = '*';
                             nowCh2Saved = '*';
                             playMedia("delete", 0,false);
+                            autoKeyboard.resetLayout();
+                            autoKeyboard.drawLayout();
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
                             nowChSaved = '*';
                             nowCh2Saved = '*';
                             playMedia("delete", 0,false);
+                            autoKeyboard.resetLayout();
+                            autoKeyboard.drawLayout();
                         } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
                             //double click
                             if (nowChSaved != '*'){
@@ -794,7 +802,6 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     }
-
                     break;
             }
         }
@@ -912,7 +919,7 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < 26; ++i){
                 float dist_temp=keys[i].getDist(x,y,mode);
                 if (dist_temp<min_dist){
-                    key=(char)('a'+i);
+                    key=keys[i].ch;
                     min_dist=dist_temp;
                 }
             }
