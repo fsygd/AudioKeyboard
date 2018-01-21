@@ -2,6 +2,11 @@ package com.example.fansy.audiokeyboard;
 
 import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.media.MediaPlayer;
 import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
@@ -10,6 +15,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -62,8 +68,6 @@ public class MainActivity extends AppCompatActivity {
 
     int voiceSpeed = 50;
 
-    float screen_width_ratio = 1F;
-    float screen_height_ratio = 1F;
 
     boolean playDaFlag = false;
     boolean slideFlag = false;
@@ -73,51 +77,9 @@ public class MainActivity extends AppCompatActivity {
     int predictionCount = 0;
     int predictionRepeatTime = 1;
 
-    public void getScreenSizeRatio(){
-        DisplayMetrics metrics =new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
-        screen_width_ratio = metrics.widthPixels/1080F;
-        screen_height_ratio = metrics.heightPixels/1920F;
-    }
+    AutoKeyboard autoKeyboard;
+    int[] location;
 
-    //todo:reconstruct
-    // init the coordinates of the key a-z on phone
-    /*
-    public void initKeyPosition(){
-        key_left['q' - 'a'] = (int)(0F*screen_width_ratio);
-        key_right['q' - 'a'] = (int)(108F*screen_width_ratio);
-        key_bottom['q' - 'a'] = (int)(170F*screen_width_ratio);
-        key_top['q' - 'a'] = (int)(0F*screen_width_ratio);
-        for (int i = 1; i < keys[0].length(); ++i){
-            key_left[keys[0].charAt(i) - 'a'] = key_left[keys[0].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
-            key_right[keys[0].charAt(i) - 'a'] = key_right[keys[0].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
-            key_top[keys[0].charAt(i) - 'a'] = key_top[keys[0].charAt(i - 1) - 'a'];
-            key_bottom[keys[0].charAt(i) - 'a'] = key_bottom[keys[0].charAt(i - 1) - 'a'];
-        }
-
-        key_left['a' - 'a'] = (int)(54F*screen_width_ratio);
-        key_right['a' - 'a'] = (int)(162F*screen_width_ratio);
-        key_bottom['a' - 'a'] = (int)(340F*screen_width_ratio);
-        key_top['a' - 'a'] = (int)(170F*screen_width_ratio);
-        for (int i = 1; i < keys[1].length(); ++i){
-            key_left[keys[1].charAt(i) - 'a'] = key_left[keys[1].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
-            key_right[keys[1].charAt(i) - 'a'] = key_right[keys[1].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
-            key_top[keys[1].charAt(i) - 'a'] = key_top[keys[1].charAt(i - 1) - 'a'];
-            key_bottom[keys[1].charAt(i) - 'a'] = key_bottom[keys[1].charAt(i - 1) - 'a'];
-        }
-
-        key_left['z' - 'a'] = (int)(162F*screen_width_ratio);
-        key_right['z' - 'a'] = (int)(270F*screen_width_ratio);
-        key_bottom['z' - 'a'] = (int)(510F*screen_width_ratio);
-        key_top['z' - 'a'] = (int)(340F*screen_width_ratio);
-        for (int i = 1; i < keys[2].length(); ++i){
-            key_left[keys[2].charAt(i) - 'a'] = key_left[keys[2].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
-            key_right[keys[2].charAt(i) - 'a'] = key_right[keys[2].charAt(i - 1) - 'a'] + (int)(108F*screen_width_ratio);
-            key_top[keys[2].charAt(i) - 'a'] = key_top[keys[2].charAt(i - 1) - 'a'];
-            key_bottom[keys[2].charAt(i) - 'a'] = key_bottom[keys[2].charAt(i - 1) - 'a'];
-        }
-    }
-    */
 
     //redraw the views
     public void refresh(){
@@ -194,47 +156,37 @@ public class MainActivity extends AppCompatActivity {
     public void newPoint(int x, int y){
         if (seq.size() == 0){//first touch
             if (initMode == INIT_MODE_ABSOLUTE) {
-                //deltaX = 0;
-                //deltaY = 0;
-                resetLayout();
-                //char ch = getKeyByPosition(x, y);
-                //deltaY = (key_top[ch - 'a'] + key_bottom[ch - 'a']) / 2 - y;
-                //deltaX = (key_left[ch - 'a'] + key_right[ch - 'a']) / 2 - x; //move to the centre of the key
-                addToSeq(getKeyByPosition(x, y, 0), true,true);
+                autoKeyboard.resetLayout();
+                addToSeq(autoKeyboard.getKeyByPosition(x, y, 0), true,true);
             }
             else if(initMode == INIT_MODE_RELATIVE){
-                //deltaX = 0;
-                //deltaY = 0;
-                char ch = getKeyByPosition(x, y, 1);
+                char ch = autoKeyboard.getKeyByPosition(x, y, 1);
                 if (ch == upKey){
                     addToSeq(ch, true, false);
                 }
                 else
                 if (ch != upKey){
-                    resetLayout();
-                    ch = getKeyByPosition(x, y, 1);
+                    autoKeyboard.resetLayout();
+                    ch = autoKeyboard.getKeyByPosition(x, y, 1);
                     char best = addToSeq(ch, false,true);
                     if (ch == 'q' || ch == 'p' || ch == 'a' || ch == 'l'){      //todo:this should be implemented in tryLayout
                         best = ch;
                     }
-                    if (tryLayout(best, x, y)){
-                        setLayout(best, x, y);
+                    if (autoKeyboard.tryLayout(best, x, y)){
+                        autoKeyboard.drawLayout();
                     }
                     addToSeq(best, true,true);
                 }
-                //deltaX = (key_left[best - 'a'] + key_right[best - 'a']) / 2 - x; //move to the centre of the most possible key
-                //deltaY = (key_top[best - 'a'] + key_bottom[best - 'a']) / 2 - y;
                 firstTouchSaved1 = KEY_NOT_FOUND;
                 firstTouchSaved2 = KEY_NOT_FOUND;
             }else{
-                //deltaX = 0;
-                //deltaY = 0;
-                char ch = getKeyByPosition(x, y, 0);
+
+                char ch = autoKeyboard.getKeyByPosition(x, y, 0);
                 addToSeq(ch,true,false);
             }
         }
         else{
-            addToSeq(getKeyByPosition(x, y, 1), true,true);
+            addToSeq(autoKeyboard.getKeyByPosition(x, y, 1), true,true);
         }
     }
 
@@ -261,22 +213,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e){
             Log.i("init", "read touch model failed");
         }
-        /*
-        int delta[][] = new int [][]{{-1, -1, 0, 0, 0, 1, 1},{0, 1, -1, 0, 1, -1, 0}};
-        double prob[] = new double[]{0.042, 0.042, 0.192, 0.376, 0.192, 0.044, 0.023};
-        for (int  i= 0; i < 3; ++i)
-            for (int j = 0; j < keys[i].length(); ++j){
-                char ch = keys[i].charAt(j);
-                keysNearby[ch - 'a'] = "";
-                for (int k = 0; k < 7; ++k){
-                    int _i = i + delta[0][k], _j = j + delta[1][k];
-                    if (_i >= 0 && _i < 3 && _j >= 0 && _j < keys[_i].length()) {
-                        keysNearby[ch - 'a'] += keys[_i].charAt(_j);
-                        keysNearbyProb[ch - 'a'][keysNearby[ch - 'a'].length() - 1] = prob[k];
-                    }
-                }
-            }
-            */
+
     }
 
     final int DICT_SIZE = 50000;
@@ -693,23 +630,7 @@ public class MainActivity extends AppCompatActivity {
         }
         return 'a';
     }
-    //get key with translation
-    /*
-    char getKeyByPosition(int x, int y){
-        x += deltaX;
-        y += deltaY;
-        char key = KEY_NOT_FOUND;
-        int min_dist = Integer.MAX_VALUE;
-        for (int i = 0; i < 26; ++i){
-            int _x = (key_left[i] + key_right[i]) / 2;
-            int _y = (key_top[i] + key_bottom[i]) / 2;
-            if ((x - _x) * (x - _x) + (y - _y) * (y - _y) < min_dist){
-                key = (char)('a' + i);
-                min_dist = (x - _x) * (x - _x) + (y - _y) * (y - _y);
-            }
-        }
-        return key;
-    }*/
+
 
     //get key without translation
     char getKeyBaseLine(int x, int y){
@@ -746,8 +667,17 @@ public class MainActivity extends AppCompatActivity {
         predictionRepeatMButton = (Button)findViewById(R.id.predictionRepeat_m);
         predictionRepeatText = (TextView)findViewById(R.id.predictionReoeatText);
 
-        getScreenSizeRatio();
-        initKeyPosition();
+        ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
+        vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                keyboard.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                autoKeyboard.drawLayout();
+                keyboard.getLocationOnScreen(location);
+            }
+        });
+        autoKeyboard=new AutoKeyboard(keyboard);
+
         initDict();
         initVoice();
         initButtons();
@@ -796,7 +726,7 @@ public class MainActivity extends AppCompatActivity {
         int x = (int)event.getX();
         int y = (int)event.getY();
 
-        if (event.getPointerCount() == 1 && (getKeyByPosition(x, y - location[1], 1) == upKey || getKeyByPosition(x, y - location[1]) != KEY_NOT_FOUND)){ // in the keyboard area
+        if (event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], 1) == upKey || autoKeyboard.getKeyByPosition(x, y - location[1],0) != KEY_NOT_FOUND)){ // in the keyboard area
         //if (event.getPointerCount() == 1 && event.getY() - location[1] + deltaY >= key_top['q' - 'a'] && event.getY() - location[1] + deltaY <= key_bottom['z' - 'a']) {//in the keyboard area
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
@@ -838,7 +768,7 @@ public class MainActivity extends AppCompatActivity {
                             deleteAllChar();
                             playMedia("delete", 0,false);
                         } else {
-                            upKey = getKeyByPosition(x, y - location[1], 1);
+                            upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
                             currentWord += nowCh;
                             currentWord2 += nowCh2;
                             currentBaseline += getKeyBaseLine(x, y - location[1]);
@@ -872,7 +802,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         else{
                             if (tempTime - downTime > 500) {
-                                upKey = getKeyByPosition(x, y - location[1], 1);
+                                upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
                                 nowChSaved = nowCh;
                                 nowCh2Saved = nowCh2;
                                 nowChBaselineSaved = getKeyBaseLine(x, y - location[1]);
@@ -902,4 +832,402 @@ public class MainActivity extends AppCompatActivity {
             return 0;
         }
     }
+
+    class AutoKeyboard{
+        ImageView keyboard;
+        Canvas canvas;
+        Bitmap baseBitmap;
+        Paint backgroundPaint;
+        Paint textPaint;
+
+        float screen_width_ratio = 1F;
+        float screen_height_ratio = 1F;
+        //Fuzzy Input Test Var
+        float keyboardHeight=570;
+        float keyboardWidth=1438;
+        float deltaY=190;
+        float topThreshold=0;// �Ͻ�
+        float bottomThreshold=955;// �½�
+        float minWidth=72;// ��С����
+        float minHetight=95;//��С����
+        int keyPos[];
+        int[] location;
+        class KEY{
+            char ch;
+            float init_x;
+            float init_y;
+            float curr_x;
+            float curr_y;
+            float test_x;
+            float test_y;
+            float init_width;
+            float init_height;
+            float curr_width;
+            float curr_height;
+            float test_width;
+            float test_height;
+            float getDist(float x,float y,int mode){
+                // mode==0 init_layout
+                // mode==1 current_layout
+                if(mode==0){
+                    return (init_x-x)*(init_x-x)+(init_y-y)*(init_y-y);
+                }
+                else{
+                    return (curr_x-x)*(curr_x-x)+(curr_y-y)*(curr_y-y);
+                }
+            }
+            KEY(){
+                ch='a';
+                init_x=0;
+                init_y=0;
+                init_height=0;
+                init_width=0;
+                curr_height=0;
+                curr_width=0;
+                curr_x=0;
+                curr_y=0;
+                test_height=0;
+                test_width=0;
+                test_x=0;
+                test_y=0;
+            }
+        }
+        KEY keys[];
+        void setKeyboardHeight(float newkeyBoardHeight){
+            this.keyboardHeight=newkeyBoardHeight*screen_height_ratio;
+        }
+        void setKeyboardWidth(float newkeyBoardWidth){
+            this.keyboardWidth=newkeyBoardWidth*screen_width_ratio;
+        }
+        void setTopThreshold(float newTopThreshold){
+            this.topThreshold=newTopThreshold*screen_height_ratio;
+        }
+        void setBottomThreshold(float newBottomThreshold){
+            this.bottomThreshold=newBottomThreshold*screen_height_ratio;
+        }
+        void setMinWidth(float newMinWidth){
+            this.minWidth=newMinWidth*screen_width_ratio;
+        }
+        void setMinHetight(float newMinHeight){
+            this.minHetight=newMinHeight*screen_height_ratio;
+        }
+        void getScreenSizeRatio(){
+            DisplayMetrics metrics =new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
+            this.screen_width_ratio = metrics.widthPixels/1440F;
+            this.screen_height_ratio = metrics.heightPixels/2560F;
+        }
+
+        public char getKeyByPosition(float x, float y, int mode){
+            // mode==0 init_layout
+            // mode==1 current_layout
+            char key = KEY_NOT_FOUND;
+            if(y<topThreshold || y>bottomThreshold)
+                return key;
+            float min_dist = Float.MAX_VALUE;
+            for (int i = 0; i < 26; ++i){
+                float dist_temp=keys[i].getDist(x,y,mode);
+                if (dist_temp<min_dist){
+                    key=(char)('a'+i);
+                    min_dist=dist_temp;
+                }
+            }
+            return key;
+        };
+        public  boolean tryLayout(char ch,float x,float y){
+            ch=Character.toUpperCase(ch);
+            int pos = this.keyPos[ch-'a'];
+            float dX=x-this.keys[pos].init_x;
+            float dY=y-this.keys[pos].init_y;
+            if(dY>=0){// ����ƽ��
+                if(this.keys[19].init_y+this.keys[19].init_height/2+dY>this.bottomThreshold){
+                    if(pos>18)
+                        return false;
+                    else if(pos>9){//�ڶ�������ѹ��
+                        for (int i=0;i<19;i++){
+                            this.keys[i].test_y=this.keys[i].init_y+dY;
+                            this.keys[i].test_height=this.keys[i].init_height;
+                        }
+                        float bottomHeight=this.bottomThreshold-this.keys[15].test_y-this.keys[15].test_height/2;
+                        for (int i=19;i<26;i++){
+                            this.keys[i].test_y=this.bottomThreshold-bottomHeight/2;
+                            this.keys[i].test_height=bottomHeight;
+                        }
+                    }else{// ��һ������ѹ��
+                        for (int i=0;i<9;i++){
+                            this.keys[i].test_y=this.keys[i].init_y+dY;
+                            this.keys[i].test_height=this.keys[i].init_height;
+                        }
+                        float bottomHeight=this.bottomThreshold-this.keys[0].test_y-this.keys[0].test_height/2;
+                        for (int i=10;i<19;i++){
+                            this.keys[i].test_y=this.bottomThreshold-bottomHeight*3/4;
+                            this.keys[i].test_height=bottomHeight/2;
+                        }
+                        for (int i=19;i<26;i++){
+                            this.keys[i].test_y=this.bottomThreshold-bottomHeight/4;
+                            this.keys[i].test_height=bottomHeight/2;
+                        }
+                    }
+                }
+                else{
+                    for (int i=0;i<26;i++){
+                        this.keys[i].test_y=this.keys[i].init_y+dY;
+                        this.keys[i].test_height=this.keys[i].init_height;
+                    }
+                }
+            }else{// ����ƽ��
+                if(this.keys[0].init_y-this.keys[0].init_height/2+dY<this.topThreshold){
+                    if(pos<10)
+                        return false;
+                    else if(pos<19){//�ڶ�������ѹ
+                        for (int i=10;i<26;i++){
+                            this.keys[i].test_y=this.keys[i].init_y+dY;
+                            this.keys[i].test_height=this.keys[i].init_height;
+                        }
+                        float topHeight=this.keys[15].test_y-this.keys[15].test_height/2;
+                        for (int i=0;i<10;i++){
+                            this.keys[i].test_y=topHeight/2;
+                            this.keys[i].test_height=topHeight;
+                        }
+                    }else{//����������ѹ
+                        for (int i=19;i<26;i++){
+                            this.keys[i].test_y=this.keys[i].init_y+dY;
+                            this.keys[i].test_height=this.keys[i].init_height;
+                        }
+                        float topHeight=this.keys[19].test_y-this.keys[19].test_height/2;
+                        for (int i=0;i<10;i++){
+                            this.keys[i].test_y=topHeight/4;
+                            this.keys[i].test_height=topHeight/2;
+                        }
+                        for (int i=10;i<19;i++){
+                            this.keys[i].test_y=topHeight*3/4;
+                            this.keys[i].test_height=topHeight/2;
+                        }
+                    }
+                }else{
+                    for (int i=0;i<26;i++){
+                        this.keys[i].test_y=this.keys[i].init_y+dY;
+                        this.keys[i].test_height=this.keys[i].init_height;
+                    }
+                }
+            }
+            for (int i=0;i<26;i++){
+                if(this.keys[i].test_height<this.minHetight){
+                    return false;
+                }
+            }
+            if(dX>=0) {// ����ƽ��
+                if (pos == 9 || pos == 18 || pos == 25)
+                    return false;
+            }else {// ����ƽ��
+                if (pos == 0 || pos == 10 || pos == 19)
+                    return false;
+            }
+
+            if(pos<10 ){// ��һ��
+                this.keys[pos].test_x=x;
+                this.keys[pos].test_width=this.keys[pos].init_width;
+
+                float rightRatio=(this.keyboardWidth-this.keys[pos].test_x-this.keys[pos].test_width/2)/(this.keyboardWidth-this.keys[pos].init_x-this.keys[pos].init_width/2);
+                float leftRatio=(this.keys[pos].test_x-this.keys[pos].test_width)/(this.keys[pos].init_x-this.keys[pos].init_width);
+
+                for(int i=0;i<pos;i++){
+                    this.keys[i].test_x=this.keys[i].init_x*leftRatio;
+                    this.keys[i].test_width=this.keys[i].init_width*leftRatio;
+                }
+                for (int i=pos+1;i<10;i++){
+                    this.keys[i].test_x=keyboardWidth-(keyboardWidth-this.keys[i].init_x)*rightRatio;
+                    this.keys[i].test_width=this.keys[i].init_width*rightRatio;
+                }
+
+                for (int i=10;i<19;i++){
+                    this.keys[i].test_x=(this.keys[i-10].test_x+this.keys[i-9].test_x)/2;
+                    this.keys[i].test_width=this.keys[i-9].test_x-this.keys[i-10].test_x;
+                }
+                for (int i=19;i<26;i++){
+                    this.keys[i].test_x=this.keys[i-8].test_x;
+                    this.keys[i].test_width=this.keys[i-8].test_width;
+                }
+
+            }else if(pos<19){// �ڶ���
+                this.keys[pos].test_x=x;
+                this.keys[pos].test_width=this.keys[pos].init_width;
+
+                float rightRatio=(this.keyboardWidth-this.keys[pos].test_x-this.keys[pos].test_width/2)/(this.keyboardWidth-this.keys[pos].init_x-this.keys[pos].init_width/2);
+                float leftRatio=(this.keys[pos].test_x-this.keys[pos].test_width)/(this.keys[pos].init_x-this.keys[pos].init_width);
+
+                for(int i=10;i<pos;i++){
+                    this.keys[i].test_x=this.keys[i].init_x*leftRatio;
+                    this.keys[i].test_width=this.keys[i].init_width*leftRatio;
+                }
+                for (int i=pos+1;i<19;i++){
+                    this.keys[i].test_x=this.keyboardWidth-(this.keyboardWidth-this.keys[i].init_x)*rightRatio;
+                    this.keys[i].test_width=this.keys[i].init_width*rightRatio;
+                }
+                this.keys[0].test_x=this.keys[10].test_x/2;
+                this.keys[0].test_width=this.keys[10].test_x;
+                this.keys[9].test_width=this.keyboardWidth-this.keys[18].test_x;
+                this.keys[9].test_x=this.keyboardWidth-this.keys[9].test_width/2;
+                for (int i=1;i<9;i++){
+                    this.keys[i].test_x=(this.keys[i+9].test_x+this.keys[i+10].test_x)/2;
+                    this.keys[i].test_width=this.keys[i+10].test_x-this.keys[i+9].test_x;
+                }
+                for (int i=19;i<26;i++){
+                    this.keys[i].test_x=this.keys[i-8].test_x;
+                    this.keys[i].test_width=this.keys[i-8].test_width;
+                }
+            }else{// ������
+                this.keys[pos].test_x=x;
+                this.keys[pos].test_width=this.keys[pos].init_width;
+
+                float rightRatio=(this.keyboardWidth-this.keys[pos].test_x-this.keys[pos].test_width/2)/(this.keyboardWidth-this.keys[pos].init_x-this.keys[pos].init_width/2);
+                float leftRatio=(this.keys[pos].test_x-this.keys[pos].test_width)/(this.keys[pos].init_x-this.keys[pos].init_width);
+
+                for(int i=19;i<pos;i++){
+                    this.keys[i].test_x=this.keys[i].init_x*leftRatio;
+                    this.keys[i].test_width=this.keys[i].init_width*leftRatio;
+                }
+                for (int i=pos+1;i<26;i++){
+                    this.keys[i].test_x=this.keyboardWidth-(this.keyboardWidth-this.keys[i].init_x)*rightRatio;
+                    this.keys[i].test_width=this.keys[i].init_width*rightRatio;
+                }
+
+                for (int i=11;i<18;i++){
+                    this.keys[i].test_x=this.keys[i+8].test_x;
+                    this.keys[i].test_width=this.keys[i+8].test_width;
+                }
+                this.keys[10].test_width=this.keys[11].test_x-this.keys[11].test_width/2;
+                this.keys[10].test_x=this.keys[10].test_width/2;
+                this.keys[18].test_width=this.keyboardWidth-this.keys[17].test_x-this.keys[17].test_width/2;
+                this.keys[18].test_x=this.keyboardWidth-this.keys[18].test_width/2;
+
+                this.keys[0].test_x=this.keys[10].test_x/2;
+                this.keys[0].test_width=this.keys[10].test_x;
+                this.keys[9].test_width=this.keyboardWidth-this.keys[18].test_x;
+                this.keys[9].test_x=this.keyboardWidth-this.keys[9].test_width/2;
+                for (int i=1;i<9;i++){
+                    this.keys[i].test_x=(this.keys[i+9].test_x+this.keys[i+10].test_x)/2;
+                    this.keys[i].test_width=this.keys[i+10].test_x-this.keys[i+9].test_x;
+                }
+            }
+
+
+            for (int i=0;i<26;i++){
+                if(this.keys[i].test_width<this.minWidth){
+                    return false;
+                }
+            }
+            for (int i=0;i<26;i++){
+                this.keys[i].curr_x=this.keys[i].test_x;
+                this.keys[i].curr_y=this.keys[i].test_y;
+                this.keys[i].curr_height=this.keys[i].test_height;
+                this.keys[i].curr_width=this.keys[i].test_width;
+            }
+            return true;
+        }
+
+        public void drawLayout(){ // curr_x,curr_y
+            float left=this.location[0]+this.keys[0].curr_x-this.keys[0].curr_width/2;
+            float top=this.location[1]+this.keys[0].curr_y-this.keys[0].curr_height/2;
+            float right=this.location[0]+this.keys[9].curr_x+this.keys[9].curr_width/2;
+            float bottom=this.location[1]+this.keys[25].curr_y+this.keys[25].curr_height/2;
+            this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
+            this.canvas=new Canvas(this.baseBitmap);
+            RectF rect = new RectF(left, top, right, bottom);
+            this.canvas.drawRect(rect, this.backgroundPaint);
+            for (int i=0;i<26;i++){
+                this.canvas.drawText(String.valueOf(this.keys[i].ch),this.keys[i].curr_x+this.location[0],this.keys[i].curr_y+this.location[1],this.textPaint);
+            }
+            this.keyboard.setImageBitmap(this.baseBitmap);
+        }
+
+        public void resetLayout(){
+            if(this.keys==null){
+                this.keys=new KEY[26];
+            }
+            this.keys[0].ch='q';
+            this.keys[1].ch='w';
+            this.keys[2].ch='e';
+            this.keys[3].ch='r';
+            this.keys[4].ch='t';
+            this.keys[5].ch='y';
+            this.keys[6].ch='u';
+            this.keys[7].ch='i';
+            this.keys[8].ch='o';
+            this.keys[9].ch='p';
+            this.keys[10].ch='a';
+            this.keys[11].ch='s';
+            this.keys[12].ch='d';
+            this.keys[13].ch='f';
+            this.keys[14].ch='g';
+            this.keys[15].ch='h';
+            this.keys[16].ch='j';
+            this.keys[17].ch='k';
+            this.keys[18].ch='l';
+            this.keys[19].ch='z';
+            this.keys[20].ch='x';
+            this.keys[21].ch='c';
+            this.keys[22].ch='v';
+            this.keys[23].ch='b';
+            this.keys[24].ch='n';
+            this.keys[25].ch='m';
+
+            for (int i=0;i<10;i++){
+                this.keys[i].init_x=this.keyboardWidth*(2*i+1)/20;
+                this.keys[i].init_y=this.keyboardHeight/6+this.deltaY;
+            }
+            for (int i=10;i<19;i++){
+                this.keys[i].init_x=(this.keys[i-10].init_x+this.keys[i-9].init_x)/2;
+                this.keys[i].init_y=this.keyboardHeight/2+this.deltaY;
+            }
+            for (int i=19;i<26;i++){
+                this.keys[i].init_x=this.keys[i-8].init_x;
+                this.keys[i].init_y=this.keyboardHeight*5/6+this.deltaY;
+            }
+
+            for (int i=0;i<26;i++) {
+                this.keys[i].init_height=this.keyboardHeight/3;
+                this.keys[i].init_width=this.keyboardWidth/10;
+                this.keys[i].curr_width=this.keys[i].init_width;
+                this.keys[i].curr_height=this.keys[i].init_height;
+                this.keys[i].curr_x = this.keys[i].init_x;
+                this.keys[i].curr_y = this.keys[i].init_y;
+            }
+            this.drawLayout();
+        }
+        public AutoKeyboard(ImageView keyBoard){
+            this.backgroundPaint=new Paint();
+            this.textPaint=new Paint();
+            this.backgroundPaint.setColor(Color.rgb(230,255,255));
+            this.backgroundPaint.setStrokeJoin(Paint.Join.ROUND);
+            this.backgroundPaint.setStrokeCap(Paint.Cap.ROUND);
+            this.backgroundPaint.setStrokeWidth(3);
+
+            this.textPaint.setColor(Color.BLACK);
+            this.textPaint.setStrokeJoin(Paint.Join.ROUND);
+            this.textPaint.setStrokeCap(Paint.Cap.ROUND);
+            this.textPaint.setStrokeWidth(3);
+            this.textPaint.setTextSize(Math.round(40*screen_height_ratio));
+            this.keyboard=keyBoard;
+
+            getScreenSizeRatio();
+            this.keyboardHeight=this.keyboardHeight*this.screen_height_ratio;
+            this.keyboardWidth=this.keyboardWidth*this.screen_width_ratio;
+            this.topThreshold=this.screen_height_ratio*this.topThreshold;
+            this.bottomThreshold=this.screen_width_ratio*this.bottomThreshold;
+            this.minWidth=this.screen_width_ratio*this.minWidth;
+            this.minHetight=this.screen_height_ratio*this.minHetight;
+
+
+            this.location=new int[2];
+            this.keyPos=new int[]{10,23,21,12,2,13,14,15,7,16,17,18,25,24,8,9,0,3,11,4,6,22,1,20,5,19};// A-Z ��Ӧ Q-M
+            this.keyboard.getLocationOnScreen(this.location);
+            this.keys=new KEY[26];
+            for (int i=0;i<26;i++){
+                this.keys[i]=new KEY();
+            }
+            this.resetLayout();
+        }
+    }
+
 }
