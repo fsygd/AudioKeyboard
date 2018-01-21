@@ -425,8 +425,10 @@ public class MainActivity extends AppCompatActivity {
                     initMode = INIT_MODE_RELATIVE;
                 else if(initMode == INIT_MODE_RELATIVE) {
                     initMode = INIT_MODE_NOTHING;
+                    autoKeyboard.resetLayout();
                 }else
                     initMode = INIT_MODE_ABSOLUTE;
+                    autoKeyboard.resetLayout();
                 refresh();
             }
         });
