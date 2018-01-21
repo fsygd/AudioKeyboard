@@ -167,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
                         autoKeyboard.drawLayout();
                         addToSeq(best, true,true);
                     }else{
+                        addToSeq(ch, true,false);
                     }
 
                 }
