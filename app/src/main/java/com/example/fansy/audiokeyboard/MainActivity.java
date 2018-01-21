@@ -169,9 +169,6 @@ public class MainActivity extends AppCompatActivity {
                     autoKeyboard.resetLayout();
                     ch = autoKeyboard.getKeyByPosition(x, y, 1);
                     char best = addToSeq(ch, false,true);
-                    if (ch == 'q' || ch == 'p' || ch == 'a' || ch == 'l'){      //todo:this should be implemented in tryLayout
-                        best = ch;
-                    }
                     if (autoKeyboard.tryLayout(best, x, y)){
                         autoKeyboard.drawLayout();
                     }
@@ -632,20 +629,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    //get key without translation
-    char getKeyBaseLine(int x, int y){
-        char key = KEY_NOT_FOUND;
-        int min_dist = Integer.MAX_VALUE;
-        for (int i = 0; i < 26; ++i){
-            int _x = (key_left[i] + key_right[i]) / 2;
-            int _y = (key_top[i] + key_bottom[i]) / 2;
-            if ((x - _x) * (x - _x) + (y - _y) * (y - _y) < min_dist){
-                key = (char)('a' + i);
-                min_dist = (x - _x) * (x - _x) + (y - _y) * (y - _y);
-            }
-        }
-        return key;
-    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -772,7 +756,7 @@ public class MainActivity extends AppCompatActivity {
                             upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
                             currentWord += nowCh;
                             currentWord2 += nowCh2;
-                            currentBaseline += getKeyBaseLine(x, y - location[1]);
+                            currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],0);
                             predict(currentWord, currentWord2);
                             refresh();
                         }
@@ -806,12 +790,11 @@ public class MainActivity extends AppCompatActivity {
                                 upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
                                 nowChSaved = nowCh;
                                 nowCh2Saved = nowCh2;
-                                nowChBaselineSaved = getKeyBaseLine(x, y - location[1]);
+                                nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],0);
                             }
                         }
                     }
-                    //deltaX = 0;
-                    //deltaY = 0;
+
                     break;
             }
         }
@@ -936,7 +919,6 @@ public class MainActivity extends AppCompatActivity {
             return key;
         };
         public  boolean tryLayout(char ch,float x,float y){
-            ch=Character.toUpperCase(ch);
             int pos = this.keyPos[ch-'a'];
             float dX=x-this.keys[pos].init_x;
             float dY=y-this.keys[pos].init_y;
