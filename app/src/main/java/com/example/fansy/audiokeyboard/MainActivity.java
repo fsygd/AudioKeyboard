@@ -193,14 +193,19 @@ public class MainActivity extends AppCompatActivity {
         String line;
         try{
             String[] secondKeys = reader.readLine().split(",");
+            for (int i = 0; i < 26; ++i){
+                keysNearby[i] = "";
+            }
             while ((line = reader.readLine()) != null){
                 String[] firstKeyAndPs = line.split(",");
                 char firstKey = firstKeyAndPs[0].charAt(0);
-                keysNearby[firstKey-'a'] = "";
                 for(int i=0;i!=26;i++){
                     if(firstKeyAndPs[i+1]!="0"){
-                        keysNearby[firstKey-'a'] += secondKeys[i+1];
-                        keysNearbyProb[firstKey-'a'][keysNearby[firstKey-'a'].length()-1] = Double.valueOf(firstKeyAndPs[i+1]);
+                        int tmp = secondKeys[i + 1].charAt(0)-'a';
+                        //keysNearby[firstKey-'a'] += secondKeys[i+1];
+                        keysNearby[tmp] += firstKey;
+                        keysNearbyProb[tmp][keysNearby[tmp].length() - 1] = Double.valueOf(firstKeyAndPs[i + 1]);
+                        //keysNearbyProb[firstKey-'a'][keysNearby[firstKey-'a'].length()-1] = Double.valueOf(firstKeyAndPs[i+1]);
                     }
                 }
             }
