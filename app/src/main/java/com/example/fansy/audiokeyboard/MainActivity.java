@@ -840,6 +840,7 @@ public class MainActivity extends AppCompatActivity {
         float bottomThreshold=955;// �½�
         float minWidth=72;// ��С����
         float minHetight=110;//��С����
+        float MAX_DELTAY = 50;
         int keyPos[];
         int[] location;
         class KEY{
@@ -928,6 +929,10 @@ public class MainActivity extends AppCompatActivity {
             int pos = this.keyPos[ch-'a'];
             float dX=x-this.keys[pos].init_x;
             float dY=y-this.keys[pos].init_y;
+            //竖直上的平移不能太大
+            if (Math.abs(dY) >= MAX_DELTAY){
+                return false;
+            }
             if(dY>=0){// ����ƽ��
                 if(this.keys[19].init_y+this.keys[19].init_height/2+dY>this.bottomThreshold){
                     if(pos>18)
