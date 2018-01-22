@@ -170,9 +170,12 @@ public class MainActivity extends AppCompatActivity {
                         if (autoKeyboard.tryLayout(ch, x, y)){
                             autoKeyboard.drawLayout();
                         }
-                        addToSeq(ch, true,false);
+                        if (firstTouchSaved1 != ch) {
+                            firstTouchSaved2 = firstTouchSaved1;
+                            firstTouchSaved1 = ch;
+                        }
+                        addToSeq(ch, true,true);
                     }
-
                 }
                 firstTouchSaved1 = KEY_NOT_FOUND;
                 firstTouchSaved2 = KEY_NOT_FOUND;
@@ -761,7 +764,7 @@ public class MainActivity extends AppCompatActivity {
                             playMedia("delete", 0,false);
                             autoKeyboard.resetLayout();
                             autoKeyboard.drawLayout();
-                        } else {
+                        } else if (tempTime - downTime > 300) {
                             upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
                             currentWord += nowCh;
                             currentWord2 += nowCh2;
@@ -799,7 +802,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                         else{
-                            if (tempTime - downTime > 500) {
+                            if (tempTime - downTime > 300) {
                                 upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
                                 nowChSaved = nowCh;
                                 nowCh2Saved = nowCh2;
