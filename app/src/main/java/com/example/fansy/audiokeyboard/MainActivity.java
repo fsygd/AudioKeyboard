@@ -167,7 +167,10 @@ public class MainActivity extends AppCompatActivity {
                         autoKeyboard.drawLayout();
                         addToSeq(best, true,true);
                     }else{
-                        addToSeq(ch, true,false);
+                        if (autoKeyboard.tryLayout(ch, x, y)){
+                            autoKeyboard.drawLayout();
+                        }
+                        addToSeq(ch, true,true);
                     }
 
                 }
@@ -569,7 +572,6 @@ public class MainActivity extends AppCompatActivity {
                             return ch;
                     }
                 }
-
                 //write=true
                 seq.add(ch);
                 Log.i("seq", ch + "");
@@ -577,7 +579,6 @@ public class MainActivity extends AppCompatActivity {
                 readList = "";
                 nowCh = '*';
                 nowCh2 = '*';
-
                 playMedia("ios11da", 0,false);
                 if (predictMode && initMode != INIT_MODE_NOTHING){
                     if (seq.size() == 1 ||(playDaFlag&&!slideFlag)||(predictionCount<predictionRepeatTime)){
