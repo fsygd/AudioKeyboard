@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
                         if (autoKeyboard.tryLayout(ch, x, y)){
                             autoKeyboard.drawLayout();
                         }
-                        addToSeq(ch, true,true);
+                        addToSeq(ch, true,false);
                     }
 
                 }
