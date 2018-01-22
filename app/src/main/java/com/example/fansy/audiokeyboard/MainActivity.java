@@ -161,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
                 else
                 if (ch != upKey){
                     autoKeyboard.resetLayout();
+                    autoKeyboard.drawLayout();
                     ch = autoKeyboard.getKeyByPosition(x, y, 1);
                     char best = addToSeq(ch, false,true);
                     if (autoKeyboard.tryLayout(best, x, y)){
@@ -535,7 +536,7 @@ public class MainActivity extends AppCompatActivity {
             if (seq.size() == 0 || seq.get(seq.size() - 1) != ch ) {
                 //make a vibrate
 
-                Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+                Vibrator vibrator = (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
                 long[] pattern = {0, 30};
                 vibrator.vibrate(pattern, -1);
 
