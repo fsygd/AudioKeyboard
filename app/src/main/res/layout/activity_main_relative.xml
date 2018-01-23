@@ -121,4 +121,13 @@
         android:text="1"
         android:textSize="30sp" />
 
+    <Button
+        android:id="@+id/language_mode_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/predictionRepeat_m"
+        android:layout_marginTop="11dp"
+        android:text="ENG" />
+
 </RelativeLayout>

@@ -37,13 +37,17 @@ public class MainActivity extends AppCompatActivity {
     final int INIT_MODE_ABSOLUTE = 0;
     final int INIT_MODE_RELATIVE = 1;
     final int INIT_MODE_NOTHING = 2;
+    final int LANG_MODE_ENG = 0;
+    final int LANG_MODE_CHN = 1;
     int initMode = INIT_MODE_RELATIVE;
     final int CONFIRM_MODE_UP = 0;
     final int CONFIRM_MODE_DOUBLECLICK = 1;
     int confirmMode = CONFIRM_MODE_UP;
+    int languageMode = LANG_MODE_ENG;
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText;
     Button confirmButton, initModeButton, confirmModeButton, speedpbutton, speedmbutton, predictionRepeatPButton, predictionRepeatMButton;
+    Button languageModeButton;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
     String currentWord2 = ""; //second possible char sequence
@@ -55,7 +59,8 @@ public class MainActivity extends AppCompatActivity {
     char nowChBaselineSaved = 0;
     char firstTouchSaved1 = KEY_NOT_FOUND;
     char firstTouchSaved2 = KEY_NOT_FOUND;
-    ArrayList<Word> dict = new ArrayList();
+    ArrayList<Word> dict_eng = new ArrayList<>();
+    ArrayList<Word> dict_chn = new ArrayList<>();
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keysNearby[] = new String[26];
     double keysNearbyProb[][] = new double[26][26];
@@ -93,6 +98,10 @@ public class MainActivity extends AppCompatActivity {
             confirmModeButton.setText("up");
         else
             confirmModeButton.setText("double click");
+        if (languageMode == LANG_MODE_ENG)
+            languageModeButton.setText("ENG");
+        else
+            languageModeButton.setText("CHN");
     }
 
     final int MAX_CANDIDATE = 5;
@@ -101,6 +110,13 @@ public class MainActivity extends AppCompatActivity {
     //predict the candidates according the currentWord and currentWord2 and refresh
     public void predict(String currentWord, String currentWord2){
         candidates.clear();
+
+        ArrayList<Word> dict = new ArrayList<>();
+        if (languageMode == LANG_MODE_ENG)
+            dict = dict_eng;
+        else if (languageMode == LANG_MODE_CHN)
+            dict = dict_chn;
+
         for (int i = 0; i < dict.size(); ++i){
             if (candidates.size() >= MAX_CANDIDATE)
                 break;
@@ -221,24 +237,41 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    final int DICT_SIZE = 50000;
+    final int DICT_SIZE[] = {50000, 10000};
     //read dict from file
     public void initDict(){
-        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict)));
+        Log.i("init", "start loading dict_eng");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_eng)));
         String line;
         try{
             int lineNo = 0;
             while ((line = reader.readLine()) != null){
                 lineNo++;
                 String[] ss = line.split(" ");
-                dict.add(new Word(ss[0], Double.valueOf(ss[1])));
-                if (lineNo == DICT_SIZE)
+                dict_eng.add(new Word(ss[0], Double.valueOf(ss[1])));
+                if (lineNo == DICT_SIZE[LANG_MODE_ENG])
                     break;
             }
             reader.close();
-            Log.i("init", "read dictionary finished " + dict.size());
+            Log.i("init", "read dict_eng finished " + dict_eng.size());
         } catch (Exception e){
-            Log.i("init", "read dictionary failed");
+            Log.i("init", "read dict_eng failed");
+        }
+
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_chn)));
+        try{
+            int lineNo = 0;
+            while ((line = reader.readLine()) != null){
+                lineNo++;
+                String[] ss = line.split(" ");
+                dict_chn.add(new Word(ss[0], Double.valueOf(ss[1])));
+                if (lineNo == DICT_SIZE[LANG_MODE_CHN])
+                    break;
+            }
+            reader.close();
+            Log.i("init", "read dict_chn finished" + dict_chn.size());
+        } catch (Exception e){
+            Log.i("init", "read dict_chn failed");
         }
     }
 
@@ -450,6 +483,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        languageModeButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                if (languageMode == LANG_MODE_ENG)
+                    languageMode = LANG_MODE_CHN;
+                else if (languageMode == LANG_MODE_CHN)
+                    languageMode = LANG_MODE_ENG;
+                refresh();
+            }
+        });
+
         confirmModeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -549,6 +593,13 @@ public class MainActivity extends AppCompatActivity {
                             letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
                         }
                     }
+
+                    ArrayList<Word> dict = new ArrayList<>();
+                    if (languageMode == LANG_MODE_ENG)
+                        dict = dict_eng;
+                    else if (languageMode == LANG_MODE_CHN)
+                        dict = dict_chn;
+
                     for (int i = 0; i < dict.size(); ++i)
                         if (dict.get(i).text.length() >= currentWord.length() + 1){
                             boolean flag = true;
@@ -656,6 +707,7 @@ public class MainActivity extends AppCompatActivity {
         confirmModeButton = (Button)findViewById(R.id.confirm_mode_button);
         speedmbutton = (Button)findViewById(R.id.speed_m_button);
         speedpbutton = (Button)findViewById(R.id.speed_p_button);
+        languageModeButton = (Button)findViewById(R.id.language_mode_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
         predictionRepeatPButton = (Button)findViewById(R.id.predictionRepeat_p);
         predictionRepeatMButton = (Button)findViewById(R.id.predictionRepeat_m);
@@ -940,9 +992,9 @@ public class MainActivity extends AppCompatActivity {
             float dX=x-this.keys[pos].init_x;
             float dY=y-this.keys[pos].init_y;
             //竖直上的平移不能太大
-            if (Math.abs(dY) >= MAX_DELTAY){
+            /*if (Math.abs(dY) >= MAX_DELTAY){
                 return false;
-            }
+            }*/
             if(dY>=0){// ����ƽ��
                 if(this.keys[19].init_y+this.keys[19].init_height/2+dY>this.bottomThreshold){
                     if(pos>18)
