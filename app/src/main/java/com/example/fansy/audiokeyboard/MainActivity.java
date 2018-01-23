@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<Integer> myPlayList = new ArrayList<>();
     MediaPlayer current;
 
+    final int PREDICT_VOICE_NUMBER = 1; //when we predict, how many voice are played
     final int INIT_MODE_ABSOLUTE = 0;
     final int INIT_MODE_RELATIVE = 1;
     final int INIT_MODE_NOTHING = 2;
@@ -647,7 +648,7 @@ public class MainActivity extends AppCompatActivity {
                             playMedia("ios11_"+voiceSpeed, firstTouchSaved1 - 'a',true);
                             readList += firstTouchSaved1;
 
-                            if (firstTouchSaved2 != '*') {
+                            if (firstTouchSaved2 != '*' && PREDICT_VOICE_NUMBER > 1) {
                                 nowCh2 = firstTouchSaved2;
                                 playMedia("ios11_" + voiceSpeed, firstTouchSaved2 - 'a', true);
                                 readList += firstTouchSaved2;
