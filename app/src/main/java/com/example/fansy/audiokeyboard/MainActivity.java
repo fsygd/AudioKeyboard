@@ -35,19 +35,23 @@ public class MainActivity extends AppCompatActivity {
     MediaPlayer current;
 
     final int PREDICT_VOICE_NUMBER = 1; //when we predict, how many voice are played
+
     final int INIT_MODE_ABSOLUTE = 0;
     final int INIT_MODE_RELATIVE = 1;
     final int INIT_MODE_NOTHING = 2;
+    int initMode = INIT_MODE_RELATIVE;
+
     final int LANG_MODE_ENG = 0;
     final int LANG_MODE_CHN = 1;
-    int initMode = INIT_MODE_RELATIVE;
+    int languageMode = LANG_MODE_ENG;
+
     final int CONFIRM_MODE_UP = 0;
     final int CONFIRM_MODE_DOUBLECLICK = 1;
     int confirmMode = CONFIRM_MODE_UP;
-    int languageMode = LANG_MODE_ENG;
+
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText;
-    Button confirmButton, initModeButton, confirmModeButton, speedpbutton, speedmbutton, predictionRepeatPButton, predictionRepeatMButton;
+    Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, predictionRepeatPButton, predictionRepeatMButton;
     Button languageModeButton;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
@@ -55,20 +59,18 @@ public class MainActivity extends AppCompatActivity {
     String currentBaseline = "";
     char nowCh = 0; //the most possible char
     char nowCh2 = 0; //the second possible char, '*' if less than 1/10 of the most possible char
-    char nowChSaved = 0;
+    char nowChSaved = 0; // for double click
     char nowCh2Saved = 0;
     char nowChBaselineSaved = 0;
-    char firstTouchSaved1 = KEY_NOT_FOUND;
+    char firstTouchSaved1 = KEY_NOT_FOUND; //save predict result before adjuct to best char
     char firstTouchSaved2 = KEY_NOT_FOUND;
     ArrayList<Word> dict_eng = new ArrayList<>();
     ArrayList<Word> dict_chn = new ArrayList<>();
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keysNearby[] = new String[26];
-    double keysNearbyProb[][] = new double[26][26];
-
+    double keysNearbyProb[][] = new double[26][26]; //keysNearbyProb[x][y] the possibility when want y but touch x
 
     int voiceSpeed = 50;
-
 
     boolean playDaFlag = false;
     boolean slideFlag = false;
@@ -79,7 +81,6 @@ public class MainActivity extends AppCompatActivity {
     int predictionRepeatTime = 1;
 
     AutoKeyboard autoKeyboard;
-
 
     //redraw the views
     public void refresh(){
@@ -137,7 +138,6 @@ public class MainActivity extends AppCompatActivity {
         refresh();
     }
 
-    //todo reconstruct
     public void stopVoice(){
         if (current != null) {
             current.stop();
@@ -168,7 +168,8 @@ public class MainActivity extends AppCompatActivity {
         if (seq.size() == 0){//first touch
             if (initMode == INIT_MODE_ABSOLUTE) {
                 autoKeyboard.resetLayout();
-                addToSeq(autoKeyboard.getKeyByPosition(x, y, 0), true,true);
+                autoKeyboard.drawLayout();
+                addToSeq(autoKeyboard.getKeyByPosition(x, y, 0), true, true);
             }
             else if(initMode == INIT_MODE_RELATIVE){
                 char ch = autoKeyboard.getKeyByPosition(x, y, 1);
@@ -180,10 +181,10 @@ public class MainActivity extends AppCompatActivity {
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
                     ch = autoKeyboard.getKeyByPosition(x, y, 1);
-                    char best = addToSeq(ch, false,true);
+                    char best = addToSeq(ch, false, true);
                     if (autoKeyboard.tryLayout(best, x, y)){
                         autoKeyboard.drawLayout();
-                        addToSeq(best, true,true);
+                        addToSeq(best, true, true);
                     }else{
                         if (autoKeyboard.tryLayout(ch, x, y)){
                             autoKeyboard.drawLayout();
@@ -199,11 +200,11 @@ public class MainActivity extends AppCompatActivity {
                 firstTouchSaved2 = KEY_NOT_FOUND;
             }else{
                 char ch = autoKeyboard.getKeyByPosition(x, y, 0);
-                addToSeq(ch,true,false);
+                addToSeq(ch, true, false);
             }
         }
         else{
-            addToSeq(autoKeyboard.getKeyByPosition(x, y, 1), true,true);
+            addToSeq(autoKeyboard.getKeyByPosition(x, y, 1), true, true);
         }
     }
 
@@ -223,10 +224,8 @@ public class MainActivity extends AppCompatActivity {
                 for(int i=0;i!=26;i++){
                     if(firstKeyAndPs[i+1]!="0"){
                         int tmp = secondKeys[i + 1].charAt(0)-'a';
-                        //keysNearby[firstKey-'a'] += secondKeys[i+1];
                         keysNearby[tmp] += firstKey;
                         keysNearbyProb[tmp][keysNearby[tmp].length() - 1] = Double.valueOf(firstKeyAndPs[i + 1]);
-                        //keysNearbyProb[firstKey-'a'][keysNearby[firstKey-'a'].length()-1] = Double.valueOf(firstKeyAndPs[i+1]);
                     }
                 }
             }
@@ -235,7 +234,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e){
             Log.i("init", "read touch model failed");
         }
-
     }
 
     final int DICT_SIZE[] = {50000, 10000};
@@ -276,9 +274,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //todo reconstruct
     public void initVoice() {
-
         voice.put("ios11_50", new int[26]);
         voice.put("ios11_60", new int[26]);
         voice.put("ios11_70", new int[26]);
@@ -464,6 +460,8 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 stopInput();
                 finishWord();
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
             }
         });
 
@@ -472,14 +470,12 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (initMode == INIT_MODE_ABSOLUTE)
                     initMode = INIT_MODE_RELATIVE;
-                else if(initMode == INIT_MODE_RELATIVE) {
+                else if(initMode == INIT_MODE_RELATIVE)
                     initMode = INIT_MODE_NOTHING;
-                    autoKeyboard.resetLayout();
-                    autoKeyboard.drawLayout();
-                }else
+                else
                     initMode = INIT_MODE_ABSOLUTE;
-                    autoKeyboard.resetLayout();
-                    autoKeyboard.drawLayout();
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
                 refresh();
             }
         });
@@ -491,6 +487,8 @@ public class MainActivity extends AppCompatActivity {
                     languageMode = LANG_MODE_CHN;
                 else if (languageMode == LANG_MODE_CHN)
                     languageMode = LANG_MODE_ENG;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
                 refresh();
             }
         });
@@ -502,26 +500,32 @@ public class MainActivity extends AppCompatActivity {
                     confirmMode = CONFIRM_MODE_DOUBLECLICK;
                 else
                     confirmMode = CONFIRM_MODE_UP;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
                 refresh();
             }
         });
 
-        speedmbutton.setOnClickListener(new View.OnClickListener() {
+        speedmButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(voiceSpeed>=60){
                     voiceSpeed -= 10;
                 }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
                 voiceSpeedText.setText(voiceSpeed+"");
             }
         });
 
-        speedpbutton.setOnClickListener(new View.OnClickListener() {
+        speedpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(voiceSpeed<=90){
                     voiceSpeed += 10;
                 }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
                 voiceSpeedText.setText(voiceSpeed+"");
             }
         });
@@ -531,6 +535,8 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 predictionRepeatTime++;
                 predictionRepeatText.setText(predictionRepeatTime+"");
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
             }
         });
 
@@ -539,9 +545,10 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if(predictionRepeatTime>1) predictionRepeatTime--;
                 predictionRepeatText.setText(predictionRepeatTime+"");
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
             }
         });
-
     }
 
     public void playFirstVoice(){
@@ -568,10 +575,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //todo reconstruct
-    public void playMedia(String tag, int index,boolean isChar){
+    public void playMedia(String tag, int index, boolean isChar){
         myPlayList.add(voice.get(tag)[index]);
-        if(isChar) charsInPlaylist += (char)('a'+index);
+        if (isChar)
+            charsInPlaylist += (char)('a' + index);
         playFirstVoice();
     }
 
@@ -640,12 +647,12 @@ public class MainActivity extends AppCompatActivity {
                 readList = "";
                 nowCh = '*';
                 nowCh2 = '*';
-                playMedia("ios11da", 0,false);
+                playMedia("ios11da", 0, false);
                 if (predictMode && initMode != INIT_MODE_NOTHING){
-                    if (seq.size() == 1 ||(playDaFlag&&!slideFlag)||(predictionCount<predictionRepeatTime)){
+                    if (seq.size() == 1 ||(playDaFlag && !slideFlag) || (predictionCount < predictionRepeatTime)){
                         if (firstTouchSaved1 != KEY_NOT_FOUND){
                             nowCh = firstTouchSaved1;
-                            playMedia("ios11_"+voiceSpeed, firstTouchSaved1 - 'a',true);
+                            playMedia("ios11_" + voiceSpeed, firstTouchSaved1 - 'a', true);
                             readList += firstTouchSaved1;
 
                             if (firstTouchSaved2 != '*' && PREDICT_VOICE_NUMBER > 1) {
@@ -661,26 +668,26 @@ public class MainActivity extends AppCompatActivity {
                             readList += nowCh;
                             if (letters.size() >= 2 && letters.get(1).freq * 10 > letters.get(0).freq){
                                 nowCh2 = letters.get(1).text.charAt(0);
-                                playMedia("ios11_"+voiceSpeed, nowCh2 - 'a',true);
+                                playMedia("ios11_" + voiceSpeed, nowCh2 - 'a', true);
                                 readList += nowCh2;
                             }
                         }
                         else {
                             //current key
                             nowCh = ch;
-                            playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
+                            playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
                             readList += nowCh;
                         }
                     }
                     else{
                         //current key
                         nowCh = ch;
-                        playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
+                        playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
                         readList += nowCh;
                     }
                 }else{
                     nowCh = ch;
-                    playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
+                    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
                     readList += nowCh;
                 }
                 playDaFlag = true;
@@ -689,9 +696,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return 'a';
     }
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -706,8 +710,8 @@ public class MainActivity extends AppCompatActivity {
         readListView = (TextView)findViewById(R.id.readList);
         initModeButton = (Button)findViewById(R.id.init_mode_button);
         confirmModeButton = (Button)findViewById(R.id.confirm_mode_button);
-        speedmbutton = (Button)findViewById(R.id.speed_m_button);
-        speedpbutton = (Button)findViewById(R.id.speed_p_button);
+        speedmButton = (Button)findViewById(R.id.speed_m_button);
+        speedpButton = (Button)findViewById(R.id.speed_p_button);
         languageModeButton = (Button)findViewById(R.id.language_mode_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
         predictionRepeatPButton = (Button)findViewById(R.id.predictionRepeat_p);
@@ -724,12 +728,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
         initDict();
         initVoice();
         initButtons();
         initKeyboard();
-        //left 0 right 1440 top 1554 bottom 2320
     }
 
     @Override
@@ -740,6 +742,7 @@ public class MainActivity extends AppCompatActivity {
         }
         super.onDestroy();
     }
+
     public void deleteLastChar() {
         if (currentWord.length() > 0) {
             currentWord = currentWord.substring(0, currentWord.length() - 1);
@@ -773,8 +776,8 @@ public class MainActivity extends AppCompatActivity {
         int x = (int)event.getX();
         int y = (int)event.getY();
 
-        if (event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], 1) == upKey || autoKeyboard.getKeyByPosition(x, y - location[1],0) != KEY_NOT_FOUND)){ // in the keyboard area
-        //if (event.getPointerCount() == 1 && event.getY() - location[1] + deltaY >= key_top['q' - 'a'] && event.getY() - location[1] + deltaY <= key_bottom['z' - 'a']) {//in the keyboard area
+        if (event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], 1) == upKey
+                || autoKeyboard.getKeyByPosition(x, y - location[1], 0) != KEY_NOT_FOUND)){ // in the keyboard area
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_POINTER_DOWN:
@@ -803,19 +806,19 @@ public class MainActivity extends AppCompatActivity {
                     predictionCount = 0;
                     long tempTime = System.currentTimeMillis();
                     boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
-                    if (predictLetterFlag == false){
+                    if (!predictLetterFlag){
                         nowCh2 = '*';
                     }
                     stopInput();
                     if (confirmMode == CONFIRM_MODE_UP) {
                         if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteLastChar();
-                            playMedia("delete", 0,false);
+                            playMedia("delete", 0, false);
                             autoKeyboard.resetLayout();
                             autoKeyboard.drawLayout();
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
-                            playMedia("delete", 0,false);
+                            playMedia("delete", 0, false);
                             autoKeyboard.resetLayout();
                             autoKeyboard.drawLayout();
                         } else if (tempTime - downTime > 300) {
@@ -832,14 +835,14 @@ public class MainActivity extends AppCompatActivity {
                             deleteLastChar();
                             nowChSaved = '*';
                             nowCh2Saved = '*';
-                            playMedia("delete", 0,false);
+                            playMedia("delete", 0, false);
                             autoKeyboard.resetLayout();
                             autoKeyboard.drawLayout();
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
                             nowChSaved = '*';
                             nowCh2Saved = '*';
-                            playMedia("delete", 0,false);
+                            playMedia("delete", 0, false);
                             autoKeyboard.resetLayout();
                             autoKeyboard.drawLayout();
                         } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
@@ -849,7 +852,7 @@ public class MainActivity extends AppCompatActivity {
                                 currentWord2 += nowCh2Saved;
                                 currentBaseline += nowChBaselineSaved;
                                 predict(currentWord, currentWord2);
-                                playMedia("delete", 0,false);
+                                playMedia("delete", 0, false);
                                 refresh();
                                 nowChSaved = '*';
                                 nowCh2Saved = '*';
