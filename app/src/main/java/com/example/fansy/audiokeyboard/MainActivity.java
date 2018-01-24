@@ -49,10 +49,14 @@ public class MainActivity extends AppCompatActivity {
     final int CONFIRM_MODE_DOUBLECLICK = 1;
     int confirmMode = CONFIRM_MODE_UP;
 
+    final int UPVOICE_MODE_YES = 0;
+    final int UPVOICE_MODE_NO = 1;
+    int upvoiceMode = UPVOICE_MODE_YES;
+
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText;
     Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, predictionRepeatPButton, predictionRepeatMButton;
-    Button languageModeButton;
+    Button languageModeButton, upvoiceModeButton;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
     String currentWord2 = ""; //second possible char sequence
@@ -104,6 +108,10 @@ public class MainActivity extends AppCompatActivity {
             languageModeButton.setText("ENG");
         else
             languageModeButton.setText("CHN");
+        if (upvoiceMode == UPVOICE_MODE_YES)
+            upvoiceModeButton.setText("UPYES");
+        else
+            upvoiceModeButton.setText("UPNO");
     }
 
     final int MAX_CANDIDATE = 5;
@@ -493,6 +501,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        upvoiceModeButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                if (upvoiceMode == UPVOICE_MODE_YES)
+                    upvoiceMode = UPVOICE_MODE_NO;
+                else if (upvoiceMode == UPVOICE_MODE_NO)
+                    upvoiceMode = UPVOICE_MODE_YES;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+            }
+        });
+
         confirmModeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -713,6 +734,7 @@ public class MainActivity extends AppCompatActivity {
         speedmButton = (Button)findViewById(R.id.speed_m_button);
         speedpButton = (Button)findViewById(R.id.speed_p_button);
         languageModeButton = (Button)findViewById(R.id.language_mode_button);
+        upvoiceModeButton = (Button)findViewById(R.id.upvoice_mode_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
         predictionRepeatPButton = (Button)findViewById(R.id.predictionRepeat_p);
         predictionRepeatMButton = (Button)findViewById(R.id.predictionRepeat_m);
@@ -823,6 +845,12 @@ public class MainActivity extends AppCompatActivity {
                             autoKeyboard.drawLayout();
                         } else if (tempTime - downTime > 300) {
                             upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
+                            if (upvoiceMode == UPVOICE_MODE_YES) {
+                                playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
+                                if (nowCh2 != '*') {
+                                    playMedia("ios11_" + voiceSpeed, nowCh2 - 'a', true);
+                                }
+                            }
                             currentWord += nowCh;
                             currentWord2 += nowCh2;
                             currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],0);
@@ -850,9 +878,17 @@ public class MainActivity extends AppCompatActivity {
                             if (nowChSaved != '*'){
                                 currentWord += nowChSaved;
                                 currentWord2 += nowCh2Saved;
+                                if (upvoiceMode == UPVOICE_MODE_YES) {
+                                    playMedia("ios11_" + voiceSpeed, nowChSaved - 'a', true);
+                                    if (nowCh2Saved != '*') {
+                                        playMedia("ios11_" + voiceSpeed, nowCh2Saved - 'a', true);
+                                    }
+                                }
+                                else{
+                                    playMedia("delete", 0, false);
+                                }
                                 currentBaseline += nowChBaselineSaved;
                                 predict(currentWord, currentWord2);
-                                playMedia("delete", 0, false);
                                 refresh();
                                 nowChSaved = '*';
                                 nowCh2Saved = '*';
