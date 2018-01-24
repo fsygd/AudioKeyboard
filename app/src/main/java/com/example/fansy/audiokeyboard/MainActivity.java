@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         if (confirmMode == CONFIRM_MODE_UP)
             confirmModeButton.setText("up");
         else
-            confirmModeButton.setText("double click");
+            confirmModeButton.setText("click");
         if (languageMode == LANG_MODE_ENG)
             languageModeButton.setText("ENG");
         else

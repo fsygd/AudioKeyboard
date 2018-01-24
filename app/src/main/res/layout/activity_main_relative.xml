@@ -91,10 +91,10 @@
         android:id="@+id/confirm_mode_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/text"
-        android:layout_marginStart="14dp"
-        android:layout_toEndOf="@+id/init_mode_button"
-        android:text="UP" />
+        android:layout_marginStart="6dp"
+        android:text="UP"
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@+id/init_mode_button" />
 
     <Button
         android:id="@+id/predictionRepeat_p"
@@ -125,9 +125,9 @@
         android:id="@+id/language_mode_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_below="@+id/predictionRepeat_m"
-        android:layout_marginTop="11dp"
-        android:text="ENG" />
+        android:text="ENG"
+        android:layout_marginEnd="6dp"
+        android:layout_alignParentTop="true"
+        android:layout_toStartOf="@+id/confirm_button" />
 
 </RelativeLayout>
