@@ -244,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    final int DICT_SIZE[] = {50000, 10000};
+    final int DICT_SIZE[] = {50000, 38991};
     //read dict from file
     public void initDict(){
         Log.i("init", "start loading dict_eng");
