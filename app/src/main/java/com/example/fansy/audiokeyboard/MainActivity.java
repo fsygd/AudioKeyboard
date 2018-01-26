@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.media.MediaPlayer;
+import android.os.Environment;
 import android.os.Vibrator;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -21,7 +22,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keysNearby[] = new String[26];
     double keysNearbyProb[][] = new double[26][26]; //keysNearbyProb[x][y] the possibility when want y but touch x
+    String filename = "fsygd.txt";
 
     int voiceSpeed = 50;
 
@@ -85,6 +90,18 @@ public class MainActivity extends AppCompatActivity {
     int predictionRepeatTime = 1;
 
     AutoKeyboard autoKeyboard;
+
+    public void write(String content){
+        try{
+            PrintWriter logger = new PrintWriter(new OutputStreamWriter(new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/" + filename, true)), true);
+            logger.println(content);
+            logger.flush();
+            logger.close();
+        } catch (Exception e){
+            Log.d("file", "failed");
+            e.printStackTrace();
+        }
+    }
 
     //redraw the views
     public void refresh(){
@@ -823,6 +840,7 @@ public class MainActivity extends AppCompatActivity {
 
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
+                    write("up");
                     slideFlag = false;
                     charsPlayed = "";
                     predictionCount = 0;
