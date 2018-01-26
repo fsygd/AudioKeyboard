@@ -1837,7 +1837,7 @@ public class MainActivity extends AppCompatActivity {
         }
         KEY keys[];
         void defaultPara(){// set the parameters to default value
-            keyboardHeight=650;
+            keyboardHeight=500;
             keyboardWidth=1438;
             deltaY=100;
             topThreshold=0;
