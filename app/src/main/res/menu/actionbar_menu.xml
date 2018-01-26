@@ -44,7 +44,7 @@
     <item
         android:id="@+id/keyboardHeight"
         android:orderInCategory="100"
-        android:title="keyboardHeight:650"/>
+        android:title="keyboardHeight:500"/>
     <item
         android:id="@+id/deltaY"
         android:orderInCategory="100"
