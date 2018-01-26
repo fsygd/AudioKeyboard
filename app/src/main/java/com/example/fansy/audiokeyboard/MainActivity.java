@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
     int recordMode = RECORD_MODE_STOPED;
 
     ImageView keyboard;
-    TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText;
+    TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText, elapsedTimeText;
     Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, predictionRepeatPButton, predictionRepeatMButton;
     Button languageModeButton, upvoiceModeButton, recordModeButton;
     Menu menu;
@@ -1310,6 +1310,7 @@ public class MainActivity extends AppCompatActivity {
 
         keyboard = (ImageView)findViewById(R.id.keyboard);
         text = (TextView)findViewById(R.id.text);
+        elapsedTimeText = (TextView)findViewById(R.id.elapsedtime);
         candidatesView = (TextView)findViewById(R.id.candidates);
         confirmButton = (Button)findViewById(R.id.confirm_button);
         readListView = (TextView)findViewById(R.id.readList);
@@ -1375,6 +1376,7 @@ public class MainActivity extends AppCompatActivity {
 
     int downX, downY;
     long downTime = 0;
+    long wordDownTime = 0;
     long firstDownTime = 0, lastDownTime = 0; // used for check double-click
     final long STAY_TIME = 400;
     final int SLIP_DIST = 90;
@@ -1403,7 +1405,6 @@ public class MainActivity extends AppCompatActivity {
                             else{
                                 lastDownTime = downTime;
                             }
-
                             newPoint(x, y - location[1]);
                             //action down
                             break;
