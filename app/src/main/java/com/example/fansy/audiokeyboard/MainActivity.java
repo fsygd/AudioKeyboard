@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     char nowChBaselineSaved = 0;
     char firstTouchSaved1 = KEY_NOT_FOUND; //save predict result before adjuct to best char
     char firstTouchSaved2 = KEY_NOT_FOUND;
+    char delete_key='<';
     ArrayList<Word> dict_eng = new ArrayList<>();
     ArrayList<Word> dict_chn = new ArrayList<>();
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
@@ -339,6 +340,7 @@ public class MainActivity extends AppCompatActivity {
         voice.put("ios11da", new int[1]);
         voice.put("delete", new int[1]);
         voice.put("blank", new int[1]);
+        voice.put("delete_word", new int[1]);
 
         voice.get("ios11_50")[ 0] = R.raw.ios11_50_a;
         voice.get("ios11_50")[ 1] = R.raw.ios11_50_b;
@@ -505,6 +507,7 @@ public class MainActivity extends AppCompatActivity {
         voice.get("ios11da")[0] = R.raw.ios11_da;
 
         voice.get("delete")[0] = R.raw.delete;
+        voice.get("delete_word")[0] = R.raw.delete_word;
 
         voice.get("blank")[0] = R.raw.blank;
     }
@@ -881,6 +884,7 @@ public class MainActivity extends AppCompatActivity {
                     else{
                         lastDownTime = downTime;
                     }
+
                     newPoint(x, y - location[1]);
                     //action down
                     break;
@@ -1685,6 +1689,7 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         }
+
         public  boolean tryLayout(char ch,float x,float y){
             // mode==0 bodily movement
             // mode==1 respectively movement
@@ -1743,10 +1748,10 @@ public class MainActivity extends AppCompatActivity {
 
 
         public void drawLayout(){ // curr_x,curr_y
-            float left=this.location[0]+this.keys[0].curr_x-this.keys[0].curr_width/2;
-            float top=this.location[1]+this.keys[0].curr_y-this.keys[0].curr_height/2;
-            float right=this.location[0]+this.keys[9].curr_x+this.keys[9].curr_width/2;
-            float bottom=this.location[1]+this.keys[25].curr_y+this.keys[25].curr_height/2;
+            float left=this.location[0]+this.keys[TL].getLeft(CURR_LAYOUT);
+            float top=this.location[1]+this.keys[TL].getTop(CURR_LAYOUT);
+            float right=this.location[0]+this.keys[TR].getRight(CURR_LAYOUT);
+            float bottom=this.location[1]+this.keys[BR].getBottom(CURR_LAYOUT);
             this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
             this.canvas=new Canvas(this.baseBitmap);
             RectF rect = new RectF(left, top, right, bottom);
@@ -1768,7 +1773,7 @@ public class MainActivity extends AppCompatActivity {
 
         public void resetLayout(){
             if(this.keys==null){
-                this.keys=new KEY[26];
+                this.keys=new KEY[BR+1];
             }
             this.keys[0].ch='q';
             this.keys[1].ch='w';
@@ -1796,21 +1801,22 @@ public class MainActivity extends AppCompatActivity {
             this.keys[23].ch='b';
             this.keys[24].ch='n';
             this.keys[25].ch='m';
+            //this.keys[26].ch=delete_key;
 
-            for (int i=0;i<10;i++){
+            for (int i:firstLine){
                 this.keys[i].init_x=this.keyboardWidth*(2*i+1)/20;
                 this.keys[i].init_y=this.keyboardHeight/6+this.deltaY;
             }
-            for (int i=10;i<19;i++){
+            for (int i:secondLine){
                 this.keys[i].init_x=(this.keys[i-10].init_x+this.keys[i-9].init_x)/2;
                 this.keys[i].init_y=this.keyboardHeight/2+this.deltaY;
             }
-            for (int i=19;i<26;i++){
+            for (int i:thirdLine){
                 this.keys[i].init_x=this.keys[i-8].init_x;
                 this.keys[i].init_y=this.keyboardHeight*5/6+this.deltaY;
             }
 
-            for (int i=0;i<26;i++) {
+            for (int i:allLine) {
                 this.keys[i].init_height=this.keyboardHeight/3;
                 this.keys[i].init_width=this.keyboardWidth/10;
                 this.keys[i].curr_width=this.keys[i].init_width;
@@ -1855,8 +1861,8 @@ public class MainActivity extends AppCompatActivity {
             this.location=new int[2];
             this.keyPos=new int[]{10,23,21,12,2,13,14,15,7,16,17,18,25,24,8,9,0,3,11,4,6,22,1,20,5,19};// A-Z ��Ӧ Q-M
             this.keyboard.getLocationOnScreen(this.location);
-            this.keys=new KEY[26];
-            for (int i=0;i<26;i++){
+            this.keys=new KEY[BR+1];
+            for (int i:allLine){
                 this.keys[i]=new KEY();
             }
             this.resetLayout();
