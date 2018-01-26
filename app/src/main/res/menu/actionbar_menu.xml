@@ -8,7 +8,7 @@
     <item
         android:id="@+id/testTurnChange"
         android:orderInCategory="100"
-        android:title="Testturn:8"/>
+        android:title="TestTurn:8"/>
     <item
         android:id="@+id/keyBoardVisibility"
         android:orderInCategory="100"
@@ -20,11 +20,11 @@
     <item
         android:id="@+id/reset_keyboard"
         android:orderInCategory="100"
-        android:title="reset keyboard"/>
+        android:title="Reset Keyboard"/>
     <item
         android:id="@+id/try_layout_mode"
         android:orderInCategory="100"
-        android:title="try_layout_mode:Bodily"/>
+        android:title="try layout mode:Bodily"/>
     <item
         android:id="@+id/scalingNum"
         android:orderInCategory="100"
@@ -32,7 +32,7 @@
     <item
         android:id="@+id/getKey_mode"
         android:orderInCategory="100"
-        android:title="getKey_mode:LOOSE_MODE"/>
+        android:title="getKey mode:LOOSE_MODE"/>
     <item
         android:id="@+id/deltaY"
         android:orderInCategory="100"
@@ -57,7 +57,7 @@
     <item
         android:id="@+id/tap_range"
         android:orderInCategory="100"
-        android:title="tap_range:0.9"/>
+        android:title="tap range:0.8"/>
     <item
         android:id="@+id/keyboardHeight"
         android:orderInCategory="100"
@@ -65,7 +65,7 @@
     <item
         android:id="@+id/default_keyboard"
         android:orderInCategory="100"
-        android:title="default keyboard"/>
+        android:title="Default Keyboard"/>
 
 
 </menu>
