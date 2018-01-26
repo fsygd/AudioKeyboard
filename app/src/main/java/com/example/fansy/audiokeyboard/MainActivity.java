@@ -118,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         try{
             PrintWriter logger = new PrintWriter(new OutputStreamWriter(new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/" + filename, true)), true);
-            logger.println(content);
+            logger.println(System.currentTimeMillis() + " " + content);
             logger.flush();
             logger.close();
         } catch (Exception e){
@@ -1013,7 +1013,7 @@ public class MainActivity extends AppCompatActivity {
         float screen_width_ratio = 1F;
         float screen_height_ratio = 1F;
         //Fuzzy Input Test Var
-        float keyboardHeight=650;// the height of the keyboard
+        float keyboardHeight=500;// the height of the keyboard
         float keyboardWidth=1438;// the width of the keyboard
         float deltaY=100;// the distance between the first line and the upper bound of the keyboard
         float topThreshold=0;// the upper bound
