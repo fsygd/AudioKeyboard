@@ -11,7 +11,7 @@
     <item
         android:id="@+id/scalingNum"
         android:orderInCategory="100"
-        android:title="scalingNum:1"/>
+        android:title="scalingNum:3"/>
     <item
         android:id="@+id/getKey_mode"
         android:orderInCategory="100"
