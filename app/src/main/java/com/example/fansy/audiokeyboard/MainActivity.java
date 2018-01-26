@@ -1,38 +1,50 @@
 package com.example.fansy.audiokeyboard;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.icu.text.SimpleDateFormat;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Vibrator;
+import android.support.annotation.RequiresApi;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
@@ -70,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
     TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText;
     Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, predictionRepeatPButton, predictionRepeatMButton;
     Button languageModeButton, upvoiceModeButton, recordModeButton;
+    Menu menu;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
     String currentWord2 = ""; //second possible char sequence
@@ -100,6 +113,434 @@ public class MainActivity extends AppCompatActivity {
     int predictionRepeatTime = 1;
 
     AutoKeyboard autoKeyboard;
+
+    //Fuzzy Input Test Var
+    TextView fuzzyInputTestCharShow;
+    ProgressBar progressBar;
+    ListView listView;
+    //String fuzzyInputTestStoragePath="/storage/emulated/0/FuzzyInputTestData";
+    boolean ifCalDone=false;
+    boolean ifSave=false;
+    final int KEYBOARD_MODE=0;
+    final int FUZZY_INPUT_TEST_MODE=1;
+    int MAX_TURN=8;//eight turn
+    int MAX_FUZZY_INPUT_TURN=26*MAX_TURN;
+    final int FUZZY_INPUT_SOUND_BEGIN=0;//for sound
+    final int FUZZY_INPUT_SOUND_NEXT=1;//for sound
+    final int FUZZY_INPUT_SOUND_END=2;//
+    int activity_mode=KEYBOARD_MODE;
+    final int NORMAL=0;
+    final int CANCEL=1;
+    final int BORDER=2;
+    final int CANCEL_BORDER=3;
+    int testmode=NORMAL;
+    int fuzzyInputTestTurn=0;
+    ArrayList<Integer> fuzzyInputTestList=new ArrayList<>();
+    //int fuzzyInputTestData[]=new int[MAX_FUZZY_INPUT_TURN+30];//用来记录第一次手指落下的地方
+    //in case of the user type too fast,add a redundancy 30
+    //double fuzzyInputKeysNearbyProb[][] = new double[26][26];
+    ArrayList<Turn> fuzzyInputTestFigerRecord=new ArrayList<>();//用来记录手指的所有移动
+    String DataToSave;//记录每一次触摸事件的准确数据
+    String DataToShowAndSave;//计算出概率
+    String DataTouchModel;
+    //Fuzzy Input test Var
+    class Data{
+        char target;
+        char actual;
+        double positionX;
+        double positionY;
+        int actionType;//ActionMove ActionDown ActionUp
+        //ACTION_DOWN==0
+        //ACTION_MOVE==2;
+        //ACTION_UP==1;
+        double timeAfterLastAction;
+        int currentSoundNum;//此时正在播放的音频的数量加上等待播放的音频的数量
+        Data(char target,char actual,double positionX,double positionY,int actionType,double timeAfterLastAction){
+            this.target=target;
+            this.actual=actual;
+            this.positionX=positionX;
+            this.positionY=positionY;
+            this.actionType=actionType;
+            this.timeAfterLastAction=timeAfterLastAction;
+            if(current==null){
+                this.currentSoundNum=myPlayList.size();
+            }else{
+                this.currentSoundNum=1+myPlayList.size();
+            }
+        }
+        Data(){
+            this.target='?';
+            this.actual='?';
+            this.positionX=-1;
+            this.positionY=-1;
+            this.actionType=-1;
+            this.timeAfterLastAction=-1;
+            this.currentSoundNum=-1;
+        }
+        String getData(){
+            String data=String.valueOf(target)+" "+String.valueOf(actual)+" "+
+                    String.valueOf(positionX)+" "+String.valueOf(positionY)+" "+
+                    String.valueOf(actionType)+" "+String.valueOf(timeAfterLastAction)+" "+
+                    String.valueOf(currentSoundNum)+"\n";
+            return data;
+        }
+    }
+    class Turn {
+        Long lastTime;
+        int turnIndex;
+        char target;
+        int upTimes;//用户抬起了多少次手指
+        ArrayList<Character> actualTypeIn;//用户实际上键入的值
+        ArrayList<Data> data;
+        char firstTouch;//除去一开始输到边界外的键入的值
+        Turn(int turnIndex,Long lastTime){
+            this.lastTime=lastTime;
+            this.turnIndex=turnIndex;
+            this.target=(char)(fuzzyInputTestList.get(turnIndex%26)+'A');
+            this.upTimes=0;
+            this.data=new ArrayList<>();
+            this.actualTypeIn=new ArrayList<>();
+            this.firstTouch=KEY_NOT_FOUND;
+        }
+        boolean addData(char actual,double positionX,double positionY,int actionType,Long eventTime){
+            char upperActual=actual;
+            if (upperActual!=KEY_NOT_FOUND)
+                upperActual=Character.toUpperCase(upperActual);
+            if (this.firstTouch==KEY_NOT_FOUND && upperActual!=KEY_NOT_FOUND)
+                this.firstTouch=upperActual;
+            this.data.add(new Data(this.target,upperActual,positionX,positionY,actionType,eventTime-this.lastTime));
+            this.lastTime=eventTime;
+            if (actionType== MotionEvent.ACTION_UP){
+                this.upTimes++;
+                this.actualTypeIn.add(upperActual);
+                if(upperActual==this.target){
+                    return true;
+                }else
+                    return false;
+            }
+            return false;
+        }
+        String getTurn(){
+            String turnToReturn="turnIndex="+String.valueOf(this.turnIndex)+"\n"+
+                    "target="+String.valueOf(this.target)+"\n"+
+                    "firstTouch"+String.valueOf(this.firstTouch)+"\n"+
+                    "upTimes="+String.valueOf(this.upTimes)+"\n";
+            for(int typeIndex=0;typeIndex<this.actualTypeIn.size();typeIndex++){
+                turnToReturn+="actualTypeIn "+String.valueOf(typeIndex+1)+"="+this.actualTypeIn.get(typeIndex)+"\n";
+            }
+            return turnToReturn;
+        }
+        String getData(){
+            String dataToReturn="";
+            for (int i=0;i<data.size();i++){
+                dataToReturn+=data.get(i).getData();
+            }
+            return dataToReturn;
+        }
+    }
+    String getTestData(){
+        String explain="Data的记录格式为:目标键入字母 实际键入字母 横坐标(相对于键盘) 纵坐标(相对于键盘) 触摸事件类型(按下:0;抬起:1;移动:2) 距离上次触摸事件时间(单位:ms) 目前在播音频数量加上待播音频数量\n";
+        String data="MAX_TURN="+String.valueOf(MAX_TURN)+'\n'+
+                "screen_width_ratio="+String.valueOf(autoKeyboard.screen_width_ratio)+'\n'+
+                "screen_height_ratio="+String.valueOf(autoKeyboard.screen_height_ratio)+'\n'+
+                "voiceSpeed="+String.valueOf(voiceSpeed)+'\n';
+
+        return explain+data;
+    }
+    //Fuzzy Input Test Function
+    public void WidgetSet(int activity_mode){
+        switch(activity_mode){
+            case KEYBOARD_MODE:{
+                fuzzyInputTestCharShow.setVisibility(View.GONE);
+                text.setVisibility(View.VISIBLE);
+                progressBar.setVisibility(View.GONE);
+                listView.setVisibility(View.GONE);
+                //keyboard.setVisibility(View.VISIBLE);
+                candidatesView.setVisibility(View.VISIBLE);
+                readListView.setVisibility(View.VISIBLE);
+                confirmModeButton.setVisibility(View.VISIBLE);
+                languageModeButton.setVisibility(View.VISIBLE);
+                speedmButton.setVisibility(View.VISIBLE);
+                predictionRepeatMButton.setVisibility(View.VISIBLE);
+                predictionRepeatPButton.setVisibility(View.VISIBLE);
+                upvoiceModeButton.setVisibility(View.VISIBLE);
+                recordModeButton.setVisibility(View.VISIBLE);
+                voiceSpeedText.setVisibility(View.VISIBLE);
+                predictionRepeatText.setVisibility(View.VISIBLE);
+                confirmButton.setText("CONFIRM");
+                speedpButton.setText("SPEED+");
+                refresh();
+                break;
+            }
+            case FUZZY_INPUT_TEST_MODE:{
+                fuzzyInputTestCharShow.setVisibility(View.VISIBLE);
+                text.setVisibility(View.GONE);
+                progressBar.setVisibility(View.VISIBLE);
+                listView.setVisibility(View.VISIBLE);
+                //keyboard.setVisibility(View.GONE);
+                candidatesView.setVisibility(View.GONE);
+                readListView.setVisibility(View.GONE);
+                confirmModeButton.setVisibility(View.GONE);
+                languageModeButton.setVisibility(View.GONE);
+                speedmButton.setVisibility(View.INVISIBLE);
+                predictionRepeatMButton.setVisibility(View.GONE);
+                predictionRepeatPButton.setVisibility(View.GONE);
+                upvoiceModeButton.setVisibility(View.GONE);
+                recordModeButton.setVisibility(View.GONE);
+                voiceSpeedText.setVisibility(View.GONE);
+                predictionRepeatText.setVisibility(View.GONE);
+                initModeButton.setText("Back");
+                confirmButton.setText("Save");
+                speedpButton.setText("BackSpace");
+                break;
+            }
+        }
+    }
+    public void testListInit() {
+        fuzzyInputTestList.clear();
+        for (int i = 0; i < 26; i++) {
+            fuzzyInputTestList.add(i);
+        }
+        Collections.shuffle(fuzzyInputTestList);
+    }
+    public void beginFuzzyInputTest(){
+        activity_mode=FUZZY_INPUT_TEST_MODE;
+        WidgetSet(activity_mode);
+        testListInit();
+        fuzzyInputTestTurn=0;
+        playMedia("fuzzyInput",FUZZY_INPUT_SOUND_BEGIN,false);
+        playMedia("google",fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
+        String nextChar=String.valueOf((char)('A'+fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
+        fuzzyInputTestCharShow.setText(String.valueOf(fuzzyInputTestTurn)+" "+nextChar);
+        progressBar.setProgress(fuzzyInputTestTurn*100/MAX_FUZZY_INPUT_TURN);
+        ifSave=false;
+        ifCalDone=false;
+        fuzzyInputTestFigerRecord.clear();
+    }
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public void saveFuzzyInputTestData(){
+        if(ifSave){
+            toast("已经存储过一次了");
+        }else {
+            if (fuzzyInputTestTurn != MAX_FUZZY_INPUT_TURN) {
+                toast("请先完成测试");
+            } else if (!ifCalDone) {
+                toast("还没算完");
+            } else {
+                if (isExternalStorageWritable()) {
+                    //String directory="/storage/emulated/0/Android/data/FuzzyInput/";
+                    //File sdCard = Environment.getExternalStorageDirectory();
+                    File DirectoryFolder = this.getExternalFilesDir(null);
+                    //File DirectoryFolder = new File(fuzzyInputTestStoragePath);
+                    //File DirectoryFolder = this.getExternalStoragePublicDirectory();
+                    if (!DirectoryFolder.exists()) { //如果该文件夹不存在，则进行创建
+                        DirectoryFolder.mkdirs();//创建文件夹
+                    }
+                    String time=getTime();
+                    File fileInDetail = new File(DirectoryFolder, time+ "_详细数据.txt");
+                    File fileInRatio = new File(DirectoryFolder,time+"_概率数据.txt");
+                    File fileInTouchModel = new File(DirectoryFolder,time+"_TouchModel.txt");
+                    if (!fileInDetail.exists()) {
+                        try {
+                            fileInDetail.createNewFile();
+                            //file is create
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                    if (!fileInRatio.exists()) {
+                        try {
+                            fileInRatio.createNewFile();
+                            //file is create
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                    if (!fileInTouchModel.exists()) {
+                        try {
+                            fileInTouchModel.createNewFile();
+                            //file is create
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                    try {
+                        FileOutputStream fosInDetail = new FileOutputStream(fileInDetail);
+                        fosInDetail.write(DataToSave.getBytes());
+                        fosInDetail.close();
+
+                        FileOutputStream fosInRatio = new FileOutputStream(fileInRatio);
+                        fosInRatio.write(DataToShowAndSave.getBytes());
+                        fosInRatio.close();
+
+                        FileOutputStream fosInTouchModel = new FileOutputStream(fileInTouchModel);
+                        fosInTouchModel.write(DataTouchModel.getBytes());
+                        fosInTouchModel.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    toast("存储完毕！");
+                    ifSave = true;
+
+                } else {
+                    toast("不能存储文件!");
+                }
+            }
+        }
+    }
+
+    public void restartFuzzyInputTest(){
+        stopVoice();
+        if(!ifSave){
+            AlertDialog.Builder dialog=new AlertDialog.Builder(MainActivity.this);
+            dialog.setTitle("警告");
+            dialog.setMessage("测试还未完成，你确定要重新开始吗？");
+            dialog.setCancelable(false);
+            dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    fuzzyInputTestTurn=0;
+                    playMedia("fuzzyInput",FUZZY_INPUT_SOUND_BEGIN,false);
+                    playMedia("google",fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
+                    String nextChar=String.valueOf((char)('A'+fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
+                    fuzzyInputTestCharShow.setText(nextChar);
+                    progressBar.setProgress(fuzzyInputTestTurn*100/MAX_FUZZY_INPUT_TURN);
+                    ifSave=false;
+                    ifCalDone=false;
+                    listView.setVisibility(View.GONE);
+                    fuzzyInputTestFigerRecord.clear();
+                }
+            });
+            dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+
+                }
+            });
+            dialog.show();
+        }else{
+            fuzzyInputTestTurn=0;
+            playMedia("fuzzyInput",FUZZY_INPUT_SOUND_BEGIN,false);
+            playMedia("google",fuzzyInputTestList.get(fuzzyInputTestTurn%26),false);
+            String nextChar=String.valueOf((char)('A'+fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
+            fuzzyInputTestCharShow.setText(nextChar);
+            progressBar.setProgress(fuzzyInputTestTurn*100/MAX_FUZZY_INPUT_TURN);
+            ifSave=false;
+            ifCalDone=false;
+            listView.setVisibility(View.GONE);
+            fuzzyInputTestFigerRecord.clear();
+        }
+
+    }
+
+    public void stopFuzzyInputTest(){
+        stopVoice();
+        if(!ifSave){
+            AlertDialog.Builder dialog=new AlertDialog.Builder(MainActivity.this);
+            dialog.setTitle("警告");
+            dialog.setMessage("测试还未完成，你确定要返回吗？");
+            dialog.setCancelable(false);
+            dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    activity_mode = KEYBOARD_MODE;
+                    WidgetSet(activity_mode);
+                    ifSave=false;
+                    ifCalDone=false;
+                    fuzzyInputTestFigerRecord.clear();
+                }
+            });
+            dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                }
+            });
+            dialog.show();
+        }else {
+            activity_mode = KEYBOARD_MODE;
+            WidgetSet(activity_mode);
+            refresh();
+            fuzzyInputTestFigerRecord.clear();
+        }
+    }
+    int sum(int x[],int length){
+        int ans=0;
+        for (int i=0;i<length;i++){
+            ans+=x[i];
+        }
+        return ans;
+    }
+    public void calculateFuzzyInputData(){
+        if(fuzzyInputTestTurn!=MAX_FUZZY_INPUT_TURN){
+            toast("不应该在这时计算!");
+        }
+        else{
+            int keyNearByData[][]=new int[26][26];
+            for (int i=0;i<26;i++){
+                for(int j=0;j<26;j++){
+                    keyNearByData[i][j]=0;
+                }
+            }
+            DataToSave =getTestData();
+            DataToShowAndSave="";
+            DataTouchModel="a,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z\n";
+            ArrayList<String> listViewData=new ArrayList<String>();
+            for(int i=0;i<MAX_FUZZY_INPUT_TURN;i++) {
+                Turn turn = fuzzyInputTestFigerRecord.get(i);
+                String eachTurn = turn.getTurn();
+                keyNearByData[turn.target - 'A'][turn.firstTouch - 'A']++;
+                //listViewData.add(eachTurn);
+                DataToSave += eachTurn;
+                DataToSave += turn.getData();
+            }
+            float keyNearByRatio[][]=new float[26][26];
+            for (int i=0;i<26;i++){
+                int totalTimes=sum(keyNearByData[i],26);
+                if (totalTimes!=MAX_TURN){
+                    String temp="计算"+String.valueOf((char)(i+'A'))+"的键入概率时总次数为"+String.valueOf(totalTimes);
+                    listViewData.add(temp);
+                    toast(temp);
+                }
+                DataTouchModel+=String.valueOf((char)(i+'a'));
+                for (int j=0;j<26;j++){
+                    keyNearByRatio[i][j]=(float)keyNearByData[i][j]/(float)totalTimes;
+                    String temp=String.valueOf((char)(i+'A'))+" "+String.valueOf((char)(j+'A'))+" "+String.valueOf(keyNearByRatio[i][j]);
+                    DataToShowAndSave+=temp+'\n';
+                    DataTouchModel+=","+String.valueOf(keyNearByRatio[i][j]);
+                    if (keyNearByRatio[i][j]!=0)
+                        listViewData.add(temp);
+                }
+                DataTouchModel+="\n";
+            }
+            ifCalDone=true;
+            ArrayAdapter<String> adapter=new ArrayAdapter<String>(MainActivity.this,android.R.layout.simple_list_item_1,listViewData);
+            listView.setVisibility(View.VISIBLE);
+            listView.setAdapter(adapter);
+
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public String getTime()
+    {
+        long time=System.currentTimeMillis();//long now = android.os.SystemClock.uptimeMillis();
+        SimpleDateFormat format=new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+        Date d1=new Date(time);
+        return format.format(d1);
+    }
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        return Environment.MEDIA_MOUNTED.equals(state);
+    }
+    public void toast(String textForToast){
+        Toast mytoast = Toast.makeText(getApplicationContext(),
+                textForToast, Toast.LENGTH_SHORT);
+        mytoast.setGravity(Gravity.CENTER, 0, 0);
+        mytoast.show();
+    }
 
     public String getFilename(){
         Calendar starttime = Calendar.getInstance();
@@ -341,7 +782,39 @@ public class MainActivity extends AppCompatActivity {
         voice.put("delete", new int[1]);
         voice.put("blank", new int[1]);
         voice.put("delete_word", new int[1]);
+        voice.put("fuzzyInput",new int[3]);
+        voice.put("google",new int[26]);
 
+        voice.get("fuzzyInput")[0]=R.raw.fuzzy_input_test_begin;
+        voice.get("fuzzyInput")[1]=R.raw.fuzzy_input_test_next;
+        voice.get("fuzzyInput")[2]=R.raw.fuzzy_input_test_end;
+
+        voice.get("google")[ 0] = R.raw.google_a;
+        voice.get("google")[ 1] = R.raw.google_b;
+        voice.get("google")[ 2] = R.raw.google_c;
+        voice.get("google")[ 3] = R.raw.google_d;
+        voice.get("google")[ 4] = R.raw.google_e;
+        voice.get("google")[ 5] = R.raw.google_f;
+        voice.get("google")[ 6] = R.raw.google_g;
+        voice.get("google")[ 7] = R.raw.google_h;
+        voice.get("google")[ 8] = R.raw.google_i;
+        voice.get("google")[ 9] = R.raw.google_j;
+        voice.get("google")[10] = R.raw.google_k;
+        voice.get("google")[11] = R.raw.google_l;
+        voice.get("google")[12] = R.raw.google_m;
+        voice.get("google")[13] = R.raw.google_n;
+        voice.get("google")[14] = R.raw.google_o;
+        voice.get("google")[15] = R.raw.google_p;
+        voice.get("google")[16] = R.raw.google_q;
+        voice.get("google")[17] = R.raw.google_r;
+        voice.get("google")[18] = R.raw.google_s;
+        voice.get("google")[19] = R.raw.google_t;
+        voice.get("google")[20] = R.raw.google_u;
+        voice.get("google")[21] = R.raw.google_v;
+        voice.get("google")[22] = R.raw.google_w;
+        voice.get("google")[23] = R.raw.google_x;
+        voice.get("google")[24] = R.raw.google_y;
+        voice.get("google")[25] = R.raw.google_z;
         voice.get("ios11_50")[ 0] = R.raw.ios11_50_a;
         voice.get("ios11_50")[ 1] = R.raw.ios11_50_b;
         voice.get("ios11_50")[ 2] = R.raw.ios11_50_c;
@@ -514,27 +987,50 @@ public class MainActivity extends AppCompatActivity {
 
     public void initButtons(){
         confirmButton.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.N)
             @Override
             public void onClick(View v) {
-                stopInput();
-                finishWord();
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
+                switch(activity_mode) {
+                    case KEYBOARD_MODE:{
+                        stopInput();
+                        finishWord();
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        break;
+                    }
+                    case FUZZY_INPUT_TEST_MODE:{
+                        saveFuzzyInputTestData();
+                        break;
+                    }
+                    default:
+                }
+
             }
         });
 
         initModeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (initMode == INIT_MODE_ABSOLUTE)
-                    initMode = INIT_MODE_RELATIVE;
-                else if(initMode == INIT_MODE_RELATIVE)
-                    initMode = INIT_MODE_NOTHING;
-                else
-                    initMode = INIT_MODE_ABSOLUTE;
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-                refresh();
+                switch(activity_mode){
+                    case KEYBOARD_MODE:{
+                        if (initMode == INIT_MODE_ABSOLUTE)
+                            initMode = INIT_MODE_RELATIVE;
+                        else if(initMode == INIT_MODE_RELATIVE)
+                            initMode = INIT_MODE_NOTHING;
+                        else
+                            initMode = INIT_MODE_ABSOLUTE;
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        refresh();
+                        break;
+                    }
+                    case FUZZY_INPUT_TEST_MODE:{
+                        stopFuzzyInputTest();
+                        break;
+                    }
+                    default:
+                }
+
             }
         });
 
@@ -607,12 +1103,35 @@ public class MainActivity extends AppCompatActivity {
         speedpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(voiceSpeed<=90){
-                    voiceSpeed += 10;
+                switch(activity_mode){
+                    case KEYBOARD_MODE:{
+                        if(voiceSpeed<=90){
+                            voiceSpeed += 10;
+                        }
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        voiceSpeedText.setText(voiceSpeed+"");
+                        break;
+                    }
+                    case FUZZY_INPUT_TEST_MODE:{// 回退一轮
+                        if(fuzzyInputTestFigerRecord.size()>fuzzyInputTestTurn)
+                            fuzzyInputTestFigerRecord.remove(fuzzyInputTestTurn);//将本轮清空
+                        if(fuzzyInputTestTurn>0)
+                            fuzzyInputTestTurn--;
+                        if(fuzzyInputTestFigerRecord.size()>fuzzyInputTestTurn)
+                            fuzzyInputTestFigerRecord.remove(fuzzyInputTestTurn);//将上一轮清空
+                        stopVoice();
+                        if (fuzzyInputTestTurn < 10) {//10轮熟悉之后加快测试速度
+                            playMedia("fuzzyInput", FUZZY_INPUT_SOUND_NEXT,false );
+                        }
+                        playMedia("google", fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
+                        String nextChar = String.valueOf((char) ('A' + fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
+                        fuzzyInputTestCharShow.setText(String.valueOf(fuzzyInputTestTurn)+" "+nextChar);
+                        progressBar.setProgress(fuzzyInputTestTurn * 100 / MAX_FUZZY_INPUT_TURN);
+                        break;
+                    }
+                    default:
                 }
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-                voiceSpeedText.setText(voiceSpeed+"");
             }
         });
 
@@ -805,7 +1324,12 @@ public class MainActivity extends AppCompatActivity {
         predictionRepeatPButton = (Button)findViewById(R.id.predictionRepeat_p);
         predictionRepeatMButton = (Button)findViewById(R.id.predictionRepeat_m);
         predictionRepeatText = (TextView)findViewById(R.id.predictionReoeatText);
-
+        fuzzyInputTestCharShow=(TextView)findViewById(R.id.fuzzyInputTestCharShow);
+        fuzzyInputTestCharShow.setVisibility(View.GONE);
+        progressBar=(ProgressBar)findViewById(R.id.progress_bar);
+        progressBar.setVisibility(View.GONE);
+        listView=(ListView)findViewById(R.id.list_view);
+        listView.setVisibility(View.GONE);
         ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
         autoKeyboard=new AutoKeyboard(keyboard);
         vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -815,13 +1339,11 @@ public class MainActivity extends AppCompatActivity {
                 autoKeyboard.drawLayout();
             }
         });
-
         initDict();
         initVoice();
         initButtons();
         initKeyboard();
     }
-
     @Override
     public void onDestroy(){
         if (current != null){
@@ -857,131 +1379,211 @@ public class MainActivity extends AppCompatActivity {
     final long STAY_TIME = 400;
     final int SLIP_DIST = 90;
     char upKey = KEY_NOT_FOUND;
-
+    boolean isOverScreen=false;
+    char lastChar='A';
     public boolean onTouchEvent(MotionEvent event){
         int[] location = new int[2];
         keyboard.getLocationOnScreen(location);
         int x = (int)event.getX();
         int y = (int)event.getY();
+        switch(activity_mode){
+            case KEYBOARD_MODE:{
+                if (event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], 1) == upKey
+                        || autoKeyboard.getKeyByPosition(x, y - location[1], 0) != KEY_NOT_FOUND)){ // in the keyboard area
+                    switch (event.getActionMasked()) {
+                        case MotionEvent.ACTION_DOWN:
+                        case MotionEvent.ACTION_POINTER_DOWN:
+                            write("down " + x + " " + y);
+                            downX = x;
+                            downY = y;
+                            downTime = System.currentTimeMillis();
+                            if (downTime - firstDownTime > 400){
+                                firstDownTime = downTime;
+                            }
+                            else{
+                                lastDownTime = downTime;
+                            }
 
-        if (event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], 1) == upKey
-                || autoKeyboard.getKeyByPosition(x, y - location[1], 0) != KEY_NOT_FOUND)){ // in the keyboard area
-            switch (event.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN:
-                case MotionEvent.ACTION_POINTER_DOWN:
-                    write("down " + x + " " + y);
-                    downX = x;
-                    downY = y;
-                    downTime = System.currentTimeMillis();
-                    if (downTime - firstDownTime > 400){
-                        firstDownTime = downTime;
-                    }
-                    else{
-                        lastDownTime = downTime;
-                    }
+                            newPoint(x, y - location[1]);
+                            //action down
+                            break;
 
-                    newPoint(x, y - location[1]);
-                    //action down
-                    break;
+                        case MotionEvent.ACTION_MOVE:
+                            write("move " + x + " " + y);
+                            newPoint(x, y - location[1]);
+                            //action move
+                            break;
 
-                case MotionEvent.ACTION_MOVE:
-                    write("move " + x + " " + y);
-                    newPoint(x, y - location[1]);
-                    //action move
-                    break;
-
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_POINTER_UP:
-                    write("up " + x + " " + y);
-                    slideFlag = false;
-                    charsPlayed = "";
-                    predictionCount = 0;
-                    long tempTime = System.currentTimeMillis();
-                    boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
-                    if (!predictLetterFlag){
-                        nowCh2 = '*';
-                    }
-                    stopInput();
-                    if (confirmMode == CONFIRM_MODE_UP) {
-                        if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
-                            deleteLastChar();
-                            write("leftwipe");
-                            playMedia("delete", 0, false);
-                            autoKeyboard.resetLayout();
-                            autoKeyboard.drawLayout();
-                        } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
-                            deleteAllChar();
-                            write("rightwipe");
-                            playMedia("delete", 0, false);
-                            autoKeyboard.resetLayout();
-                            autoKeyboard.drawLayout();
-                        } else if (tempTime - downTime > 300) {
-                            upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
-                            if (upvoiceMode == UPVOICE_MODE_YES) {
-                                playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
-                                if (nowCh2 != '*') {
-                                    playMedia("ios11_" + voiceSpeed, nowCh2 - 'a', true);
+                        case MotionEvent.ACTION_UP:
+                        case MotionEvent.ACTION_POINTER_UP:
+                            write("up " + x + " " + y);
+                            slideFlag = false;
+                            charsPlayed = "";
+                            predictionCount = 0;
+                            long tempTime = System.currentTimeMillis();
+                            boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
+                            if (!predictLetterFlag){
+                                nowCh2 = '*';
+                            }
+                            stopInput();
+                            if (confirmMode == CONFIRM_MODE_UP) {
+                                if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                                    deleteLastChar();
+                                    write("leftwipe");
+                                    playMedia("delete", 0, false);
+                                    autoKeyboard.resetLayout();
+                                    autoKeyboard.drawLayout();
+                                } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                                    deleteAllChar();
+                                    write("rightwipe");
+                                    playMedia("delete", 0, false);
+                                    autoKeyboard.resetLayout();
+                                    autoKeyboard.drawLayout();
+                                } else if (tempTime - downTime > 300) {
+                                    upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
+                                    if (upvoiceMode == UPVOICE_MODE_YES) {
+                                        playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
+                                        if (nowCh2 != '*') {
+                                            playMedia("ios11_" + voiceSpeed, nowCh2 - 'a', true);
+                                        }
+                                    }
+                                    currentWord += nowCh;
+                                    currentWord2 += nowCh2;
+                                    currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],0);
+                                    predict(currentWord, currentWord2);
+                                    write("enter " + nowCh);
+                                    refresh();
                                 }
                             }
-                            currentWord += nowCh;
-                            currentWord2 += nowCh2;
-                            currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],0);
-                            predict(currentWord, currentWord2);
-                            write("enter " + nowCh);
-                            refresh();
-                        }
-                    }
-                    else{
-                        if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
-                            deleteLastChar();
-                            write("leftwipe");
-                            nowChSaved = '*';
-                            nowCh2Saved = '*';
-                            playMedia("delete", 0, false);
-                            autoKeyboard.resetLayout();
-                            autoKeyboard.drawLayout();
-                        } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
-                            deleteAllChar();
-                            write("rightwipe");
-                            nowChSaved = '*';
-                            nowCh2Saved = '*';
-                            playMedia("delete", 0, false);
-                            autoKeyboard.resetLayout();
-                            autoKeyboard.drawLayout();
-                        } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
-                            //double click
-                            if (nowChSaved != '*'){
-                                write("doubleclick");
-                                currentWord += nowChSaved;
-                                currentWord2 += nowCh2Saved;
-                                if (upvoiceMode == UPVOICE_MODE_YES) {
-                                    playMedia("ios11_" + voiceSpeed, nowChSaved - 'a', true);
-                                    if (nowCh2Saved != '*') {
-                                        playMedia("ios11_" + voiceSpeed, nowCh2Saved - 'a', true);
+                            else{
+                                if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                                    deleteLastChar();
+                                    write("leftwipe");
+                                    nowChSaved = '*';
+                                    nowCh2Saved = '*';
+                                    playMedia("delete", 0, false);
+                                    autoKeyboard.resetLayout();
+                                    autoKeyboard.drawLayout();
+                                } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                                    deleteAllChar();
+                                    write("rightwipe");
+                                    nowChSaved = '*';
+                                    nowCh2Saved = '*';
+                                    playMedia("delete", 0, false);
+                                    autoKeyboard.resetLayout();
+                                    autoKeyboard.drawLayout();
+                                } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
+                                    //double click
+                                    if (nowChSaved != '*'){
+                                        write("doubleclick");
+                                        currentWord += nowChSaved;
+                                        currentWord2 += nowCh2Saved;
+                                        if (upvoiceMode == UPVOICE_MODE_YES) {
+                                            playMedia("ios11_" + voiceSpeed, nowChSaved - 'a', true);
+                                            if (nowCh2Saved != '*') {
+                                                playMedia("ios11_" + voiceSpeed, nowCh2Saved - 'a', true);
+                                            }
+                                        }
+                                        else{
+                                            playMedia("delete", 0, false);
+                                        }
+                                        currentBaseline += nowChBaselineSaved;
+                                        predict(currentWord, currentWord2);
+                                        refresh();
+                                        nowChSaved = '*';
+                                        nowCh2Saved = '*';
                                     }
                                 }
                                 else{
-                                    playMedia("delete", 0, false);
+                                    if (tempTime - downTime > 300) {
+                                        upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
+                                        nowChSaved = nowCh;
+                                        nowCh2Saved = nowCh2;
+                                        nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],0);
+                                        write("enter " + nowCh);
+                                    }
                                 }
-                                currentBaseline += nowChBaselineSaved;
-                                predict(currentWord, currentWord2);
-                                refresh();
-                                nowChSaved = '*';
-                                nowCh2Saved = '*';
                             }
-                        }
-                        else{
-                            if (tempTime - downTime > 300) {
-                                upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
-                                nowChSaved = nowCh;
-                                nowCh2Saved = nowCh2;
-                                nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],0);
-                                write("enter " + nowCh);
-                            }
-                        }
+                            write("word " + currentWord);
+                            break;
                     }
-                    write("word " + currentWord);
-                    break;
+                }
+                break;
+            }
+            case FUZZY_INPUT_TEST_MODE: {
+                y=y-location[1];
+                if (fuzzyInputTestTurn < MAX_FUZZY_INPUT_TURN && autoKeyboard.inKeyboard(x,y,autoKeyboard.CURR_LAYOUT)&& isOverScreen==false) {
+                    switch (event.getActionMasked()) {
+                        case MotionEvent.ACTION_DOWN: {
+                            char ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
+                            if(ch==KEY_NOT_FOUND){
+                                isOverScreen=true;
+                                break;
+                            }
+                            if(fuzzyInputTestTurn>=fuzzyInputTestFigerRecord.size()){
+                                fuzzyInputTestFigerRecord.add(new Turn(fuzzyInputTestTurn,event.getDownTime()));
+                            }
+                            fuzzyInputTestFigerRecord.get(fuzzyInputTestTurn).addData(ch,x,y,MotionEvent.ACTION_DOWN,event.getEventTime());
+                            stopVoice();
+                            playMedia("ios11_"+voiceSpeed, ch - 'a',true);
+                            lastChar=ch;
+                            break;
+                        }
+                        case MotionEvent.ACTION_MOVE: {
+                            char ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
+                            if(ch==KEY_NOT_FOUND){
+                                break;
+                            }
+                            fuzzyInputTestFigerRecord.get(fuzzyInputTestTurn).addData(ch,x,y,MotionEvent.ACTION_MOVE,event.getEventTime());
+                            if(ch!=lastChar){
+                                stopVoice();
+                                playMedia("ios11da", 0,false);
+                                Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+                                long[] pattern = {0, 30};
+                                vibrator.vibrate(pattern, -1);
+                                playMedia("ios11_"+voiceSpeed, ch - 'a',true);
+                            }
+                            lastChar=ch;
+                            break;
+                        }
+                        case MotionEvent.ACTION_UP: {
+                            char ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
+                            boolean isDone=fuzzyInputTestFigerRecord.get(fuzzyInputTestTurn).addData(ch,x,y,MotionEvent.ACTION_UP,event.getEventTime());
+                            stopVoice();
+                            if(isDone){
+                                fuzzyInputTestTurn++;
+                                if (fuzzyInputTestTurn >= MAX_FUZZY_INPUT_TURN) {
+                                    fuzzyInputTestCharShow.setText("DONE!");
+                                    playMedia("fuzzyInput", FUZZY_INPUT_SOUND_END,false);
+                                    calculateFuzzyInputData();
+                                    break;
+                                }
+                            }
+                            if (fuzzyInputTestTurn < 10) {//10轮熟悉之后加快测试速度
+                                playMedia("fuzzyInput", FUZZY_INPUT_SOUND_NEXT,false);
+                            }
+                            playMedia("google", fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
+                            String nextChar = String.valueOf((char) ('A' + fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
+                            fuzzyInputTestCharShow.setText(String.valueOf(fuzzyInputTestTurn)+" "+nextChar);
+                            progressBar.setProgress(fuzzyInputTestTurn * 100 / MAX_FUZZY_INPUT_TURN);
+                            break;
+                        }
+                        default:
+                    }
+                }
+                else if(isOverScreen||autoKeyboard.inKeyboard(x,y,autoKeyboard.CURR_LAYOUT)==false){
+                    switch (event.getActionMasked()) {
+                        case MotionEvent.ACTION_DOWN: {
+                            isOverScreen=true;
+                            break;
+                        }
+                        case MotionEvent.ACTION_UP:{
+                            isOverScreen=false;
+                            break;
+                        }
+                        default:
+                    }
+                }
             }
         }
         return super.onTouchEvent(event);
@@ -1010,16 +1612,17 @@ public class MainActivity extends AppCompatActivity {
         Paint backgroundPaint;
         Paint textPaint;
         Paint linePaint;
+        boolean Visibility=true;
         float screen_width_ratio = 1F;
         float screen_height_ratio = 1F;
         //Fuzzy Input Test Var
-        float keyboardHeight=500;// the height of the keyboard
-        float keyboardWidth=1438;// the width of the keyboard
-        float deltaY=100;// the distance between the first line and the upper bound of the keyboard
-        float topThreshold=0;// the upper bound
-        float bottomThreshold=900;// the lower bound
-        float minWidth=72;// the minimum width of a key
-        float minHetight=95;// the minimum height of a key
+        float keyboardHeight;// the height of the keyboard
+        float keyboardWidth;// the width of the keyboard
+        float deltaY;// the distance between the first line and the upper bound of the keyboard
+        float topThreshold;// the upper bound
+        float bottomThreshold;// the lower bound
+        float minWidth;// the minimum width of a key
+        float minHetight;// the minimum height of a key
         int keyPos[];// the position of each key
         int[] location;// the coordinate of the left top corner of the keyboard
         int[] firstLine={0,1,2,3,4,5,6,7,8,9};// the index of the first line of the keyboard
@@ -1045,12 +1648,12 @@ public class MainActivity extends AppCompatActivity {
         final int RESPECTIVELY_MOVEMENT=1;
         final int STRICT_MODE=1;
         final int LOOSE_MODE=0;
-        int scalingNum=3;// left and shift scaling number of keys
-        int try_layout_mode=RESPECTIVELY_MOVEMENT;
-        int getKey_mode=LOOSE_MODE;
-        int tap_range_index=0;
+        int scalingNum;// left and shift scaling number of keys
+        int try_layout_mode;
+        int getKey_mode;
+        int tap_range_index;
         float[] tap_range_array={19/20,18/20,17/20,16/20,15/20,14/20,13/20,12/20,11/20,10/20};
-        float tap_range=9/10;
+        float tap_range;
         class KEY{
             char ch;
             float init_x;
@@ -1199,6 +1802,7 @@ public class MainActivity extends AppCompatActivity {
                     return test_x+test_width*tap_range/2;
                 }
             }
+
             KEY(){
                 ch='a';
                 init_x=0;
@@ -1217,6 +1821,32 @@ public class MainActivity extends AppCompatActivity {
 
         }
         KEY keys[];
+        void defaultPara(){// set the parameters to default value
+            keyboardHeight=650;
+            keyboardWidth=1438;
+            deltaY=100;
+            topThreshold=0;
+            bottomThreshold=900;
+            minWidth=72;
+            minHetight=110;
+            scalingNum=3;
+            try_layout_mode=RESPECTIVELY_MOVEMENT;
+            getKey_mode=LOOSE_MODE;
+            tap_range_index=1;
+            tap_range=tap_range_array[tap_range_index];
+        }
+        float getBottom(int mode){
+            return this.keys[BR].getBottom(mode);
+        }
+        float getTop(int mode){
+            return this.keys[TL].getTop(mode);
+        }
+        float getLeft(int mode){
+            return this.keys[TL].getLeft(mode);
+        }
+        float getRight(int mode){
+            return this.keys[TR].getRight(mode);
+        }
         void setKeyboardHeight(float newkeyBoardHeight){
             this.keyboardHeight=newkeyBoardHeight*screen_height_ratio;
         }
@@ -1241,7 +1871,9 @@ public class MainActivity extends AppCompatActivity {
             this.screen_width_ratio = metrics.widthPixels/1440F;
             this.screen_height_ratio = metrics.heightPixels/2560F;
         }
-
+        boolean inKeyboard(float x,float y, int mode){
+            return x>=getLeft(mode)&&x<=getRight(mode)&&y>=getTop(mode)&&y<=getBottom(mode);
+        }
         public char getKeyByPosition(float x, float y, int mode){
             // mode==0 init_layout
             // mode==1 current_layout
@@ -1738,29 +2370,34 @@ public class MainActivity extends AppCompatActivity {
             return shift_x(pos,dX)&&shift_y(pos,dY);
         }
 
-
         public void drawLayout(){ // curr_x,curr_y
-            float left=this.location[0]+this.keys[TL].getLeft(CURR_LAYOUT);
-            float top=this.location[1]+this.keys[TL].getTop(CURR_LAYOUT);
-            float right=this.location[0]+this.keys[TR].getRight(CURR_LAYOUT);
-            float bottom=this.location[1]+this.keys[BR].getBottom(CURR_LAYOUT);
-            this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
-            this.canvas=new Canvas(this.baseBitmap);
-            RectF rect = new RectF(left, top, right, bottom);
-            this.canvas.drawRect(rect, this.backgroundPaint);
-            this.canvas.drawLine(0,this.keys[TL].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[TR].getTop(CURR_LAYOUT),this.linePaint);
-            this.canvas.drawLine(0,this.keys[ML].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[MR].getTop(CURR_LAYOUT),this.linePaint);
-            this.canvas.drawLine(0,this.keys[BL].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[BR].getTop(CURR_LAYOUT),this.linePaint);
-            this.canvas.drawLine(0,this.keys[BL].getBottom(CURR_LAYOUT),this.keyboardWidth,this.keys[BR].getBottom(CURR_LAYOUT),this.linePaint);
+            if(Visibility){
+                float left=this.location[0]+getLeft(CURR_LAYOUT);
+                float top=this.location[1]+getTop(CURR_LAYOUT);
+                float right=this.location[0]+getRight(CURR_LAYOUT);
+                float bottom=this.location[1]+getBottom(CURR_LAYOUT);
+                this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
+                this.canvas=new Canvas(this.baseBitmap);
+                RectF rect = new RectF(left, top, right, bottom);
+                this.canvas.drawRect(rect, this.backgroundPaint);
+                this.canvas.drawLine(0,this.keys[TL].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[TR].getTop(CURR_LAYOUT),this.linePaint);
+                this.canvas.drawLine(0,this.keys[ML].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[MR].getTop(CURR_LAYOUT),this.linePaint);
+                this.canvas.drawLine(0,this.keys[BL].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[BR].getTop(CURR_LAYOUT),this.linePaint);
+                this.canvas.drawLine(0,this.keys[BL].getBottom(CURR_LAYOUT),this.keyboardWidth,this.keys[BR].getBottom(CURR_LAYOUT),this.linePaint);
 
-            for (int i:allLine){
-                this.canvas.drawLine(this.keys[i].getLeft(CURR_LAYOUT),this.keys[i].getTop(CURR_LAYOUT),this.keys[i].getLeft(CURR_LAYOUT),this.keys[i].getBottom(CURR_LAYOUT),this.linePaint);
-                this.canvas.drawText(String.valueOf(this.keys[i].ch),this.keys[i].curr_x+this.location[0],this.keys[i].curr_y+this.location[1],this.textPaint);
+                for (int i:allLine){
+                    this.canvas.drawLine(this.keys[i].getLeft(CURR_LAYOUT),this.keys[i].getTop(CURR_LAYOUT),this.keys[i].getLeft(CURR_LAYOUT),this.keys[i].getBottom(CURR_LAYOUT),this.linePaint);
+                    this.canvas.drawText(String.valueOf(this.keys[i].ch),this.keys[i].curr_x+this.location[0],this.keys[i].curr_y+this.location[1],this.textPaint);
+                }
+                this.canvas.drawLine(this.keys[TR].getRight(CURR_LAYOUT),this.keys[TR].getTop(CURR_LAYOUT),this.keys[TR].getRight(CURR_LAYOUT),this.keys[TR].getBottom(CURR_LAYOUT),this.linePaint);
+                this.canvas.drawLine(this.keys[MR].getRight(CURR_LAYOUT),this.keys[MR].getTop(CURR_LAYOUT),this.keys[MR].getRight(CURR_LAYOUT),this.keys[MR].getBottom(CURR_LAYOUT),this.linePaint);
+                this.canvas.drawLine(this.keys[BR].getRight(CURR_LAYOUT),this.keys[BR].getTop(CURR_LAYOUT),this.keys[BR].getRight(CURR_LAYOUT),this.keys[BR].getBottom(CURR_LAYOUT),this.linePaint);
+                this.keyboard.setImageBitmap(this.baseBitmap);
+            }else{
+                this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
+                this.keyboard.setImageBitmap(this.baseBitmap);
             }
-            this.canvas.drawLine(this.keys[TR].getRight(CURR_LAYOUT),this.keys[TR].getTop(CURR_LAYOUT),this.keys[TR].getRight(CURR_LAYOUT),this.keys[TR].getBottom(CURR_LAYOUT),this.linePaint);
-            this.canvas.drawLine(this.keys[MR].getRight(CURR_LAYOUT),this.keys[MR].getTop(CURR_LAYOUT),this.keys[MR].getRight(CURR_LAYOUT),this.keys[MR].getBottom(CURR_LAYOUT),this.linePaint);
-            this.canvas.drawLine(this.keys[BR].getRight(CURR_LAYOUT),this.keys[BR].getTop(CURR_LAYOUT),this.keys[BR].getRight(CURR_LAYOUT),this.keys[BR].getBottom(CURR_LAYOUT),this.linePaint);
-            this.keyboard.setImageBitmap(this.baseBitmap);
+
         }
 
         public void resetLayout(){
@@ -1819,6 +2456,7 @@ public class MainActivity extends AppCompatActivity {
             //this.drawLayout();
         }
         public AutoKeyboard(ImageView keyBoard){
+            defaultPara();
             this.backgroundPaint=new Paint();
             this.textPaint=new Paint();
             this.backgroundPaint.setColor(Color.rgb(230,255,255));
@@ -1861,9 +2499,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean onCreateOptionsMenu(Menu menu_temp) {
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.actionbar_menu, menu);
+        inflater.inflate(R.menu.actionbar_menu, menu_temp);
+        menu=menu_temp;
+        setMenuTitle();
         return super.onCreateOptionsMenu(menu);
     }
     @Override
@@ -1874,6 +2514,43 @@ public class MainActivity extends AppCompatActivity {
          *
          * 将会执行此case
          */
+
+            case R.id.fuzzyInputTestBegin:{
+                switch (activity_mode){
+                    case KEYBOARD_MODE:{
+                        beginFuzzyInputTest();
+                        break;
+                    }
+                    case FUZZY_INPUT_TEST_MODE:{
+                        restartFuzzyInputTest();
+                        break;
+                    }
+                }
+                break;
+            }
+            case R.id.testTurnChange:{
+                if(activity_mode==KEYBOARD_MODE){
+                    MAX_TURN=(MAX_TURN+1)%8+1;
+                    MAX_FUZZY_INPUT_TURN=MAX_TURN*26;
+                }
+                break;
+            }
+            case R.id.testMode:{
+                /*
+                testmode=(testmode+1)%4;
+                */
+                break;
+            }
+            case R.id.keyBoardVisibility:{
+                autoKeyboard.Visibility=!autoKeyboard.Visibility;
+                if(autoKeyboard.Visibility)
+                    Toast.makeText(this, "Keyboard Visible", Toast.LENGTH_LONG).show();
+                else{
+                    Toast.makeText(this, "Keyboard Invisible", Toast.LENGTH_LONG).show();
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+            }
             case R.id.reset_keyboard:{
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
@@ -1883,11 +2560,9 @@ public class MainActivity extends AppCompatActivity {
                 if(autoKeyboard.try_layout_mode==autoKeyboard.BODILY_MOVEMENT){
                     autoKeyboard.try_layout_mode=autoKeyboard.RESPECTIVELY_MOVEMENT;
                     Toast.makeText(this, "respectively movement", Toast.LENGTH_LONG).show();
-                    item.setTitle("try_layout_mode:Respectively");
                 }else{
                     autoKeyboard.try_layout_mode=autoKeyboard.BODILY_MOVEMENT;
                     Toast.makeText(this, "bodily movement", Toast.LENGTH_LONG).show();
-                    item.setTitle("try_layout_mode:Bodily");
                 }
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
@@ -1896,7 +2571,6 @@ public class MainActivity extends AppCompatActivity {
             case R.id.scalingNum:{
                 autoKeyboard.scalingNum=(autoKeyboard.scalingNum+1)%3+1;
                 Toast.makeText(this, "scalingNum="+String.valueOf(autoKeyboard.scalingNum), Toast.LENGTH_LONG).show();
-                item.setTitle("scalingNum:"+String.valueOf(autoKeyboard.scalingNum));
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
@@ -1905,11 +2579,9 @@ public class MainActivity extends AppCompatActivity {
                 if(autoKeyboard.getKey_mode==autoKeyboard.LOOSE_MODE){
                     autoKeyboard.getKey_mode=autoKeyboard.STRICT_MODE;
                     Toast.makeText(this, "getKey_mode:STRICT_MODE", Toast.LENGTH_LONG).show();
-                    item.setTitle("getKey_mode:STRICT_MODE");
                 }else{
                     autoKeyboard.getKey_mode=autoKeyboard.LOOSE_MODE;
                     Toast.makeText(this, "getKey_mode:LOOSE_MODE", Toast.LENGTH_LONG).show();
-                    item.setTitle("getKey_mode:LOOSE_MODE");
                 }
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
@@ -1918,49 +2590,104 @@ public class MainActivity extends AppCompatActivity {
                 autoKeyboard.deltaY=(autoKeyboard.deltaY-50+10)%200+50;
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
-                item.setTitle("deltaY:"+String.valueOf(autoKeyboard.deltaY));
                 break;
             }case R.id.topThreshold:{
                 autoKeyboard.topThreshold=(autoKeyboard.topThreshold+5)%50;
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
-                item.setTitle("topThreshold:"+String.valueOf(autoKeyboard.topThreshold));
                 break;
             }case R.id.bottomThreshold:{
                 autoKeyboard.bottomThreshold=(autoKeyboard.bottomThreshold-900+5)%50+900;
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
-                item.setTitle("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
                 break;
             }case R.id.minWidth:{
                 autoKeyboard.minWidth=(autoKeyboard.minWidth-30+3)%90+30;
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
-                item.setTitle("minWidth:"+String.valueOf(autoKeyboard.minWidth));
                 break;
             }case R.id.minHetight:{
                 autoKeyboard.minHetight=(autoKeyboard.minHetight-30+3)%90+30;
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
-                item.setTitle("minHetight:"+String.valueOf(autoKeyboard.minHetight));
                 break;
             }case R.id.tap_range:{
                 autoKeyboard.tap_range_index=(autoKeyboard.tap_range_index+1)%10;
                 autoKeyboard.tap_range=autoKeyboard.tap_range_array[autoKeyboard.tap_range_index];
-                item.setTitle("tap_range:"+String.valueOf(autoKeyboard.tap_range));
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
             }case R.id.keyboardHeight:{
                 autoKeyboard.keyboardHeight=(autoKeyboard.keyboardHeight-500+5)%200+500;
-                item.setTitle("keyboardHeight:"+String.valueOf(autoKeyboard.keyboardHeight));
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
+                break;
+            }case R.id.default_keyboard:{
+                autoKeyboard.defaultPara();
                 break;
             }
             default:
                 break;
         }
+        setMenuTitle();
         return super.onOptionsItemSelected(item);
+    }
+    void setMenuTitle(){
+        switch (activity_mode){
+            case KEYBOARD_MODE:{
+                menu.findItem(R.id.fuzzyInputTestBegin).setTitle("Start Test");
+                break;
+            }
+            case FUZZY_INPUT_TEST_MODE:{
+                menu.findItem(R.id.fuzzyInputTestBegin).setTitle("Restart Test");
+                break;
+            }
+        }
+        menu.findItem(R.id.testTurnChange).setTitle("Testturn:"+String.valueOf(MAX_TURN));
+        if(activity_mode==KEYBOARD_MODE){
+            menu.findItem(R.id.testTurnChange).setTitle("Testturn:"+String.valueOf(MAX_TURN));
+        }
+        switch(testmode){
+            case NORMAL:{
+                menu.findItem(R.id.testMode).setTitle("TestMode:NORMAL");
+                break;
+            }
+            case CANCEL:{
+                menu.findItem(R.id.testMode).setTitle("TestMode:CANCEL");
+                break;
+            }
+            case BORDER:{
+                menu.findItem(R.id.testMode).setTitle("TestMode:BORDER");
+                break;
+            }
+            case CANCEL_BORDER:{
+                menu.findItem(R.id.testMode).setTitle("TestMode:CANBOR");
+                break;
+            }
+        }
+        if(autoKeyboard.Visibility){
+            menu.findItem(R.id.keyBoardVisibility).setTitle("KeyboardVisibility:True");
+        }else{
+            menu.findItem(R.id.keyBoardVisibility).setTitle("KeyboardVisibility:False");
+        }
+        menu.findItem(R.id.reset_keyboard).setTitle("reset keyboard");
+        if(autoKeyboard.try_layout_mode==autoKeyboard.BODILY_MOVEMENT){
+            menu.findItem(R.id.try_layout_mode).setTitle("try_layout_mode:Bodily");
+        }else if(autoKeyboard.try_layout_mode==autoKeyboard.RESPECTIVELY_MOVEMENT){
+            menu.findItem(R.id.try_layout_mode).setTitle("try_layout_mode:Respectively");
+        }
+        menu.findItem(R.id.scalingNum).setTitle("scalingNum:"+String.valueOf(autoKeyboard.scalingNum));
+        if(autoKeyboard.getKey_mode==autoKeyboard.LOOSE_MODE){
+            menu.findItem(R.id.getKey_mode).setTitle("getKey_mode:LOOSE MODE");
+        }else if(autoKeyboard.getKey_mode==autoKeyboard.STRICT_MODE){
+            menu.findItem(R.id.getKey_mode).setTitle("getKey_mode:STRICT MODE");
+        }
+        menu.findItem(R.id.deltaY).setTitle("deltaY:"+String.valueOf(autoKeyboard.deltaY));
+        menu.findItem(R.id.topThreshold).setTitle("topThreshold:"+String.valueOf(autoKeyboard.topThreshold));
+        menu.findItem(R.id.bottomThreshold).setTitle("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
+        menu.findItem(R.id.minWidth).setTitle("minWidth:"+String.valueOf(autoKeyboard.minWidth));
+        menu.findItem(R.id.minHetight).setTitle("minHetight:"+String.valueOf(autoKeyboard.minHetight));
+        menu.findItem(R.id.tap_range).setTitle("tap_range:"+String.valueOf(autoKeyboard.tap_range));
+        menu.findItem(R.id.keyboardHeight).setTitle("keyboardHeight:"+String.valueOf(autoKeyboard.keyboardHeight));
     }
 }
