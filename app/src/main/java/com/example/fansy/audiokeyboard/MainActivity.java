@@ -663,10 +663,10 @@ public class MainActivity extends AppCompatActivity {
             if (initMode == INIT_MODE_ABSOLUTE) {
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
-                addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, 0), true, true);
+                addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT), true, true);
             }
             else if(initMode == INIT_MODE_RELATIVE){
-                char ch = autoKeyboard.getKeyByPosition(x, y, 1);
+                char ch = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT);
                 if (ch == upKey){
                     addToSeq(x, y, ch, true, false);
                 }
@@ -675,7 +675,7 @@ public class MainActivity extends AppCompatActivity {
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
                     write("reset");
-                    ch = autoKeyboard.getKeyByPosition(x, y, 1);
+                    ch = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT);
                     char best = addToSeq(x, y, ch, false, true);
                     if (autoKeyboard.tryLayout(best, x, y)){
                         write("try " + best + " " + x + " " + y);
@@ -696,12 +696,12 @@ public class MainActivity extends AppCompatActivity {
                 firstTouchSaved1 = KEY_NOT_FOUND;
                 firstTouchSaved2 = KEY_NOT_FOUND;
             }else{
-                char ch = autoKeyboard.getKeyByPosition(x, y, 0);
+                char ch = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT);
                 addToSeq(x, y, ch, true, false);
             }
         }
         else{
-            addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, 1), true, true);
+            addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), true, true);
         }
     }
 
@@ -1404,8 +1404,8 @@ public class MainActivity extends AppCompatActivity {
         int y = (int)event.getY();
         switch(activity_mode){
             case KEYBOARD_MODE:{
-                if (event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], 1) == upKey
-                        || autoKeyboard.getKeyByPosition(x, y - location[1], 0) != KEY_NOT_FOUND)){ // in the keyboard area
+                if (event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT) == upKey
+                        || autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.INIT_LAYOUT) != KEY_NOT_FOUND)){ // in the keyboard area
                     switch (event.getActionMasked()) {
                         case MotionEvent.ACTION_DOWN:
                         case MotionEvent.ACTION_POINTER_DOWN:
@@ -1455,7 +1455,7 @@ public class MainActivity extends AppCompatActivity {
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (tempTime - downTime > 300) {
-                                    upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
+                                    upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                     if (upvoiceMode == UPVOICE_MODE_YES) {
                                         playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
                                         if (nowCh2 != '*') {
@@ -1464,7 +1464,7 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                     currentWord += nowCh;
                                     currentWord2 += nowCh2;
-                                    currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],0);
+                                    currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],autoKeyboard.INIT_LAYOUT);
                                     predict(currentWord, currentWord2);
                                     write("enter " + nowCh);
                                     refresh();
@@ -1511,10 +1511,10 @@ public class MainActivity extends AppCompatActivity {
                                 }
                                 else{
                                     if (tempTime - downTime > 300) {
-                                        upKey = autoKeyboard.getKeyByPosition(x, y - location[1], 1);
+                                        upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                         nowChSaved = nowCh;
                                         nowCh2Saved = nowCh2;
-                                        nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],0);
+                                        nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],autoKeyboard.INIT_LAYOUT);
                                         write("enter " + nowCh);
                                     }
                                 }
@@ -1667,7 +1667,7 @@ public class MainActivity extends AppCompatActivity {
         int try_layout_mode;
         int getKey_mode;
         int tap_range_index;
-        float[] tap_range_array={19/20,18/20,17/20,16/20,15/20,14/20,13/20,12/20,11/20,10/20};
+        double[] tap_range_array={0.95,0.90,0.85,0.80,0.75,0.70,0.65,0.60,0.55,0.50};
         float tap_range;
         class KEY{
             char ch;
@@ -1847,8 +1847,8 @@ public class MainActivity extends AppCompatActivity {
             scalingNum=3;
             try_layout_mode=RESPECTIVELY_MOVEMENT;
             getKey_mode=LOOSE_MODE;
-            tap_range_index=1;
-            tap_range=tap_range_array[tap_range_index];
+            tap_range_index=3;
+            tap_range=(float)tap_range_array[tap_range_index];
         }
         float getBottom(int mode){
             return this.keys[BR].getBottom(mode);
@@ -2628,7 +2628,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }case R.id.tap_range:{
                 autoKeyboard.tap_range_index=(autoKeyboard.tap_range_index+1)%10;
-                autoKeyboard.tap_range=autoKeyboard.tap_range_array[autoKeyboard.tap_range_index];
+                autoKeyboard.tap_range=(float)autoKeyboard.tap_range_array[autoKeyboard.tap_range_index];
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
@@ -2658,9 +2658,9 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
-        menu.findItem(R.id.testTurnChange).setTitle("Testturn:"+String.valueOf(MAX_TURN));
+        menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
         if(activity_mode==KEYBOARD_MODE){
-            menu.findItem(R.id.testTurnChange).setTitle("Testturn:"+String.valueOf(MAX_TURN));
+            menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
         }
         switch(testmode){
             case NORMAL:{
@@ -2685,24 +2685,24 @@ public class MainActivity extends AppCompatActivity {
         }else{
             menu.findItem(R.id.keyBoardVisibility).setTitle("KeyboardVisibility:False");
         }
-        menu.findItem(R.id.reset_keyboard).setTitle("reset keyboard");
+        menu.findItem(R.id.reset_keyboard).setTitle("Reset Keyboard");
         if(autoKeyboard.try_layout_mode==autoKeyboard.BODILY_MOVEMENT){
-            menu.findItem(R.id.try_layout_mode).setTitle("try_layout_mode:Bodily");
+            menu.findItem(R.id.try_layout_mode).setTitle("try layout mode:Bodily");
         }else if(autoKeyboard.try_layout_mode==autoKeyboard.RESPECTIVELY_MOVEMENT){
-            menu.findItem(R.id.try_layout_mode).setTitle("try_layout_mode:Respectively");
+            menu.findItem(R.id.try_layout_mode).setTitle("try layout mode:Respectively");
         }
         menu.findItem(R.id.scalingNum).setTitle("scalingNum:"+String.valueOf(autoKeyboard.scalingNum));
         if(autoKeyboard.getKey_mode==autoKeyboard.LOOSE_MODE){
-            menu.findItem(R.id.getKey_mode).setTitle("getKey_mode:LOOSE MODE");
+            menu.findItem(R.id.getKey_mode).setTitle("getKey mode:LOOSE MODE");
         }else if(autoKeyboard.getKey_mode==autoKeyboard.STRICT_MODE){
-            menu.findItem(R.id.getKey_mode).setTitle("getKey_mode:STRICT MODE");
+            menu.findItem(R.id.getKey_mode).setTitle("getKey mode:STRICT MODE");
         }
         menu.findItem(R.id.deltaY).setTitle("deltaY:"+String.valueOf(autoKeyboard.deltaY));
         menu.findItem(R.id.topThreshold).setTitle("topThreshold:"+String.valueOf(autoKeyboard.topThreshold));
         menu.findItem(R.id.bottomThreshold).setTitle("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
         menu.findItem(R.id.minWidth).setTitle("minWidth:"+String.valueOf(autoKeyboard.minWidth));
         menu.findItem(R.id.minHetight).setTitle("minHetight:"+String.valueOf(autoKeyboard.minHetight));
-        menu.findItem(R.id.tap_range).setTitle("tap_range:"+String.valueOf(autoKeyboard.tap_range));
+        menu.findItem(R.id.tap_range).setTitle("tap range:"+String.valueOf(autoKeyboard.tap_range));
         menu.findItem(R.id.keyboardHeight).setTitle("keyboardHeight:"+String.valueOf(autoKeyboard.keyboardHeight));
     }
 }
