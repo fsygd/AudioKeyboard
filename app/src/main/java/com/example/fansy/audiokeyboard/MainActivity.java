@@ -701,7 +701,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         else{
-            addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), true, true);
+            //addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), true, true);
+            addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), true, false);
         }
     }
 
