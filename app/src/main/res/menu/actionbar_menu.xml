@@ -26,6 +26,14 @@
         android:orderInCategory="100"
         android:title="try layout mode:Bodily"/>
     <item
+        android:id="@+id/scalingMode"
+        android:orderInCategory="100"
+        android:title="scalingMode:LINEAR_MODE"/>
+    <item
+        android:id="@+id/exponent"
+        android:orderInCategory="100"
+        android:title="exponent:0.1"/>
+    <item
         android:id="@+id/scalingNum"
         android:orderInCategory="100"
         android:title="scalingNum:3"/>
@@ -34,6 +42,10 @@
         android:orderInCategory="100"
         android:title="getKey mode:LOOSE_MODE"/>
     <item
+        android:id="@+id/keyboardHeight"
+        android:orderInCategory="100"
+        android:title="keyboardHeight:650"/>
+    <item
         android:id="@+id/deltaY"
         android:orderInCategory="100"
         android:title="deltaY:100"/>
@@ -41,7 +53,6 @@
         android:id="@+id/topThreshold"
         android:orderInCategory="100"
         android:title="topThreshold:0"/>
-
     <item
         android:id="@+id/bottomThreshold"
         android:orderInCategory="100"
@@ -58,10 +69,8 @@
         android:id="@+id/tap_range"
         android:orderInCategory="100"
         android:title="tap range:0.8"/>
-    <item
-        android:id="@+id/keyboardHeight"
-        android:orderInCategory="100"
-        android:title="keyboardHeight:650"/>
+
+
     <item
         android:id="@+id/default_keyboard"
         android:orderInCategory="100"
