@@ -31,6 +31,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 
@@ -61,10 +62,14 @@ public class MainActivity extends AppCompatActivity {
     final int UPVOICE_MODE_NO = 1;
     int upvoiceMode = UPVOICE_MODE_YES;
 
+    final int RECORD_MODE_STARTED = 0;
+    final int RECORD_MODE_STOPED = 1;
+    int recordMode = RECORD_MODE_STOPED;
+
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText;
     Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, predictionRepeatPButton, predictionRepeatMButton;
-    Button languageModeButton, upvoiceModeButton;
+    Button languageModeButton, upvoiceModeButton, recordModeButton;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
     String currentWord2 = ""; //second possible char sequence
@@ -81,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keysNearby[] = new String[26];
     double keysNearbyProb[][] = new double[26][26]; //keysNearbyProb[x][y] the possibility when want y but touch x
-    String filename = "fsygd.txt";
+    String filename = "";
 
     int voiceSpeed = 50;
 
@@ -95,7 +100,21 @@ public class MainActivity extends AppCompatActivity {
 
     AutoKeyboard autoKeyboard;
 
+    public String getFilename(){
+        Calendar starttime = Calendar.getInstance();
+        int YY = starttime.get(Calendar.YEAR);
+        int MM = starttime.get(Calendar.MONTH) + 1;
+        int DD = starttime.get(Calendar.DATE);
+        int HH = starttime.get(Calendar.HOUR_OF_DAY);
+        int mm = starttime.get(Calendar.MINUTE);
+        int SS = starttime.get(Calendar.SECOND);
+        int MI = starttime.get(Calendar.MILLISECOND);
+        return "" + YY + MM + DD + HH + mm + SS + MI + "_" + initMode + "_" + languageMode + "_" + confirmMode + ".txt";
+    }
+
     public void write(String content){
+        if (recordMode != RECORD_MODE_STARTED)
+            return;
         try{
             PrintWriter logger = new PrintWriter(new OutputStreamWriter(new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/" + filename, true)), true);
             logger.println(content);
@@ -133,6 +152,10 @@ public class MainActivity extends AppCompatActivity {
             upvoiceModeButton.setText("UPYES");
         else
             upvoiceModeButton.setText("UPNO");
+        if (recordMode == RECORD_MODE_STOPED)
+            recordModeButton.setText("START");
+        else
+            recordModeButton.setText("STOP");
     }
 
     final int MAX_CANDIDATE = 5;
@@ -209,13 +232,16 @@ public class MainActivity extends AppCompatActivity {
                 if (ch != upKey){
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
+                    write("reset");
                     ch = autoKeyboard.getKeyByPosition(x, y, 1);
                     char best = addToSeq(ch, false, true);
                     if (autoKeyboard.tryLayout(best, x, y)){
+                        write("try " + best + " " + x + " " + y);
                         autoKeyboard.drawLayout();
                         addToSeq(best, true, true);
                     }else{
                         if (autoKeyboard.tryLayout(ch, x, y)){
+                            write("try " + ch + " " + x + " " + y);
                             autoKeyboard.drawLayout();
                         }
                         if (firstTouchSaved1 != ch) {
@@ -535,6 +561,21 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        recordModeButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                if (recordMode == RECORD_MODE_STOPED){
+                    recordMode = RECORD_MODE_STARTED;
+                    filename = getFilename();
+                }
+                else if (recordMode == RECORD_MODE_STARTED)
+                    recordMode = RECORD_MODE_STOPED;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+            }
+        });
+
         confirmModeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -756,6 +797,7 @@ public class MainActivity extends AppCompatActivity {
         speedpButton = (Button)findViewById(R.id.speed_p_button);
         languageModeButton = (Button)findViewById(R.id.language_mode_button);
         upvoiceModeButton = (Button)findViewById(R.id.upvoice_mode_button);
+        recordModeButton = (Button)findViewById(R.id.record_mode_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
         predictionRepeatPButton = (Button)findViewById(R.id.predictionRepeat_p);
         predictionRepeatMButton = (Button)findViewById(R.id.predictionRepeat_m);
@@ -824,6 +866,7 @@ public class MainActivity extends AppCompatActivity {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_POINTER_DOWN:
+                    write("down " + x + " " + y);
                     downX = x;
                     downY = y;
                     downTime = System.currentTimeMillis();
@@ -838,13 +881,14 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case MotionEvent.ACTION_MOVE:
+                    write("move " + x + " " + y);
                     newPoint(x, y - location[1]);
                     //action move
                     break;
 
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_POINTER_UP:
-                    write("up");
+                    write("up " + x + " " + y);
                     slideFlag = false;
                     charsPlayed = "";
                     predictionCount = 0;
@@ -857,11 +901,13 @@ public class MainActivity extends AppCompatActivity {
                     if (confirmMode == CONFIRM_MODE_UP) {
                         if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteLastChar();
+                            write("leftwipe");
                             playMedia("delete", 0, false);
                             autoKeyboard.resetLayout();
                             autoKeyboard.drawLayout();
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
+                            write("rightwipe");
                             playMedia("delete", 0, false);
                             autoKeyboard.resetLayout();
                             autoKeyboard.drawLayout();
@@ -877,12 +923,14 @@ public class MainActivity extends AppCompatActivity {
                             currentWord2 += nowCh2;
                             currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],0);
                             predict(currentWord, currentWord2);
+                            write("enter " + nowCh);
                             refresh();
                         }
                     }
                     else{
                         if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteLastChar();
+                            write("leftwipe");
                             nowChSaved = '*';
                             nowCh2Saved = '*';
                             playMedia("delete", 0, false);
@@ -890,6 +938,7 @@ public class MainActivity extends AppCompatActivity {
                             autoKeyboard.drawLayout();
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
+                            write("rightwipe");
                             nowChSaved = '*';
                             nowCh2Saved = '*';
                             playMedia("delete", 0, false);
@@ -898,6 +947,7 @@ public class MainActivity extends AppCompatActivity {
                         } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
                             //double click
                             if (nowChSaved != '*'){
+                                write("doubleclick");
                                 currentWord += nowChSaved;
                                 currentWord2 += nowCh2Saved;
                                 if (upvoiceMode == UPVOICE_MODE_YES) {
@@ -922,9 +972,11 @@ public class MainActivity extends AppCompatActivity {
                                 nowChSaved = nowCh;
                                 nowCh2Saved = nowCh2;
                                 nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],0);
+                                write("enter " + nowCh);
                             }
                         }
                     }
+                    write("word " + currentWord);
                     break;
             }
         }

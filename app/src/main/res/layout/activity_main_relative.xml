@@ -138,4 +138,12 @@
         android:layout_below="@+id/predictionRepeat_m"
         android:text="UPYES" />
 
+    <Button
+        android:id="@+id/record_mode_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/upvoice_mode_button"
+        android:layout_below="@+id/upvoice_mode_button"
+        android:text="START" />
+
 </RelativeLayout>
