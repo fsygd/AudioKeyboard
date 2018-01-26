@@ -222,12 +222,12 @@ public class MainActivity extends AppCompatActivity {
             if (initMode == INIT_MODE_ABSOLUTE) {
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
-                addToSeq(autoKeyboard.getKeyByPosition(x, y, 0), true, true);
+                addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, 0), true, true);
             }
             else if(initMode == INIT_MODE_RELATIVE){
                 char ch = autoKeyboard.getKeyByPosition(x, y, 1);
                 if (ch == upKey){
-                    addToSeq(ch, true, false);
+                    addToSeq(x, y, ch, true, false);
                 }
                 else
                 if (ch != upKey){
@@ -235,11 +235,11 @@ public class MainActivity extends AppCompatActivity {
                     autoKeyboard.drawLayout();
                     write("reset");
                     ch = autoKeyboard.getKeyByPosition(x, y, 1);
-                    char best = addToSeq(ch, false, true);
+                    char best = addToSeq(x, y, ch, false, true);
                     if (autoKeyboard.tryLayout(best, x, y)){
                         write("try " + best + " " + x + " " + y);
                         autoKeyboard.drawLayout();
-                        addToSeq(best, true, true);
+                        addToSeq(x, y, best, true, true);
                     }else{
                         if (autoKeyboard.tryLayout(ch, x, y)){
                             write("try " + ch + " " + x + " " + y);
@@ -249,18 +249,18 @@ public class MainActivity extends AppCompatActivity {
                             firstTouchSaved2 = firstTouchSaved1;
                             firstTouchSaved1 = ch;
                         }
-                        addToSeq(ch, true,true);
+                        addToSeq(x, y, ch, true,true);
                     }
                 }
                 firstTouchSaved1 = KEY_NOT_FOUND;
                 firstTouchSaved2 = KEY_NOT_FOUND;
             }else{
                 char ch = autoKeyboard.getKeyByPosition(x, y, 0);
-                addToSeq(ch, true, false);
+                addToSeq(x, y, ch, true, false);
             }
         }
         else{
-            addToSeq(autoKeyboard.getKeyByPosition(x, y, 1), true, true);
+            addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, 1), true, true);
         }
     }
 
@@ -668,8 +668,12 @@ public class MainActivity extends AppCompatActivity {
         playFirstVoice();
     }
 
+    public double Normal(double x, double miu, double sigma){
+        return 1.0 / Math.sqrt(2.0 * Math.PI) / sigma  * Math.pow(Math.E, -(x - miu) * (x - miu) / 2.0 / sigma / sigma);
+    }
+
     //if write=false, just return the most possible key
-    public char addToSeq(char ch, boolean write, boolean predictMode){
+    public char addToSeq(int x, int y, char ch, boolean write, boolean predictMode){
         if (ch != KEY_NOT_FOUND){
             if (seq.size() == 0 || seq.get(seq.size() - 1) != ch ) {
                 //make a vibrate
@@ -680,12 +684,16 @@ public class MainActivity extends AppCompatActivity {
 
                 ArrayList<Word> letters = new ArrayList<Word>();
                 if(predictMode){
-                    for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i){
+                    /*for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i){
                         if((!charsPlayed.contains(keysNearby[ch-'a'].charAt(i)+"")) && (predictionCount<predictionRepeatTime)) {
                             letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
                         }else if(predictionCount >= predictionRepeatTime){
                             letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
                         }
+                    }*/
+
+                    for (int i = 0; i < 26; ++i){
+                        letters.add(new Word((char)(i + 'a') + "", 0));
                     }
 
                     ArrayList<Word> dict = new ArrayList<>();
@@ -709,8 +717,14 @@ public class MainActivity extends AppCompatActivity {
                                         letters.get(j).freq += word.freq;
                             }
                         }
-                    for (int i = 0; i < letters.size(); ++i)
-                        letters.get(i).freq = (letters.get(i).freq + 0.01) * keysNearbyProb[ch - 'a'][keysNearby[ch-'a'].indexOf(letters.get(i).text)];
+                    //for (int i = 0; i < letters.size(); ++i)
+                    //    letters.get(i).freq = (letters.get(i).freq + 0.01) * keysNearbyProb[ch - 'a'][keysNearby[ch-'a'].indexOf(letters.get(i).text)];
+                    for (int i = 0; i < letters.size(); ++i){
+                        letters.get(i).freq += 0.01;
+                        int tmp = letters.get(i).text.charAt(0) - 'a';
+                        letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width);
+                        letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width);
+                    }
                     Collections.sort(letters);
                     if (!write) {
                         firstTouchSaved1 = letters.get(0).text.charAt(0);
