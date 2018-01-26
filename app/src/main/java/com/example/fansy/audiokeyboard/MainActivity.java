@@ -989,8 +989,8 @@ public class MainActivity extends AppCompatActivity {
         final int RESPECTIVELY_MOVEMENT=1;
         final int STRICT_MODE=1;
         final int LOOSE_MODE=0;
-        int scalingNum=1;// left and shift scaling number of keys
-        int try_layout_mode=BODILY_MOVEMENT;
+        int scalingNum=3;// left and shift scaling number of keys
+        int try_layout_mode=RESPECTIVELY_MOVEMENT;
         int getKey_mode=LOOSE_MODE;
         int tap_range_index=0;
         float[] tap_range_array={19/20,18/20,17/20,16/20,15/20,14/20,13/20,12/20,11/20,10/20};
