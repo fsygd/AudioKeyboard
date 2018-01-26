@@ -14,12 +14,16 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
@@ -949,20 +953,48 @@ public class MainActivity extends AppCompatActivity {
         Bitmap baseBitmap;
         Paint backgroundPaint;
         Paint textPaint;
-
+        Paint linePaint;
         float screen_width_ratio = 1F;
         float screen_height_ratio = 1F;
         //Fuzzy Input Test Var
-        float keyboardHeight=650;
-        float keyboardWidth=1438;
-        float deltaY=100;
-        float topThreshold=0;// �Ͻ�
-        float bottomThreshold=955;// �½�
-        float minWidth=72;// ��С����
-        float minHetight=110;//��С����
-        float MAX_DELTAY = 50;
-        int keyPos[];
-        int[] location;
+        float keyboardHeight=650;// the height of the keyboard
+        float keyboardWidth=1438;// the width of the keyboard
+        float deltaY=100;// the distance between the first line and the upper bound of the keyboard
+        float topThreshold=0;// the upper bound
+        float bottomThreshold=900;// the lower bound
+        float minWidth=72;// the minimum width of a key
+        float minHetight=95;// the minimum height of a key
+        int keyPos[];// the position of each key
+        int[] location;// the coordinate of the left top corner of the keyboard
+        int[] firstLine={0,1,2,3,4,5,6,7,8,9};// the index of the first line of the keyboard
+        int[] secondLine={10,11,12,13,14,15,16,17,18};
+        int[] thirdLine={19,20,21,22,23,24,25};
+        int[] firstSecondLine={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18};
+        int[] secondThirdLine={10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25};
+        int[] firstThirdLine={0,1,2,3,4,5,6,7,8,9,19,20,21,22,23,24,25};
+        int[] allLine={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25};
+        final int TL=0;// top left key
+        final int TM=5;// top middle key
+        final int TR=9;// top right key
+        final int ML=10;// middle left key
+        final int MM=15;// middle middle key
+        final int MR=18;// middle right key
+        final int BL=19;// bottom left key
+        final int BM=22;// bottom middle key
+        final int BR=25;// bottom right key
+        final int INIT_LAYOUT=0;
+        final int CURR_LAYOUT=1;
+        final int TEST_LAYOUT=2;
+        final int BODILY_MOVEMENT=0;
+        final int RESPECTIVELY_MOVEMENT=1;
+        final int STRICT_MODE=1;
+        final int LOOSE_MODE=0;
+        int scalingNum=1;// left and shift scaling number of keys
+        int try_layout_mode=BODILY_MOVEMENT;
+        int getKey_mode=LOOSE_MODE;
+        int tap_range_index=0;
+        float[] tap_range_array={19/20,18/20,17/20,16/20,15/20,14/20,13/20,12/20,11/20,10/20};
+        float tap_range=9/10;
         class KEY{
             char ch;
             float init_x;
@@ -980,11 +1012,135 @@ public class MainActivity extends AppCompatActivity {
             float getDist(float x,float y,int mode){
                 // mode==0 init_layout
                 // mode==1 current_layout
-                if(mode==0){
+                // mode==2 test_layout
+                if(mode==INIT_LAYOUT){
                     return (init_x-x)*(init_x-x)+(init_y-y)*(init_y-y);
                 }
-                else{
+                else if(mode==CURR_LAYOUT){
                     return (curr_x-x)*(curr_x-x)+(curr_y-y)*(curr_y-y);
+                }else {
+                    return (test_x-x)*(test_x-x)+(test_y-y)*(test_y-y);
+                }
+            }
+            float getBottom(int mode){
+                // mode==0 init_layout
+                // mode==1 current_layout
+                if(mode==INIT_LAYOUT){
+                    return init_y+init_height/2;
+                }else if(mode==CURR_LAYOUT){
+                    return curr_y+curr_height/2;
+                }else{
+                    return test_y+test_height/2;
+                }
+            }
+            float getTop(int mode){
+                // mode==0 init_layout
+                // mode==1 current_layout
+                if(mode==INIT_LAYOUT){
+                    return init_y-init_height/2;
+                }else if(mode==CURR_LAYOUT){
+                    return curr_y-curr_height/2;
+                }else{
+                    return test_y-test_height/2;
+                }
+            }
+            float getLeft(int mode){
+                // mode==0 init_layout
+                // mode==1 current_layout
+                if(mode==INIT_LAYOUT){
+                    return init_x-init_width/2;
+                }else if(mode==CURR_LAYOUT){
+                    return curr_x-curr_width/2;
+                }else{
+                    return test_x-test_width/2;
+                }
+            }
+            float getRight(int mode){
+                // mode==0 init_layout
+                // mode==1 current_layout
+                if(mode==INIT_LAYOUT){
+                    return init_x+init_width/2;
+                }else if(mode==CURR_LAYOUT){
+                    return curr_x+curr_width/2;
+                }else{
+                    return test_x+test_width/2;
+                }
+            }
+            boolean contain(float x,float y,int mode){
+                return x>=getLeft(mode)&&x<=getRight(mode)&&y>=getTop(mode)&&y<=getBottom(mode);
+            }
+            int contain_tap(float x,float y,int mode){
+                int[][] quadrant={{1,2,3},{4,5,6},{7,8,9}};
+                // 1: left top
+                // 2: moddle top
+                // 3: right top
+                // 4: left middle
+                // 5: middle middle
+                // 6: right middle
+                // 7: left bottom
+                // 8: middle bottom
+                // 9: right bottom
+                int row=0;
+                int col=0;
+                if(x<getLeft_tap(mode)){
+                    col=0;
+                }else if(x>getRight_tap(mode)){
+                    col=2;
+                }else{
+                    col=1;
+                }
+                if(y<getTop_tap(mode)){
+                    row=0;
+                }else if(y>getBottom_tap(mode)){
+                    row=2;
+                }else{
+                    row=1;
+                }
+                return quadrant[row][col];
+
+            }
+            float getBottom_tap(int mode){
+                // mode==0 init_layout
+                // mode==1 current_layout
+                if(mode==INIT_LAYOUT){
+                    return init_y+init_height*tap_range/2;
+                }else if(mode==CURR_LAYOUT){
+                    return curr_y+curr_height*tap_range/2;
+                }else{
+                    return test_y+test_height*tap_range/2;
+                }
+            }
+            float getTop_tap(int mode){
+                // mode==0 init_layout
+                // mode==1 current_layout
+                if(mode==INIT_LAYOUT){
+                    return init_y-init_height*tap_range/2;
+                }else if(mode==CURR_LAYOUT){
+                    return curr_y-curr_height*tap_range/2;
+                }else{
+                    return test_y-test_height*tap_range/2;
+                }
+            }
+            float getLeft_tap(int mode){
+                // mode==0 init_layout
+                // mode==1 current_layout
+                if(mode==INIT_LAYOUT){
+                    return init_x-init_width*tap_range/2;
+                }else if(mode==CURR_LAYOUT){
+                    return curr_x-curr_width*tap_range/2;
+                }else{
+                    return test_x-test_width*tap_range/2;
+                }
+            }
+            float getRight_tap(int mode){
+                // mode==0 init_layout
+                // mode==1 current_layout
+                if(mode==INIT_LAYOUT){
+                    return init_x+init_width*tap_range/2;
+                }else if(mode==CURR_LAYOUT){
+                    return curr_x+curr_width*tap_range/2;
+                }else{
+                    return test_x+test_width*tap_range/2;
                 }
             }
             KEY(){
@@ -1002,6 +1158,7 @@ public class MainActivity extends AppCompatActivity {
                 test_x=0;
                 test_y=0;
             }
+
         }
         KEY keys[];
         void setKeyboardHeight(float newkeyBoardHeight){
@@ -1036,209 +1193,494 @@ public class MainActivity extends AppCompatActivity {
             if(y<topThreshold || y>bottomThreshold)
                 return key;
             float min_dist = Float.MAX_VALUE;
-            for (int i = 0; i < 26; ++i){
+            for (int i: allLine){
                 float dist_temp=keys[i].getDist(x,y,mode);
                 if (dist_temp<min_dist){
                     key=keys[i].ch;
                     min_dist=dist_temp;
                 }
             }
-            return key;
+            if(getKey_mode==LOOSE_MODE){
+                return key;
+            }else if(key!=KEY_NOT_FOUND && getKey_mode==STRICT_MODE){
+                int pos = this.keyPos[key-'a'];
+                if(this.keys[pos].contain(x,y,mode)){
+                    return key;
+                }else{
+                    return KEY_NOT_FOUND;
+                }
+            }else{
+                return key;
+            }
+
         };
-        public  boolean tryLayout(char ch,float x,float y){
-            int pos = this.keyPos[ch-'a'];
-            float dX=x-this.keys[pos].init_x;
-            float dY=y-this.keys[pos].init_y;
-            //竖直上的平移不能太大
-            /*if (Math.abs(dY) >= MAX_DELTAY){
-                return false;
-            }*/
-            if(dY>=0){// ����ƽ��
-                if(this.keys[19].init_y+this.keys[19].init_height/2+dY>this.bottomThreshold){
-                    if(pos>18)
+        boolean shift_y(int pos,float dY){
+            // mode==0 bodily movement
+            // mode==1 respectively movement
+            if(dY==0){
+                for(int i:allLine){
+                    this.keys[i].curr_y=this.keys[i].init_y;
+                    this.keys[i].curr_height=this.keys[i].init_height;
+                }
+                return true;
+            }
+            else if(dY>0){// downward movement
+                if(this.keys[BM].getBottom(INIT_LAYOUT)+dY>this.bottomThreshold){// compress
+                    if(pos>=BL) // in the third line
                         return false;
-                    else if(pos>9){//�ڶ�������ѹ��
-                        for (int i=0;i<19;i++){
+                    else if(pos>=ML){//in the second line
+                        for (int i: firstSecondLine){
                             this.keys[i].test_y=this.keys[i].init_y+dY;
                             this.keys[i].test_height=this.keys[i].init_height;
                         }
-                        float bottomHeight=this.bottomThreshold-this.keys[15].test_y-this.keys[15].test_height/2;
-                        for (int i=19;i<26;i++){
+                        float bottomHeight=this.bottomThreshold-this.keys[MM].getBottom(TEST_LAYOUT);
+                        for (int i: thirdLine){
                             this.keys[i].test_y=this.bottomThreshold-bottomHeight/2;
                             this.keys[i].test_height=bottomHeight;
                         }
-                    }else{// ��һ������ѹ��
-                        for (int i=0;i<10;i++){
+                    }else{// in the first line
+                        for (int i:firstLine){
                             this.keys[i].test_y=this.keys[i].init_y+dY;
                             this.keys[i].test_height=this.keys[i].init_height;
                         }
-                        float bottomHeight=this.bottomThreshold-this.keys[0].test_y-this.keys[0].test_height/2;
-                        for (int i=10;i<19;i++){
+                        float bottomHeight=this.bottomThreshold-this.keys[TM].getBottom(TEST_LAYOUT);
+                        for (int i:secondLine){
                             this.keys[i].test_y=this.bottomThreshold-bottomHeight*3/4;
                             this.keys[i].test_height=bottomHeight/2;
                         }
-                        for (int i=19;i<26;i++){
+                        for (int i: thirdLine){
                             this.keys[i].test_y=this.bottomThreshold-bottomHeight/4;
                             this.keys[i].test_height=bottomHeight/2;
                         }
                     }
                 }
-                else{
-                    for (int i=0;i<26;i++){
+                else{// no compress
+                    for (int i:allLine){
                         this.keys[i].test_y=this.keys[i].init_y+dY;
                         this.keys[i].test_height=this.keys[i].init_height;
                     }
                 }
-            }else{// ����ƽ��
-                if(this.keys[0].init_y-this.keys[0].init_height/2+dY<this.topThreshold){
-                    if(pos<10)
+            }else{// upward movement
+                if(this.keys[TM].getTop(INIT_LAYOUT)+dY<this.topThreshold){// compress
+                    if(pos<=TR)// compress nothing
                         return false;
-                    else if(pos<19){//�ڶ�������ѹ
-                        for (int i=10;i<26;i++){
+                    else if(pos<=MR){// compress the first line
+                        for (int i:secondThirdLine){
                             this.keys[i].test_y=this.keys[i].init_y+dY;
                             this.keys[i].test_height=this.keys[i].init_height;
                         }
-                        float topHeight=this.keys[15].test_y-this.keys[15].test_height/2;
-                        for (int i=0;i<10;i++){
+                        float topHeight=this.keys[MM].getTop(TEST_LAYOUT);
+                        for (int i:firstLine){
                             this.keys[i].test_y=topHeight/2;
                             this.keys[i].test_height=topHeight;
                         }
-                    }else{//����������ѹ
-                        for (int i=19;i<26;i++){
+                    }else{//compress the first and the second line
+                        for (int i:thirdLine){
                             this.keys[i].test_y=this.keys[i].init_y+dY;
                             this.keys[i].test_height=this.keys[i].init_height;
                         }
-                        float topHeight=this.keys[19].test_y-this.keys[19].test_height/2;
-                        for (int i=0;i<10;i++){
+                        float topHeight=this.keys[BM].getTop(TEST_LAYOUT);
+                        for (int i:firstLine){
                             this.keys[i].test_y=topHeight/4;
                             this.keys[i].test_height=topHeight/2;
                         }
-                        for (int i=10;i<19;i++){
+                        for (int i:secondLine){
                             this.keys[i].test_y=topHeight*3/4;
                             this.keys[i].test_height=topHeight/2;
                         }
                     }
-                }else{
-                    for (int i=0;i<26;i++){
+                }else{// no compress
+                    for (int i:allLine){
                         this.keys[i].test_y=this.keys[i].init_y+dY;
                         this.keys[i].test_height=this.keys[i].init_height;
                     }
                 }
             }
-            for (int i=0;i<26;i++){
+
+            // check the height of each key
+            for (int i:allLine){
                 if(this.keys[i].test_height<this.minHetight){
                     return false;
                 }
             }
-            if(dX>=0) {// ����ƽ��
-                if (pos == 9 || pos == 18 || pos == 25)
-                    return false;
-            }else {// ����ƽ��
-                if (pos == 0 || pos == 10 || pos == 19)
-                    return false;
-            }
-
-            if(pos<10 ){// ��һ��
-                this.keys[pos].test_x=x;
-                this.keys[pos].test_width=this.keys[pos].init_width;
-
-                float rightRatio=(this.keyboardWidth-this.keys[pos].test_x-this.keys[pos].test_width/2)/(this.keyboardWidth-this.keys[pos].init_x-this.keys[pos].init_width/2);
-                float leftRatio=(this.keys[pos].test_x-this.keys[pos].test_width)/(this.keys[pos].init_x-this.keys[pos].init_width);
-
-                for(int i=0;i<pos;i++){
-                    this.keys[i].test_x=this.keys[i].init_x*leftRatio;
-                    this.keys[i].test_width=this.keys[i].init_width*leftRatio;
-                }
-                for (int i=pos+1;i<10;i++){
-                    this.keys[i].test_x=keyboardWidth-(keyboardWidth-this.keys[i].init_x)*rightRatio;
-                    this.keys[i].test_width=this.keys[i].init_width*rightRatio;
-                }
-
-                for (int i=10;i<19;i++){
-                    this.keys[i].test_x=(this.keys[i-10].test_x+this.keys[i-9].test_x)/2;
-                    this.keys[i].test_width=this.keys[i-9].test_x-this.keys[i-10].test_x;
-                }
-                for (int i=19;i<26;i++){
-                    this.keys[i].test_x=this.keys[i-8].test_x;
-                    this.keys[i].test_width=this.keys[i-8].test_width;
-                }
-
-            }else if(pos<19){// �ڶ���
-                this.keys[pos].test_x=x;
-                this.keys[pos].test_width=this.keys[pos].init_width;
-
-                float rightRatio=(this.keyboardWidth-this.keys[pos].test_x-this.keys[pos].test_width/2)/(this.keyboardWidth-this.keys[pos].init_x-this.keys[pos].init_width/2);
-                float leftRatio=(this.keys[pos].test_x-this.keys[pos].test_width)/(this.keys[pos].init_x-this.keys[pos].init_width);
-
-                for(int i=10;i<pos;i++){
-                    this.keys[i].test_x=this.keys[i].init_x*leftRatio;
-                    this.keys[i].test_width=this.keys[i].init_width*leftRatio;
-                }
-                for (int i=pos+1;i<19;i++){
-                    this.keys[i].test_x=this.keyboardWidth-(this.keyboardWidth-this.keys[i].init_x)*rightRatio;
-                    this.keys[i].test_width=this.keys[i].init_width*rightRatio;
-                }
-                this.keys[0].test_x=this.keys[10].test_x/2;
-                this.keys[0].test_width=this.keys[10].test_x;
-                this.keys[9].test_width=this.keyboardWidth-this.keys[18].test_x;
-                this.keys[9].test_x=this.keyboardWidth-this.keys[9].test_width/2;
-                for (int i=1;i<9;i++){
-                    this.keys[i].test_x=(this.keys[i+9].test_x+this.keys[i+10].test_x)/2;
-                    this.keys[i].test_width=this.keys[i+10].test_x-this.keys[i+9].test_x;
-                }
-                for (int i=19;i<26;i++){
-                    this.keys[i].test_x=this.keys[i-8].test_x;
-                    this.keys[i].test_width=this.keys[i-8].test_width;
-                }
-            }else{// ������
-                this.keys[pos].test_x=x;
-                this.keys[pos].test_width=this.keys[pos].init_width;
-
-                float rightRatio=(this.keyboardWidth-this.keys[pos].test_x-this.keys[pos].test_width/2)/(this.keyboardWidth-this.keys[pos].init_x-this.keys[pos].init_width/2);
-                float leftRatio=(this.keys[pos].test_x-this.keys[pos].test_width)/(this.keys[pos].init_x-this.keys[pos].init_width);
-
-                for(int i=19;i<pos;i++){
-                    this.keys[i].test_x=this.keys[i].init_x*leftRatio;
-                    this.keys[i].test_width=this.keys[i].init_width*leftRatio;
-                }
-                for (int i=pos+1;i<26;i++){
-                    this.keys[i].test_x=this.keyboardWidth-(this.keyboardWidth-this.keys[i].init_x)*rightRatio;
-                    this.keys[i].test_width=this.keys[i].init_width*rightRatio;
-                }
-
-                for (int i=11;i<18;i++){
-                    this.keys[i].test_x=this.keys[i+8].test_x;
-                    this.keys[i].test_width=this.keys[i+8].test_width;
-                }
-                this.keys[10].test_width=this.keys[11].test_x-this.keys[11].test_width/2;
-                this.keys[10].test_x=this.keys[10].test_width/2;
-                this.keys[18].test_width=this.keyboardWidth-this.keys[17].test_x-this.keys[17].test_width/2;
-                this.keys[18].test_x=this.keyboardWidth-this.keys[18].test_width/2;
-
-                this.keys[0].test_x=this.keys[10].test_x/2;
-                this.keys[0].test_width=this.keys[10].test_x;
-                this.keys[9].test_width=this.keyboardWidth-this.keys[18].test_x;
-                this.keys[9].test_x=this.keyboardWidth-this.keys[9].test_width/2;
-                for (int i=1;i<9;i++){
-                    this.keys[i].test_x=(this.keys[i+9].test_x+this.keys[i+10].test_x)/2;
-                    this.keys[i].test_width=this.keys[i+10].test_x-this.keys[i+9].test_x;
-                }
-            }
-
-
-            for (int i=0;i<26;i++){
-                if(this.keys[i].test_width<this.minWidth){
-                    return false;
-                }
-            }
-            for (int i=0;i<26;i++){
-                this.keys[i].curr_x=this.keys[i].test_x;
+            for (int i:allLine){
                 this.keys[i].curr_y=this.keys[i].test_y;
                 this.keys[i].curr_height=this.keys[i].test_height;
-                this.keys[i].curr_width=this.keys[i].test_width;
             }
             return true;
+
         }
+        boolean shift_x(int pos,float dX){
+            // mode==0 bodily movement
+            // mode==1 respectively movement
+            if(dX==0){
+                for(int i:allLine){
+                    this.keys[i].curr_x=this.keys[i].init_x;
+                    this.keys[i].curr_width=this.keys[i].init_width;
+                }
+                return true;
+            }
+            if(try_layout_mode==BODILY_MOVEMENT){
+                if(dX>=0) {// right shift
+                    if (pos ==TR || pos == MR || pos == BR)
+                        return false;
+                }else {// left shift
+                    if (pos == TL || pos == ML || pos == BL)
+                        return false;
+                }
+
+                if(pos<=TR){// left shift the first line
+                    int begin=TL;
+                    int end=TR;
+                    if(TL+scalingNum>pos){
+                        begin=pos;
+                        end=TR-scalingNum;
+                    }else if(pos>TR-scalingNum){
+                        begin=TL+scalingNum;
+                        end=pos;
+                    }else{
+                        begin=TL+scalingNum;
+                        end=TR-scalingNum;
+                    }
+                    for(int i=begin;i<=end;i++){
+                        this.keys[i].test_x=this.keys[i].init_x+dX;
+                        this.keys[i].test_width=this.keys[i].init_width;
+                    }
+                    float leftRatio=this.keys[begin].getLeft(TEST_LAYOUT)/this.keys[begin].getLeft(INIT_LAYOUT);
+                    for(int i=TL;i<begin;i++) {
+                        this.keys[i].test_x=this.keys[i].init_x*leftRatio;
+                        this.keys[i].test_width=this.keys[i].init_width*leftRatio;
+                    }
+                    float rightRatio=(keyboardWidth-this.keys[end].getRight(TEST_LAYOUT))/(keyboardWidth-this.keys[end].getRight(INIT_LAYOUT));
+                    for (int i=end+1;i<=TR;i++){
+                        this.keys[i].test_x=keyboardWidth-(keyboardWidth-this.keys[i].init_x)*rightRatio;
+                        this.keys[i].test_width=this.keys[i].init_width*rightRatio;
+                    }
+                    for (int i:secondLine){
+                        this.keys[i].test_x=(this.keys[i-10].test_x+this.keys[i-9].test_x)/2;
+                        this.keys[i].test_width=this.keys[i-9].test_x-this.keys[i-10].test_x;
+                    }
+                    for (int i:thirdLine){
+                        this.keys[i].test_x=this.keys[i-8].test_x;
+                        this.keys[i].test_width=this.keys[i-8].test_width;
+                    }
+
+                }else if(pos<=MR){// left shift the second line
+                    //this.keys[pos].test_x=x;
+                    // this.keys[pos].test_width=this.keys[pos].init_width;
+
+                    int begin;
+                    int end;
+                    if(ML+scalingNum>pos){
+                        begin=pos;
+                        end=MR-scalingNum;
+                    }else if(pos>MR-scalingNum){
+                        begin=ML+scalingNum;
+                        end=pos;
+                    }else{
+                        begin=ML+scalingNum;
+                        end=MR-scalingNum;
+                    }
+                    for(int i=begin;i<=end;i++){
+                        this.keys[i].test_x=this.keys[i].init_x+dX;
+                        this.keys[i].test_width=this.keys[i].init_width;
+                    }
+                    float leftRatio=this.keys[begin].getLeft(TEST_LAYOUT)/this.keys[begin].getLeft(INIT_LAYOUT);
+                    for(int i=ML;i<begin;i++) {
+                        this.keys[i].test_x=this.keys[i].init_x*leftRatio;
+                        this.keys[i].test_width=this.keys[i].init_width*leftRatio;
+                    }
+                    float rightRatio=(keyboardWidth-this.keys[end].getRight(TEST_LAYOUT))/(keyboardWidth-this.keys[end].getRight(INIT_LAYOUT));
+                    for (int i=end+1;i<=MR;i++){
+                        this.keys[i].test_x=keyboardWidth-(keyboardWidth-this.keys[i].init_x)*rightRatio;
+                        this.keys[i].test_width=this.keys[i].init_width*rightRatio;
+                    }
+
+                    this.keys[TL].test_x=this.keys[ML].test_x/2;
+                    this.keys[TL].test_width=this.keys[ML].test_x;
+                    this.keys[TR].test_width=this.keyboardWidth-this.keys[MR].test_x;
+                    this.keys[TR].test_x=this.keyboardWidth-this.keys[MR].test_width/2;
+                    for (int i=TL+1;i<TR;i++){
+                        this.keys[i].test_x=(this.keys[i+9].test_x+this.keys[i+10].test_x)/2;
+                        this.keys[i].test_width=this.keys[i+10].test_x-this.keys[i+9].test_x;
+                    }
+                    for (int i:thirdLine){
+                        this.keys[i].test_x=this.keys[i-8].test_x;
+                        this.keys[i].test_width=this.keys[i-8].test_width;
+                    }
+                }else{// left shift the third line
+                    int begin;
+                    int end;
+                    if(BL+scalingNum>pos){
+                        begin=pos;
+                        end=BR-scalingNum;
+                    }else if(pos>BR-scalingNum){
+                        begin=BL+scalingNum;
+                        end=pos;
+                    }else{
+                        begin=BL+scalingNum;
+                        end=BR-scalingNum;
+                    }
+                    for(int i=begin;i<=end;i++){
+                        this.keys[i].test_x=this.keys[i].init_x+dX;
+                        this.keys[i].test_width=this.keys[i].init_width;
+                    }
+                    float leftRatio=this.keys[begin].getLeft(TEST_LAYOUT)/this.keys[begin].getLeft(INIT_LAYOUT);
+                    for(int i=BL;i<begin;i++) {
+                        this.keys[i].test_x=this.keys[i].init_x*leftRatio;
+                        this.keys[i].test_width=this.keys[i].init_width*leftRatio;
+                    }
+                    float rightRatio=(keyboardWidth-this.keys[end].getRight(TEST_LAYOUT))/(keyboardWidth-this.keys[end].getRight(INIT_LAYOUT));
+                    for (int i=end+1;i<=BR;i++){
+                        this.keys[i].test_x=keyboardWidth-(keyboardWidth-this.keys[i].init_x)*rightRatio;
+                        this.keys[i].test_width=this.keys[i].init_width*rightRatio;
+                    }
+
+                    for(int i=ML+1;i<=MR-1;i++){
+                        this.keys[i].test_x=this.keys[i+8].test_x;
+                        this.keys[i].test_width=this.keys[i+8].test_width;
+                    }
+                    this.keys[ML].test_width=this.keys[ML].init_width*leftRatio;
+                    this.keys[ML].test_x=this.keys[ML].init_x*leftRatio;
+                    this.keys[MR].test_x=keyboardWidth-(keyboardWidth-this.keys[MR].init_x)*rightRatio;
+                    this.keys[MR].test_width=this.keys[MR].init_width*rightRatio;
+
+                    this.keys[TL].test_x=this.keys[ML].test_x/2;
+                    this.keys[TL].test_width=this.keys[ML].test_x;
+                    this.keys[TR].test_width=this.keyboardWidth-this.keys[MR].test_x;
+                    this.keys[TR].test_x=this.keyboardWidth-this.keys[MR].test_width/2;
+                    for (int i=TL+1;i<TR;i++){
+                        this.keys[i].test_x=(this.keys[i+9].test_x+this.keys[i+10].test_x)/2;
+                        this.keys[i].test_width=this.keys[i+10].test_x-this.keys[i+9].test_x;
+                    }
+                }
+
+                // check the width of each key
+                for (int i:allLine){
+                    if(this.keys[i].test_width<this.minWidth){
+                        return false;
+                    }
+                }
+                for (int i:allLine){
+                    this.keys[i].curr_x=this.keys[i].test_x;
+                    this.keys[i].curr_width=this.keys[i].test_width;
+                }
+                return true;
+            }else{
+                if(pos<=TR){// left shift the first line
+                    if (pos ==TR && dX>=0)
+                        return false;
+                    else if (pos ==TL && dX<0)
+                        return false;
+                    else{
+                        int begin=TL;
+                        int end=TR;
+                        if(TL+scalingNum>pos){
+                            begin=pos;
+                            end=TR-scalingNum;
+                        }else if(pos>TR-scalingNum){
+                            begin=TL+scalingNum;
+                            end=pos;
+                        }else{
+                            begin=TL+scalingNum;
+                            end=TR-scalingNum;
+                        }
+                        for(int i=begin;i<=end;i++){
+                            this.keys[i].test_x=this.keys[i].init_x+dX;
+                            this.keys[i].test_width=this.keys[i].init_width;
+                        }
+                        float leftRatio=this.keys[begin].getLeft(TEST_LAYOUT)/this.keys[begin].getLeft(INIT_LAYOUT);
+                        for(int i=TL;i<begin;i++) {
+                            this.keys[i].test_x=this.keys[i].init_x*leftRatio;
+                            this.keys[i].test_width=this.keys[i].init_width*leftRatio;
+                        }
+                        float rightRatio=(keyboardWidth-this.keys[end].getRight(TEST_LAYOUT))/(keyboardWidth-this.keys[end].getRight(INIT_LAYOUT));
+                        for (int i=end+1;i<=TR;i++){
+                            this.keys[i].test_x=keyboardWidth-(keyboardWidth-this.keys[i].init_x)*rightRatio;
+                            this.keys[i].test_width=this.keys[i].init_width*rightRatio;
+                        }
+                    }
+                    for(int i:secondThirdLine){
+                        this.keys[i].test_x=this.keys[i].init_x;
+                        this.keys[i].test_width=this.keys[i].init_width;
+                    }
+                }else if(pos<=MR){// left shift the second line
+                    //this.keys[pos].test_x=x;
+                    // this.keys[pos].test_width=this.keys[pos].init_width;
+                    if(pos==MR && dX>=0) {
+                        if (this.keys[MR].getRight(INIT_LAYOUT) + dX > this.keyboardWidth) {
+                            return false;
+                        } else {
+                            for (int i : secondLine) {
+                                this.keys[i].test_x = this.keys[i].init_x + dX;
+                                this.keys[i].test_width = this.keys[i].init_width;
+                            }
+                        }
+                    }
+                    else if(pos==ML && dX<0) {
+                        if (this.keys[ML].getLeft(INIT_LAYOUT) + dX < 0) {
+                            return false;
+                        } else {
+                            for (int i : secondLine) {
+                                this.keys[i].test_x = this.keys[i].init_x + dX;
+                                this.keys[i].test_width = this.keys[i].init_width;
+                            }
+                        }
+                    }
+                    else{
+                        int begin;
+                        int end;
+                        if(ML+scalingNum>pos){
+                            begin=pos;
+                            end=MR-scalingNum;
+                        }else if(pos>MR-scalingNum){
+                            begin=ML+scalingNum;
+                            end=pos;
+                        }else{
+                            begin=ML+scalingNum;
+                            end=MR-scalingNum;
+                        }
+                        for(int i=begin;i<=end;i++){
+                            this.keys[i].test_x=this.keys[i].init_x+dX;
+                            this.keys[i].test_width=this.keys[i].init_width;
+                        }
+                        float leftRatio=this.keys[begin].getLeft(TEST_LAYOUT)/this.keys[begin].getLeft(INIT_LAYOUT);
+                        for(int i=ML;i<begin;i++) {
+                            this.keys[i].test_x=this.keys[i].init_x*leftRatio;
+                            this.keys[i].test_width=this.keys[i].init_width*leftRatio;
+                        }
+                        float rightRatio=(keyboardWidth-this.keys[end].getRight(TEST_LAYOUT))/(keyboardWidth-this.keys[end].getRight(INIT_LAYOUT));
+                        for (int i=end+1;i<=MR;i++){
+                            this.keys[i].test_x=keyboardWidth-(keyboardWidth-this.keys[i].init_x)*rightRatio;
+                            this.keys[i].test_width=this.keys[i].init_width*rightRatio;
+                        }
+                    }
+                    for(int i:firstThirdLine){
+                        this.keys[i].test_x=this.keys[i].init_x;
+                        this.keys[i].test_width=this.keys[i].init_width;
+                    }
+                }else{// left shift the third line
+                    if(pos==BR && dX>=0){
+                        if(this.keys[BR].getRight(INIT_LAYOUT)+dX>this.keyboardWidth){
+                            return false;
+                        }else{
+                            for (int i:thirdLine){
+                                this.keys[i].test_x=this.keys[i].init_x+dX;
+                                this.keys[i].test_width=this.keys[i].init_width;
+                            }
+                        }
+                    }else if(pos==BL && dX<0){
+                        if(this.keys[BL].getLeft(INIT_LAYOUT)+dX<0){
+                            return false;
+                        }else{
+                            for (int i:thirdLine){
+                                this.keys[i].test_x=this.keys[i].init_x+dX;
+                                this.keys[i].test_width=this.keys[i].init_width;
+                            }
+                        }
+                    }
+                    else{
+                        int begin;
+                        int end;
+                        if(BL+scalingNum>pos){
+                            begin=pos;
+                            end=BR-scalingNum;
+                        }else if(pos>BR-scalingNum){
+                            begin=BL+scalingNum;
+                            end=pos;
+                        }else{
+                            begin=BL+scalingNum;
+                            end=BR-scalingNum;
+                        }
+                        for(int i=begin;i<=end;i++){
+                            this.keys[i].test_x=this.keys[i].init_x+dX;
+                            this.keys[i].test_width=this.keys[i].init_width;
+                        }
+                        float leftRatio=this.keys[begin].getLeft(TEST_LAYOUT)/this.keys[begin].getLeft(INIT_LAYOUT);
+                        for(int i=BL;i<begin;i++) {
+                            this.keys[i].test_x=this.keys[i].init_x*leftRatio;
+                            this.keys[i].test_width=this.keys[i].init_width*leftRatio;
+                        }
+                        float rightRatio=(keyboardWidth-this.keys[end].getRight(TEST_LAYOUT))/(keyboardWidth-this.keys[end].getRight(INIT_LAYOUT));
+                        for (int i=end+1;i<=BR;i++){
+                            this.keys[i].test_x=keyboardWidth-(keyboardWidth-this.keys[i].init_x)*rightRatio;
+                            this.keys[i].test_width=this.keys[i].init_width*rightRatio;
+                        }
+                    }
+                    for(int i:firstSecondLine){
+                        this.keys[i].test_x=this.keys[i].init_x;
+                        this.keys[i].test_width=this.keys[i].init_width;
+                    }
+                }
+                // check the width of each key
+                for (int i:allLine){
+                    if(this.keys[i].test_width<this.minWidth){
+                        return false;
+                    }
+                }
+                for (int i:allLine){
+                    this.keys[i].curr_x=this.keys[i].test_x;
+                    this.keys[i].curr_width=this.keys[i].test_width;
+                }
+                return true;
+            }
+        }
+        public  boolean tryLayout(char ch,float x,float y){
+            // mode==0 bodily movement
+            // mode==1 respectively movement
+            ch=Character.toLowerCase(ch);
+            int pos = this.keyPos[ch-'a'];
+            int qua = this.keys[pos].contain_tap(x,y,INIT_LAYOUT);
+            float dX=0;
+            float dY=0;
+            //竖直上的平移不能太大
+            /*if (Math.abs(dY) >= MAX_DELTAY){
+                return false;
+            }*/
+            switch(qua){
+                case 1:{
+                    dX=x-this.keys[pos].getLeft_tap(INIT_LAYOUT);
+                    dY=y-this.keys[pos].getTop_tap(INIT_LAYOUT);
+                    break;
+                }
+                case 2:{
+                    dX=0;
+                    dY=y-this.keys[pos].getTop_tap(INIT_LAYOUT);
+                    break;
+                }case 3:{
+                    dX=x-this.keys[pos].getRight_tap(INIT_LAYOUT);
+                    dY=y-this.keys[pos].getTop_tap(INIT_LAYOUT);
+                    break;
+                }case 4:{
+                    dX=x-this.keys[pos].getLeft_tap(INIT_LAYOUT);
+                    dY=0;
+                    break;
+                }case 5:{
+                    dX=0;
+                    dY=0;
+                    break;
+                }case 6:{
+                    dX=x-this.keys[pos].getRight_tap(INIT_LAYOUT);
+                    dY=0;
+                    break;
+                }
+                case 7:{
+                    dX=x-this.keys[pos].getLeft_tap(INIT_LAYOUT);
+                    dY=y-this.keys[pos].getBottom_tap(INIT_LAYOUT);
+                    break;
+                }case 8:{
+                    dX=0;
+                    dY=y-this.keys[pos].getBottom_tap(INIT_LAYOUT);
+                    break;
+                }case 9:{
+                    dX=x-this.keys[pos].getRight_tap(INIT_LAYOUT);
+                    dY=y-this.keys[pos].getBottom_tap(INIT_LAYOUT);
+                    break;
+                }
+            }
+            return shift_x(pos,dX)&&shift_y(pos,dY);
+        }
+
 
         public void drawLayout(){ // curr_x,curr_y
             float left=this.location[0]+this.keys[0].curr_x-this.keys[0].curr_width/2;
@@ -1249,9 +1691,18 @@ public class MainActivity extends AppCompatActivity {
             this.canvas=new Canvas(this.baseBitmap);
             RectF rect = new RectF(left, top, right, bottom);
             this.canvas.drawRect(rect, this.backgroundPaint);
-            for (int i=0;i<26;i++){
+            this.canvas.drawLine(0,this.keys[TL].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[TR].getTop(CURR_LAYOUT),this.linePaint);
+            this.canvas.drawLine(0,this.keys[ML].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[MR].getTop(CURR_LAYOUT),this.linePaint);
+            this.canvas.drawLine(0,this.keys[BL].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[BR].getTop(CURR_LAYOUT),this.linePaint);
+            this.canvas.drawLine(0,this.keys[BL].getBottom(CURR_LAYOUT),this.keyboardWidth,this.keys[BR].getBottom(CURR_LAYOUT),this.linePaint);
+
+            for (int i:allLine){
+                this.canvas.drawLine(this.keys[i].getLeft(CURR_LAYOUT),this.keys[i].getTop(CURR_LAYOUT),this.keys[i].getLeft(CURR_LAYOUT),this.keys[i].getBottom(CURR_LAYOUT),this.linePaint);
                 this.canvas.drawText(String.valueOf(this.keys[i].ch),this.keys[i].curr_x+this.location[0],this.keys[i].curr_y+this.location[1],this.textPaint);
             }
+            this.canvas.drawLine(this.keys[TR].getRight(CURR_LAYOUT),this.keys[TR].getTop(CURR_LAYOUT),this.keys[TR].getRight(CURR_LAYOUT),this.keys[TR].getBottom(CURR_LAYOUT),this.linePaint);
+            this.canvas.drawLine(this.keys[MR].getRight(CURR_LAYOUT),this.keys[MR].getTop(CURR_LAYOUT),this.keys[MR].getRight(CURR_LAYOUT),this.keys[MR].getBottom(CURR_LAYOUT),this.linePaint);
+            this.canvas.drawLine(this.keys[BR].getRight(CURR_LAYOUT),this.keys[BR].getTop(CURR_LAYOUT),this.keys[BR].getRight(CURR_LAYOUT),this.keys[BR].getBottom(CURR_LAYOUT),this.linePaint);
             this.keyboard.setImageBitmap(this.baseBitmap);
         }
 
@@ -1322,6 +1773,14 @@ public class MainActivity extends AppCompatActivity {
             this.textPaint.setStrokeCap(Paint.Cap.ROUND);
             this.textPaint.setStrokeWidth(3);
             this.textPaint.setTextSize(Math.round(70*screen_height_ratio));
+            this.textPaint.setTextAlign(Paint.Align.CENTER);
+
+            this.linePaint=new Paint();
+            this.linePaint.setColor(Color.BLACK);
+            this.textPaint.setStrokeJoin(Paint.Join.ROUND);
+            this.textPaint.setStrokeCap(Paint.Cap.ROUND);
+            this.backgroundPaint.setStrokeWidth(3);
+
             this.keyboard=keyBoard;
 
             getScreenSizeRatio();
@@ -1343,5 +1802,107 @@ public class MainActivity extends AppCompatActivity {
             this.resetLayout();
         }
     }
-
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.actionbar_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+        /*
+         * 将actionBar的HomeButtonEnabled设为ture，
+         *
+         * 将会执行此case
+         */
+            case R.id.reset_keyboard:{
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                break;
+            }
+            case R.id.try_layout_mode:{
+                if(autoKeyboard.try_layout_mode==autoKeyboard.BODILY_MOVEMENT){
+                    autoKeyboard.try_layout_mode=autoKeyboard.RESPECTIVELY_MOVEMENT;
+                    Toast.makeText(this, "respectively movement", Toast.LENGTH_LONG).show();
+                    item.setTitle("try_layout_mode:Respectively");
+                }else{
+                    autoKeyboard.try_layout_mode=autoKeyboard.BODILY_MOVEMENT;
+                    Toast.makeText(this, "bodily movement", Toast.LENGTH_LONG).show();
+                    item.setTitle("try_layout_mode:Bodily");
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                break;
+            }
+            case R.id.scalingNum:{
+                autoKeyboard.scalingNum=(autoKeyboard.scalingNum+1)%3+1;
+                Toast.makeText(this, "scalingNum="+String.valueOf(autoKeyboard.scalingNum), Toast.LENGTH_LONG).show();
+                item.setTitle("scalingNum:"+String.valueOf(autoKeyboard.scalingNum));
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                break;
+            }
+            case R.id.getKey_mode:{
+                if(autoKeyboard.getKey_mode==autoKeyboard.LOOSE_MODE){
+                    autoKeyboard.getKey_mode=autoKeyboard.STRICT_MODE;
+                    Toast.makeText(this, "getKey_mode:STRICT_MODE", Toast.LENGTH_LONG).show();
+                    item.setTitle("getKey_mode:STRICT_MODE");
+                }else{
+                    autoKeyboard.getKey_mode=autoKeyboard.LOOSE_MODE;
+                    Toast.makeText(this, "getKey_mode:LOOSE_MODE", Toast.LENGTH_LONG).show();
+                    item.setTitle("getKey_mode:LOOSE_MODE");
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                break;
+            }case R.id.deltaY:{
+                autoKeyboard.deltaY=(autoKeyboard.deltaY-50+10)%200+50;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                item.setTitle("deltaY:"+String.valueOf(autoKeyboard.deltaY));
+                break;
+            }case R.id.topThreshold:{
+                autoKeyboard.topThreshold=(autoKeyboard.topThreshold+5)%50;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                item.setTitle("topThreshold:"+String.valueOf(autoKeyboard.topThreshold));
+                break;
+            }case R.id.bottomThreshold:{
+                autoKeyboard.bottomThreshold=(autoKeyboard.bottomThreshold-900+5)%50+900;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                item.setTitle("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
+                break;
+            }case R.id.minWidth:{
+                autoKeyboard.minWidth=(autoKeyboard.minWidth-30+3)%90+30;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                item.setTitle("minWidth:"+String.valueOf(autoKeyboard.minWidth));
+                break;
+            }case R.id.minHetight:{
+                autoKeyboard.minHetight=(autoKeyboard.minHetight-30+3)%90+30;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                item.setTitle("minHetight:"+String.valueOf(autoKeyboard.minHetight));
+                break;
+            }case R.id.tap_range:{
+                autoKeyboard.tap_range_index=(autoKeyboard.tap_range_index+1)%10;
+                autoKeyboard.tap_range=autoKeyboard.tap_range_array[autoKeyboard.tap_range_index];
+                item.setTitle("tap_range:"+String.valueOf(autoKeyboard.tap_range));
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                break;
+            }case R.id.keyboardHeight:{
+                autoKeyboard.keyboardHeight=(autoKeyboard.keyboardHeight-500+5)%200+500;
+                item.setTitle("keyboardHeight:"+String.valueOf(autoKeyboard.keyboardHeight));
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                break;
+            }
+            default:
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 }
