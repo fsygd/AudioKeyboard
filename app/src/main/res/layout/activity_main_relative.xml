@@ -146,4 +146,14 @@
         android:layout_below="@+id/upvoice_mode_button"
         android:text="START" />
 
+    <TextView
+        android:id="@+id/elapsedtime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignEnd="@+id/predictionReoeatText"
+        android:layout_below="@+id/text"
+        android:layout_marginTop="11dp"
+        android:text="0"
+        android:textSize="30sp"/>
+
 </RelativeLayout>

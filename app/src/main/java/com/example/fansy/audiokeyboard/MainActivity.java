@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
     int recordMode = RECORD_MODE_STOPED;
 
     ImageView keyboard;
-    TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText;
+    TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText, elapsedTimeText;
     Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, predictionRepeatPButton, predictionRepeatMButton;
     Button languageModeButton, upvoiceModeButton, recordModeButton;
     String readList = ""; //current voice list
@@ -788,6 +788,7 @@ public class MainActivity extends AppCompatActivity {
 
         keyboard = (ImageView)findViewById(R.id.keyboard);
         text = (TextView)findViewById(R.id.text);
+        elapsedTimeText = (TextView)findViewById(R.id.elapsedtime);
         candidatesView = (TextView)findViewById(R.id.candidates);
         confirmButton = (Button)findViewById(R.id.confirm_button);
         readListView = (TextView)findViewById(R.id.readList);
@@ -850,6 +851,7 @@ public class MainActivity extends AppCompatActivity {
 
     int downX, downY;
     long downTime = 0;
+    long wordDownTime = 0;
     long firstDownTime = 0, lastDownTime = 0; // used for check double-click
     final long STAY_TIME = 400;
     final int SLIP_DIST = 90;
@@ -870,6 +872,9 @@ public class MainActivity extends AppCompatActivity {
                     downX = x;
                     downY = y;
                     downTime = System.currentTimeMillis();
+                    if (currentWord.length() == 0){
+                        wordDownTime = downTime;
+                    }
                     if (downTime - firstDownTime > 400){
                         firstDownTime = downTime;
                     }
@@ -893,6 +898,7 @@ public class MainActivity extends AppCompatActivity {
                     charsPlayed = "";
                     predictionCount = 0;
                     long tempTime = System.currentTimeMillis();
+                    elapsedTimeText.setText(String.valueOf(tempTime - wordDownTime));
                     boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
                     if (!predictLetterFlag){
                         nowCh2 = '*';
@@ -908,6 +914,7 @@ public class MainActivity extends AppCompatActivity {
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
                             write("rightwipe");
+                            elapsedTimeText.setText("0");
                             playMedia("delete", 0, false);
                             autoKeyboard.resetLayout();
                             autoKeyboard.drawLayout();
@@ -939,6 +946,7 @@ public class MainActivity extends AppCompatActivity {
                         } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                             deleteAllChar();
                             write("rightwipe");
+                            elapsedTimeText.setText("0");
                             nowChSaved = '*';
                             nowCh2Saved = '*';
                             playMedia("delete", 0, false);
