@@ -701,7 +701,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         else{
-            addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), true, true);
+            //addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), true, true);
+            addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), true, false);
         }
     }
 
@@ -1847,7 +1848,7 @@ public class MainActivity extends AppCompatActivity {
         }
         KEY keys[];
         void defaultPara(){// set the parameters to default value
-            keyboardHeight=650;
+            keyboardHeight=500;
             keyboardWidth=1438;
             deltaY=100;
             topThreshold=0;
