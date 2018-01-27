@@ -1459,6 +1459,7 @@ public class MainActivity extends AppCompatActivity {
                                 } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                                     deleteAllChar();
                                     write("rightwipe");
+                                    upKey = KEY_NOT_FOUND;
                                     playMedia("delete", 0, false);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
@@ -1490,6 +1491,7 @@ public class MainActivity extends AppCompatActivity {
                                 } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                                     deleteAllChar();
                                     write("rightwipe");
+                                    upKey = KEY_NOT_FOUND;
                                     nowChSaved = '*';
                                     nowCh2Saved = '*';
                                     playMedia("delete", 0, false);
