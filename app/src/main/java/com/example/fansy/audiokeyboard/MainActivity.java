@@ -553,7 +553,7 @@ public class MainActivity extends AppCompatActivity {
         int mm = starttime.get(Calendar.MINUTE);
         int SS = starttime.get(Calendar.SECOND);
         int MI = starttime.get(Calendar.MILLISECOND);
-        return "" + YY + MM + DD + HH + mm + SS + MI + "_" + initMode + "_" + languageMode + "_" + confirmMode + ".txt";
+        return "" + YY + MM + DD + HH + mm + SS + MI + "_" + initMode + "_" + languageMode + "_" + confirmMode + "_" + SD_coefficient + ".txt";
     }
 
     public void write(String content){
