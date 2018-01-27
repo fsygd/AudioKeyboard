@@ -78,9 +78,11 @@ public class MainActivity extends AppCompatActivity {
     final int RECORD_MODE_STOPED = 1;
     int recordMode = RECORD_MODE_STOPED;
 
+    int SD_coefficient = 10;
+
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText, elapsedTimeText;
-    Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, predictionRepeatPButton, predictionRepeatMButton;
+    Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, SDPButton, SDMButton;
     Button languageModeButton, upvoiceModeButton, recordModeButton;
     Menu menu;
     String readList = ""; //current voice list
@@ -261,8 +263,8 @@ public class MainActivity extends AppCompatActivity {
                 confirmModeButton.setVisibility(View.VISIBLE);
                 languageModeButton.setVisibility(View.VISIBLE);
                 speedmButton.setVisibility(View.VISIBLE);
-                predictionRepeatMButton.setVisibility(View.VISIBLE);
-                predictionRepeatPButton.setVisibility(View.VISIBLE);
+                SDMButton.setVisibility(View.VISIBLE);
+                SDPButton.setVisibility(View.VISIBLE);
                 upvoiceModeButton.setVisibility(View.VISIBLE);
                 recordModeButton.setVisibility(View.VISIBLE);
                 voiceSpeedText.setVisibility(View.VISIBLE);
@@ -283,8 +285,8 @@ public class MainActivity extends AppCompatActivity {
                 confirmModeButton.setVisibility(View.GONE);
                 languageModeButton.setVisibility(View.GONE);
                 speedmButton.setVisibility(View.INVISIBLE);
-                predictionRepeatMButton.setVisibility(View.GONE);
-                predictionRepeatPButton.setVisibility(View.GONE);
+                SDMButton.setVisibility(View.GONE);
+                SDPButton.setVisibility(View.GONE);
                 upvoiceModeButton.setVisibility(View.GONE);
                 recordModeButton.setVisibility(View.GONE);
                 voiceSpeedText.setVisibility(View.GONE);
@@ -1136,21 +1138,26 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        predictionRepeatPButton.setOnClickListener(new View.OnClickListener() {
+        SDPButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                predictionRepeatTime++;
-                predictionRepeatText.setText(predictionRepeatTime+"");
+                //predictionRepeatTime++;
+                //predictionRepeatText.setText(predictionRepeatTime+"");
+                SD_coefficient += 5;
+                predictionRepeatText.setText(SD_coefficient + "");
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
             }
         });
 
-        predictionRepeatMButton.setOnClickListener(new View.OnClickListener() {
+        SDMButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(predictionRepeatTime>1) predictionRepeatTime--;
-                predictionRepeatText.setText(predictionRepeatTime+"");
+                //if(predictionRepeatTime>1) predictionRepeatTime--;
+                //predictionRepeatText.setText(predictionRepeatTime+"");
+                if (SD_coefficient - 5 > 0)
+                    SD_coefficient -= 5;
+                predictionRepeatText.setText(SD_coefficient + "");
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
             }
@@ -1242,8 +1249,8 @@ public class MainActivity extends AppCompatActivity {
                     for (int i = 0; i < letters.size(); ++i){
                         letters.get(i).freq += 0.01;
                         int tmp = letters.get(i).text.charAt(0) - 'a';
-                        letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width);
-                        letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width);
+                        letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
+                        letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
                     }
                     Collections.sort(letters);
                     if (!write) {
@@ -1337,8 +1344,8 @@ public class MainActivity extends AppCompatActivity {
         upvoiceModeButton = (Button)findViewById(R.id.upvoice_mode_button);
         recordModeButton = (Button)findViewById(R.id.record_mode_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
-        predictionRepeatPButton = (Button)findViewById(R.id.predictionRepeat_p);
-        predictionRepeatMButton = (Button)findViewById(R.id.predictionRepeat_m);
+        SDPButton = (Button)findViewById(R.id.SD_p);
+        SDMButton = (Button)findViewById(R.id.SD_m);
         predictionRepeatText = (TextView)findViewById(R.id.predictionReoeatText);
         fuzzyInputTestCharShow=(TextView)findViewById(R.id.fuzzyInputTestCharShow);
         fuzzyInputTestCharShow.setVisibility(View.GONE);
