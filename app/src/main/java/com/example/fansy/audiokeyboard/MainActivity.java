@@ -1,5 +1,6 @@
 package com.example.fansy.audiokeyboard;
 
+import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
@@ -559,14 +560,25 @@ public class MainActivity extends AppCompatActivity {
     public void write(String content){
         if (recordMode != RECORD_MODE_STARTED)
             return;
+        Log.i("fsy", content);
         try{
-            PrintWriter logger = new PrintWriter(new OutputStreamWriter(new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/" + filename, true)), true);
+            String path = Environment.getExternalStorageDirectory().getPath() + "/Android/data/com.example.fansy.audiokeyboard/files";
+            File path1 = new File(path);
+            if (!path1.exists()) {
+                Log.i("fsy", path + " doesn't exist!");
+                try {
+                    path1.mkdirs();
+                }catch (Exception e){
+                    Log.i("fsy", "mkdirs failed");
+                }
+            }
+            PrintWriter logger = new PrintWriter(new OutputStreamWriter(new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/Android/data/com.example.fansy.audiokeyboard/files/" + filename, true)), true);
             logger.println(System.currentTimeMillis() + " " + content);
             logger.flush();
             logger.close();
         } catch (Exception e){
-            Log.d("file", "failed");
-            e.printStackTrace();
+            Log.i("fsy", "failed");
+            Log.i("fsy", Log.getStackTraceString(e));
         }
     }
 

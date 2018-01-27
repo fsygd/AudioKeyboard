@@ -37,7 +37,7 @@
     <Button
         android:id="@+id/confirm_button"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="100px"
         android:layout_alignParentEnd="true"
         android:layout_alignParentTop="true"
         android:text="Confirm" />
@@ -63,7 +63,7 @@
     <Button
         android:id="@+id/speed_m_button"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="100px"
         android:layout_alignParentEnd="true"
         android:layout_below="@+id/confirm_button"
         android:text="speed-" />
@@ -71,7 +71,7 @@
     <Button
         android:id="@+id/speed_p_button"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="100px"
         android:layout_alignParentEnd="true"
         android:layout_below="@+id/speed_m_button"
         android:text="speed+" />
@@ -99,7 +99,7 @@
     <Button
         android:id="@+id/SD_p"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="100px"
         android:layout_alignParentEnd="true"
         android:layout_below="@+id/speed_p_button"
         android:text="SD+" />
@@ -107,7 +107,7 @@
     <Button
         android:id="@+id/SD_m"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="100px"
         android:layout_alignParentEnd="true"
         android:layout_below="@+id/SD_p"
         android:text="SD-" />
@@ -133,7 +133,7 @@
     <Button
         android:id="@+id/upvoice_mode_button"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="100px"
         android:layout_alignStart="@+id/SD_m"
         android:layout_below="@+id/SD_m"
         android:text="UPYES" />
@@ -141,7 +141,7 @@
     <Button
         android:id="@+id/record_mode_button"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="100px"
         android:layout_alignStart="@+id/upvoice_mode_button"
         android:layout_below="@+id/upvoice_mode_button"
         android:text="START" />
