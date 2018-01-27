@@ -1421,6 +1421,9 @@ public class MainActivity extends AppCompatActivity {
                             downX = x;
                             downY = y;
                             downTime = System.currentTimeMillis();
+                            if (currentWord.length() == 0){
+                                wordDownTime = downTime;
+                            }
                             if (downTime - firstDownTime > 400){
                                 firstDownTime = downTime;
                             }
@@ -1444,6 +1447,7 @@ public class MainActivity extends AppCompatActivity {
                             charsPlayed = "";
                             predictionCount = 0;
                             long tempTime = System.currentTimeMillis();
+                            elapsedTimeText.setText(String.valueOf(tempTime - wordDownTime));
                             boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
                             if (!predictLetterFlag){
                                 nowCh2 = '*';
@@ -1459,6 +1463,7 @@ public class MainActivity extends AppCompatActivity {
                                 } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                                     deleteAllChar();
                                     write("rightwipe");
+                                    elapsedTimeText.setText("0");
                                     upKey = KEY_NOT_FOUND;
                                     playMedia("delete", 0, false);
                                     autoKeyboard.resetLayout();
@@ -1491,6 +1496,7 @@ public class MainActivity extends AppCompatActivity {
                                 } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
                                     deleteAllChar();
                                     write("rightwipe");
+                                    elapsedTimeText.setText("0");
                                     upKey = KEY_NOT_FOUND;
                                     nowChSaved = '*';
                                     nowCh2Saved = '*';
