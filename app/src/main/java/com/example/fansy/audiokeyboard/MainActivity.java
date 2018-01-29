@@ -1480,7 +1480,7 @@ public class MainActivity extends AppCompatActivity {
                                     playMedia("delete", 0, false);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
-                                } else if (tempTime - downTime > 300) {
+                                } else {
                                     upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                     if (upvoiceMode == UPVOICE_MODE_YES) {
                                         playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
@@ -1533,8 +1533,6 @@ public class MainActivity extends AppCompatActivity {
                                         currentBaseline += nowChBaselineSaved;
                                         predict(currentWord, currentWord2);
                                         refresh();
-                                        nowChSaved = '*';
-                                        nowCh2Saved = '*';
                                     }
                                 }
                                 else{
