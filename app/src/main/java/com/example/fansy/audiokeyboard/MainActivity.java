@@ -1,6 +1,5 @@
 package com.example.fansy.audiokeyboard;
 
-import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
@@ -1215,22 +1214,8 @@ public class MainActivity extends AppCompatActivity {
     public char addToSeq(int x, int y, char ch, boolean write, boolean predictMode){
         if (ch != KEY_NOT_FOUND){
             if (seq.size() == 0 || seq.get(seq.size() - 1) != ch ) {
-                //make a vibrate
-
-                Vibrator vibrator = (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
-                long[] pattern = {0, 30};
-                vibrator.vibrate(pattern, -1);
-
                 ArrayList<Word> letters = new ArrayList<Word>();
                 if(predictMode){
-                    /*for (int i = 0; i < keysNearby[ch - 'a'].length(); ++i){
-                        if((!charsPlayed.contains(keysNearby[ch-'a'].charAt(i)+"")) && (predictionCount<predictionRepeatTime)) {
-                            letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
-                        }else if(predictionCount >= predictionRepeatTime){
-                            letters.add(new Word(keysNearby[ch - 'a'].charAt(i) + "", 0));
-                        }
-                    }*/
-
                     for (int i = 0; i < 26; ++i){
                         letters.add(new Word((char)(i + 'a') + "", 0));
                     }
@@ -1256,8 +1241,6 @@ public class MainActivity extends AppCompatActivity {
                                         letters.get(j).freq += word.freq;
                             }
                         }
-                    //for (int i = 0; i < letters.size(); ++i)
-                    //    letters.get(i).freq = (letters.get(i).freq + 0.01) * keysNearbyProb[ch - 'a'][keysNearby[ch-'a'].indexOf(letters.get(i).text)];
                     for (int i = 0; i < letters.size(); ++i){
                         letters.get(i).freq += 0.01;
                         int tmp = letters.get(i).text.charAt(0) - 'a';
@@ -1286,7 +1269,6 @@ public class MainActivity extends AppCompatActivity {
                 readList = "";
                 nowCh = '*';
                 nowCh2 = '*';
-                playMedia("ios11da", 0, false);
                 if (predictMode && initMode != INIT_MODE_NOTHING){
                     if (seq.size() == 1 ||(playDaFlag && !slideFlag) || (predictionCount < predictionRepeatTime)){
                         if (firstTouchSaved1 != KEY_NOT_FOUND){
