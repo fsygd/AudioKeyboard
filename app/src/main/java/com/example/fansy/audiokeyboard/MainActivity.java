@@ -87,15 +87,10 @@ public class MainActivity extends AppCompatActivity {
     Menu menu;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
-    String currentWord2 = ""; //second possible char sequence
     String currentBaseline = "";
     char nowCh = 0; //the most possible char
-    char nowCh2 = 0; //the second possible char, '*' if less than 1/10 of the most possible char
     char nowChSaved = 0; // for double click
-    char nowCh2Saved = 0;
     char nowChBaselineSaved = 0;
-    char firstTouchSaved1 = KEY_NOT_FOUND; //save predict result before adjuct to best char
-    char firstTouchSaved2 = KEY_NOT_FOUND;
     char delete_key='<';
     ArrayList<Word> dict_eng = new ArrayList<>();
     ArrayList<Word> dict_chn = new ArrayList<>();
@@ -105,14 +100,6 @@ public class MainActivity extends AppCompatActivity {
     String filename = "";
 
     int voiceSpeed = 50;
-
-    boolean playDaFlag = false;
-    boolean slideFlag = false;
-
-    String charsPlayed = "";
-    String charsInPlaylist = "";
-    int predictionCount = 0;
-    int predictionRepeatTime = 1;
 
     AutoKeyboard autoKeyboard;
 
@@ -583,7 +570,7 @@ public class MainActivity extends AppCompatActivity {
 
     //redraw the views
     public void refresh(){
-        text.setText(currentWord + "\n" + currentWord2 + "\n" + currentBaseline);
+        text.setText(currentWord + "\n" + currentBaseline);
         String str = "";
         for (int i = 0; i < candidates.size(); ++i)
             str += candidates.get(i).text + "\n";
@@ -617,7 +604,7 @@ public class MainActivity extends AppCompatActivity {
     public ArrayList<Word> candidates = new ArrayList<Word>();
 
     //predict the candidates according the currentWord and currentWord2 and refresh
-    public void predict(String currentWord, String currentWord2){
+    public void predict(String currentWord){
         candidates.clear();
 
         ArrayList<Word> dict = new ArrayList<>();
@@ -635,7 +622,7 @@ public class MainActivity extends AppCompatActivity {
 
             boolean flag = true;
             for (int j = 0; j < currentWord.length(); ++j)
-                if (candidate.text.charAt(j) != currentWord.charAt(j) && candidate.text.charAt(j) != currentWord2.charAt(j)){
+                if (candidate.text.charAt(j) != currentWord.charAt(j)){
                     flag = false;
                     break;
                 }
@@ -653,7 +640,6 @@ public class MainActivity extends AppCompatActivity {
             current = null;
         }
         myPlayList.clear();
-        charsInPlaylist = "";
     }
 
     public void stopInput(){
@@ -663,10 +649,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void finishWord(){
         currentWord = "";
-        currentWord2 = "";
         currentBaseline = "";
         readList = "";
-        predict(currentWord, currentWord2);
+        predict(currentWord);
         refresh();
     }
 
@@ -676,46 +661,38 @@ public class MainActivity extends AppCompatActivity {
             if (initMode == INIT_MODE_ABSOLUTE) {
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
-                addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT), true, true);
+                addToSeq(autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT));
             }
             else if(initMode == INIT_MODE_RELATIVE){
                 char ch = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT);
                 if (ch == upKey){
-                    addToSeq(x, y, ch, true, false);
+                    addToSeq(ch);
                 }
-                else
-                if (ch != upKey){
+                else{
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
                     write("reset");
                     ch = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT);
-                    char best = addToSeq(x, y, ch, false, true);
+                    char best = getMostPossibleKey(x, y);
                     if (autoKeyboard.tryLayout(best, x, y)){
                         write("try " + best + " " + x + " " + y);
                         autoKeyboard.drawLayout();
-                        addToSeq(x, y, best, true, true);
+                        addToSeq(best);
                     }else{
                         if (autoKeyboard.tryLayout(ch, x, y)){
                             write("try " + ch + " " + x + " " + y);
                             autoKeyboard.drawLayout();
                         }
-                        if (firstTouchSaved1 != ch) {
-                            firstTouchSaved2 = firstTouchSaved1;
-                            firstTouchSaved1 = ch;
-                        }
-                        addToSeq(x, y, ch, true,true);
+                        addToSeq(ch);
                     }
                 }
-                firstTouchSaved1 = KEY_NOT_FOUND;
-                firstTouchSaved2 = KEY_NOT_FOUND;
             }else{
                 char ch = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT);
-                addToSeq(x, y, ch, true, false);
+                addToSeq(ch);
             }
         }
         else{
-            //addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), true, true);
-            addToSeq(x, y, autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), true, false);
+            addToSeq(autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT));
         }
     }
 
@@ -1179,17 +1156,9 @@ public class MainActivity extends AppCompatActivity {
         if (current == null && !myPlayList.isEmpty()){
             current = MediaPlayer.create(this, myPlayList.get(0));
             myPlayList.remove(0);
-            if(myPlayList.isEmpty()) {
-                if(!charsInPlaylist.equals("")){
-                    charsPlayed += charsInPlaylist;
-                    predictionCount += 1;
-                }
-            }
             current.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
-                    playDaFlag = false;
-                    slideFlag = true;
                     mp.release();
                     current = null;
                     playFirstVoice();
@@ -1201,8 +1170,6 @@ public class MainActivity extends AppCompatActivity {
 
     public void playMedia(String tag, int index, boolean isChar){
         myPlayList.add(voice.get(tag)[index]);
-        if (isChar)
-            charsInPlaylist += (char)('a' + index);
         playFirstVoice();
     }
 
@@ -1210,112 +1177,53 @@ public class MainActivity extends AppCompatActivity {
         return 1.0 / Math.sqrt(2.0 * Math.PI) / sigma  * Math.pow(Math.E, -(x - miu) * (x - miu) / 2.0 / sigma / sigma);
     }
 
-    //if write=false, just return the most possible key
-    public char addToSeq(int x, int y, char ch, boolean write, boolean predictMode){
-        if (ch != KEY_NOT_FOUND){
-            if (seq.size() == 0 || seq.get(seq.size() - 1) != ch ) {
-                ArrayList<Word> letters = new ArrayList<Word>();
-                if(predictMode){
-                    for (int i = 0; i < 26; ++i){
-                        letters.add(new Word((char)(i + 'a') + "", 0));
-                    }
+    public char getMostPossibleKey(int x, int y){
+        ArrayList<Word> letters = new ArrayList<Word>();
+        for (int i = 0; i < 26; ++i)
+            letters.add(new Word((char)(i + 'a') + "", 0));
 
-                    ArrayList<Word> dict = new ArrayList<>();
-                    if (languageMode == LANG_MODE_ENG)
-                        dict = dict_eng;
-                    else if (languageMode == LANG_MODE_CHN)
-                        dict = dict_chn;
+        ArrayList<Word> dict = new ArrayList<>();
+        if (languageMode == LANG_MODE_ENG)
+            dict = dict_eng;
+        else if (languageMode == LANG_MODE_CHN)
+            dict = dict_chn;
 
-                    for (int i = 0; i < dict.size(); ++i)
-                        if (dict.get(i).text.length() >= currentWord.length() + 1){
-                            boolean flag = true;
-                            Word word = dict.get(i);
-                            for (int j = 0; j < currentWord.length(); ++j)
-                                if (word.text.charAt(j) != currentWord.charAt(j) && word.text.charAt(j) != currentWord2.charAt(j)){
-                                    flag = false;
-                                    break;
-                                }
-                            if (flag){
-                                for (int j = 0; j < letters.size(); ++j)
-                                    if (letters.get(j).text.charAt(0) == word.text.charAt(currentWord.length()))
-                                        letters.get(j).freq += word.freq;
-                            }
-                        }
-                    for (int i = 0; i < letters.size(); ++i){
-                        letters.get(i).freq += 0.01;
-                        int tmp = letters.get(i).text.charAt(0) - 'a';
-                        letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
-                        letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
+        for (int i = 0; i < dict.size(); ++i)
+            if (dict.get(i).text.length() >= currentWord.length() + 1){
+                boolean flag = true;
+                Word word = dict.get(i);
+                for (int j = 0; j < currentWord.length(); ++j)
+                    if (word.text.charAt(j) != currentWord.charAt(j)){
+                        flag = false;
+                        break;
                     }
-                    Collections.sort(letters);
-                    if (!write) {
-                        firstTouchSaved1 = letters.get(0).text.charAt(0);
-                        if (letters.get(1).freq * 10 >= letters.get(0).freq){
-                            firstTouchSaved2 = letters.get(1).text.charAt(0);
-                        }
-                        else{
-                            firstTouchSaved2 = '*';
-                        }
-                        if (letters.get(0).freq > 0)
-                            return letters.get(0).text.charAt(0);
-                        else
-                            return ch;
-                    }
+                if (flag){
+                    for (int j = 0; j < letters.size(); ++j)
+                        if (letters.get(j).text.charAt(0) == word.text.charAt(currentWord.length()))
+                            letters.get(j).freq += word.freq;
                 }
-                //write=true
-                seq.add(ch);
-                Log.i("seq", ch + "");
-                stopVoice();
-                readList = "";
-                nowCh = '*';
-                nowCh2 = '*';
-                if (predictMode && initMode != INIT_MODE_NOTHING){
-                    if (seq.size() == 1 ||(playDaFlag && !slideFlag) || (predictionCount < predictionRepeatTime)){
-                        if (firstTouchSaved1 != KEY_NOT_FOUND){
-                            nowCh = firstTouchSaved1;
-                            playMedia("ios11_" + voiceSpeed, firstTouchSaved1 - 'a', true);
-                            readList += firstTouchSaved1;
-
-                            if (firstTouchSaved2 != '*' && PREDICT_VOICE_NUMBER > 1) {
-                                nowCh2 = firstTouchSaved2;
-                                playMedia("ios11_" + voiceSpeed, firstTouchSaved2 - 'a', true);
-                                readList += firstTouchSaved2;
-                            }
-                        }
-                        //prob top 2
-                        else if (letters.size() >= 1 && letters.get(0).freq > 0) {
-                            nowCh = letters.get(0).text.charAt(0);
-                            playMedia("ios11_"+voiceSpeed, nowCh - 'a',true);
-                            readList += nowCh;
-                            if (letters.size() >= 2 && letters.get(1).freq * 10 > letters.get(0).freq){
-                                nowCh2 = letters.get(1).text.charAt(0);
-                                playMedia("ios11_" + voiceSpeed, nowCh2 - 'a', true);
-                                readList += nowCh2;
-                            }
-                        }
-                        else {
-                            //current key
-                            nowCh = ch;
-                            playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
-                            readList += nowCh;
-                        }
-                    }
-                    else{
-                        //current key
-                        nowCh = ch;
-                        playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
-                        readList += nowCh;
-                    }
-                }else{
-                    nowCh = ch;
-                    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
-                    readList += nowCh;
-                }
-                playDaFlag = true;
-                refresh();
             }
+        for (int i = 0; i < letters.size(); ++i){
+            letters.get(i).freq += 0.01;
+            int tmp = letters.get(i).text.charAt(0) - 'a';
+            letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
+            letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
         }
-        return 'a';
+        Collections.sort(letters);
+        return letters.get(0).text.charAt(0);
+    }
+
+    //if write=false, just return the most possible key
+    public void addToSeq(char ch){
+        if (ch != KEY_NOT_FOUND && (seq.size() == 0 || seq.get(seq.size() - 1) != ch)) {
+            seq.add(ch);
+            stopVoice();
+            readList = "";
+            nowCh = ch;
+            playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
+            readList += nowCh;
+            refresh();
+        }
     }
 
     @Override
@@ -1373,20 +1281,18 @@ public class MainActivity extends AppCompatActivity {
     public void deleteLastChar() {
         if (currentWord.length() > 0) {
             currentWord = currentWord.substring(0, currentWord.length() - 1);
-            currentWord2 = currentWord2.substring(0, currentWord2.length() - 1);
             currentBaseline = currentBaseline.substring(0, currentBaseline.length() - 1);
         }
         readList = "";
-        predict(currentWord, currentWord2);
+        predict(currentWord);
         refresh();
     }
 
     public void deleteAllChar(){
         currentWord = "";
-        currentWord2 = "";
         currentBaseline = "";
         readList = "";
-        predict(currentWord, currentWord2);
+        predict(currentWord);
         refresh();
     }
 
@@ -1437,15 +1343,9 @@ public class MainActivity extends AppCompatActivity {
                         case MotionEvent.ACTION_UP:
                         case MotionEvent.ACTION_POINTER_UP:
                             write("up " + x + " " + y);
-                            slideFlag = false;
-                            charsPlayed = "";
-                            predictionCount = 0;
                             long tempTime = System.currentTimeMillis();
                             elapsedTimeText.setText(String.valueOf(tempTime - wordDownTime));
                             boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
-                            if (!predictLetterFlag){
-                                nowCh2 = '*';
-                            }
                             stopInput();
                             if (confirmMode == CONFIRM_MODE_UP) {
                                 if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
@@ -1466,14 +1366,10 @@ public class MainActivity extends AppCompatActivity {
                                     upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                     if (upvoiceMode == UPVOICE_MODE_YES) {
                                         playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
-                                        if (nowCh2 != '*') {
-                                            playMedia("ios11_" + voiceSpeed, nowCh2 - 'a', true);
-                                        }
                                     }
                                     currentWord += nowCh;
-                                    currentWord2 += nowCh2;
                                     currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],autoKeyboard.INIT_LAYOUT);
-                                    predict(currentWord, currentWord2);
+                                    predict(currentWord);
                                     write("enter " + nowCh);
                                     refresh();
                                 }
@@ -1483,7 +1379,6 @@ public class MainActivity extends AppCompatActivity {
                                     deleteLastChar();
                                     write("leftwipe");
                                     nowChSaved = '*';
-                                    nowCh2Saved = '*';
                                     playMedia("delete", 0, false);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
@@ -1493,7 +1388,6 @@ public class MainActivity extends AppCompatActivity {
                                     elapsedTimeText.setText("0");
                                     upKey = KEY_NOT_FOUND;
                                     nowChSaved = '*';
-                                    nowCh2Saved = '*';
                                     playMedia("delete", 0, false);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
@@ -1502,18 +1396,14 @@ public class MainActivity extends AppCompatActivity {
                                     if (nowChSaved != '*'){
                                         write("doubleclick");
                                         currentWord += nowChSaved;
-                                        currentWord2 += nowCh2Saved;
                                         if (upvoiceMode == UPVOICE_MODE_YES) {
                                             playMedia("ios11_" + voiceSpeed, nowChSaved - 'a', true);
-                                            if (nowCh2Saved != '*') {
-                                                playMedia("ios11_" + voiceSpeed, nowCh2Saved - 'a', true);
-                                            }
                                         }
                                         else{
                                             playMedia("delete", 0, false);
                                         }
                                         currentBaseline += nowChBaselineSaved;
-                                        predict(currentWord, currentWord2);
+                                        predict(currentWord);
                                         refresh();
                                     }
                                 }
@@ -1521,7 +1411,6 @@ public class MainActivity extends AppCompatActivity {
                                     if (tempTime - downTime > 300) {
                                         upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                         nowChSaved = nowCh;
-                                        nowCh2Saved = nowCh2;
                                         nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],autoKeyboard.INIT_LAYOUT);
                                         write("enter " + nowCh);
                                     }
