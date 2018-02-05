@@ -2,6 +2,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/AudioKeyboardMenu">
     <item
+        android:id="@+id/langModeItem"
+        android:orderInCategory="100"
+        android:title="langMode:ENG"/>
+    <item
         android:id="@+id/fuzzyInputTestBegin"
         android:orderInCategory="100"
         android:title="Start Test"/>

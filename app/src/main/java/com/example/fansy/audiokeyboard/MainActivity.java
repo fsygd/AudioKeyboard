@@ -55,8 +55,6 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<Integer> myPlayList = new ArrayList<>();
     MediaPlayer current;
 
-    final int PREDICT_VOICE_NUMBER = 1; //when we predict, how many voice are played
-
     final int INIT_MODE_ABSOLUTE = 0;
     final int INIT_MODE_RELATIVE = 1;
     final int INIT_MODE_NOTHING = 2;
@@ -83,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText, elapsedTimeText;
     Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, SDPButton, SDMButton;
-    Button languageModeButton, upvoiceModeButton, recordModeButton;
+    Button upvoiceModeButton, recordModeButton;
     Menu menu;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
@@ -248,7 +246,6 @@ public class MainActivity extends AppCompatActivity {
                 candidatesView.setVisibility(View.VISIBLE);
                 readListView.setVisibility(View.VISIBLE);
                 confirmModeButton.setVisibility(View.VISIBLE);
-                languageModeButton.setVisibility(View.VISIBLE);
                 speedmButton.setVisibility(View.VISIBLE);
                 SDMButton.setVisibility(View.VISIBLE);
                 SDPButton.setVisibility(View.VISIBLE);
@@ -270,7 +267,6 @@ public class MainActivity extends AppCompatActivity {
                 candidatesView.setVisibility(View.GONE);
                 readListView.setVisibility(View.GONE);
                 confirmModeButton.setVisibility(View.GONE);
-                languageModeButton.setVisibility(View.GONE);
                 speedmButton.setVisibility(View.INVISIBLE);
                 SDMButton.setVisibility(View.GONE);
                 SDPButton.setVisibility(View.GONE);
@@ -586,10 +582,6 @@ public class MainActivity extends AppCompatActivity {
             confirmModeButton.setText("up");
         else
             confirmModeButton.setText("click");
-        if (languageMode == LANG_MODE_ENG)
-            languageModeButton.setText("ENG");
-        else
-            languageModeButton.setText("CHN");
         if (upvoiceMode == UPVOICE_MODE_YES)
             upvoiceModeButton.setText("UPYES");
         else
@@ -1025,19 +1017,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        languageModeButton.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View v){
-                if (languageMode == LANG_MODE_ENG)
-                    languageMode = LANG_MODE_CHN;
-                else if (languageMode == LANG_MODE_CHN)
-                    languageMode = LANG_MODE_ENG;
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-                refresh();
-            }
-        });
-
         upvoiceModeButton.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v){
@@ -1242,7 +1221,6 @@ public class MainActivity extends AppCompatActivity {
         confirmModeButton = (Button)findViewById(R.id.confirm_mode_button);
         speedmButton = (Button)findViewById(R.id.speed_m_button);
         speedpButton = (Button)findViewById(R.id.speed_p_button);
-        languageModeButton = (Button)findViewById(R.id.language_mode_button);
         upvoiceModeButton = (Button)findViewById(R.id.upvoice_mode_button);
         recordModeButton = (Button)findViewById(R.id.record_mode_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
@@ -2627,7 +2605,22 @@ public class MainActivity extends AppCompatActivity {
          *
          * 将会执行此case
          */
-
+            case R.id.langModeItem:{
+                switch (languageMode){
+                    case LANG_MODE_ENG:{
+                        languageMode = LANG_MODE_CHN;
+                        break;
+                    }
+                    case LANG_MODE_CHN:{
+                        languageMode = LANG_MODE_ENG;
+                        break;
+                    }
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+                break;
+            }
             case R.id.fuzzyInputTestBegin:{
                 switch (activity_mode){
                     case KEYBOARD_MODE:{
@@ -2765,6 +2758,16 @@ public class MainActivity extends AppCompatActivity {
             }
             case FUZZY_INPUT_TEST_MODE:{
                 menu.findItem(R.id.fuzzyInputTestBegin).setTitle("Restart Test");
+                break;
+            }
+        }
+        switch (languageMode){
+            case LANG_MODE_ENG:{
+                menu.findItem(R.id.langModeItem).setTitle("langMode:ENG");
+                break;
+            }
+            case LANG_MODE_CHN:{
+                menu.findItem(R.id.langModeItem).setTitle("langMode:CHN");
                 break;
             }
         }
