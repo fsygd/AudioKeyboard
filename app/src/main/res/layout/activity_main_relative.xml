@@ -88,15 +88,6 @@
         android:textSize="30sp" />
 
     <Button
-        android:id="@+id/confirm_mode_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
-        android:text="UP"
-        android:layout_alignParentTop="true"
-        android:layout_toEndOf="@+id/init_mode_button" />
-
-    <Button
         android:id="@+id/SD_p"
         android:layout_width="wrap_content"
         android:layout_height="100px"

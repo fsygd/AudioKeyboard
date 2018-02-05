@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText, elapsedTimeText;
-    Button confirmButton, initModeButton, confirmModeButton, speedpButton, speedmButton, SDPButton, SDMButton;
+    Button confirmButton, initModeButton, speedpButton, speedmButton, SDPButton, SDMButton;
     Button upvoiceModeButton, recordModeButton;
     Menu menu;
     String readList = ""; //current voice list
@@ -245,7 +245,6 @@ public class MainActivity extends AppCompatActivity {
                 //keyboard.setVisibility(View.VISIBLE);
                 candidatesView.setVisibility(View.VISIBLE);
                 readListView.setVisibility(View.VISIBLE);
-                confirmModeButton.setVisibility(View.VISIBLE);
                 speedmButton.setVisibility(View.VISIBLE);
                 SDMButton.setVisibility(View.VISIBLE);
                 SDPButton.setVisibility(View.VISIBLE);
@@ -266,7 +265,6 @@ public class MainActivity extends AppCompatActivity {
                 //keyboard.setVisibility(View.GONE);
                 candidatesView.setVisibility(View.GONE);
                 readListView.setVisibility(View.GONE);
-                confirmModeButton.setVisibility(View.GONE);
                 speedmButton.setVisibility(View.INVISIBLE);
                 SDMButton.setVisibility(View.GONE);
                 SDPButton.setVisibility(View.GONE);
@@ -578,10 +576,6 @@ public class MainActivity extends AppCompatActivity {
             initModeButton.setText("relative");
         else
             initModeButton.setText("nothing");
-        if (confirmMode == CONFIRM_MODE_UP)
-            confirmModeButton.setText("up");
-        else
-            confirmModeButton.setText("click");
         if (upvoiceMode == UPVOICE_MODE_YES)
             upvoiceModeButton.setText("UPYES");
         else
@@ -1045,19 +1039,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        confirmModeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (confirmMode == CONFIRM_MODE_UP)
-                    confirmMode = CONFIRM_MODE_DOUBLECLICK;
-                else
-                    confirmMode = CONFIRM_MODE_UP;
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-                refresh();
-            }
-        });
-
         speedmButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1218,7 +1199,6 @@ public class MainActivity extends AppCompatActivity {
         confirmButton = (Button)findViewById(R.id.confirm_button);
         readListView = (TextView)findViewById(R.id.readList);
         initModeButton = (Button)findViewById(R.id.init_mode_button);
-        confirmModeButton = (Button)findViewById(R.id.confirm_mode_button);
         speedmButton = (Button)findViewById(R.id.speed_m_button);
         speedpButton = (Button)findViewById(R.id.speed_p_button);
         upvoiceModeButton = (Button)findViewById(R.id.upvoice_mode_button);
@@ -2621,6 +2601,22 @@ public class MainActivity extends AppCompatActivity {
                 refresh();
                 break;
             }
+            case R.id.confirmModeItem:{
+                switch (confirmMode){
+                    case CONFIRM_MODE_UP:{
+                        confirmMode = CONFIRM_MODE_DOUBLECLICK;
+                        break;
+                    }
+                    case CONFIRM_MODE_DOUBLECLICK:{
+                        confirmMode = CONFIRM_MODE_UP;
+                        break;
+                    }
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+                break;
+            }
             case R.id.fuzzyInputTestBegin:{
                 switch (activity_mode){
                     case KEYBOARD_MODE:{
@@ -2768,6 +2764,16 @@ public class MainActivity extends AppCompatActivity {
             }
             case LANG_MODE_CHN:{
                 menu.findItem(R.id.langModeItem).setTitle("langMode:CHN");
+                break;
+            }
+        }
+        switch (confirmMode){
+            case CONFIRM_MODE_UP:{
+                menu.findItem(R.id.confirmModeItem).setTitle("confirmMode:UP");
+                break;
+            }
+            case CONFIRM_MODE_DOUBLECLICK:{
+                menu.findItem(R.id.confirmModeItem).setTitle("confirmMode:CLICK");
                 break;
             }
         }

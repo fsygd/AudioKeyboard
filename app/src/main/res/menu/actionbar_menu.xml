@@ -6,6 +6,10 @@
         android:orderInCategory="100"
         android:title="langMode:ENG"/>
     <item
+        android:id="@+id/confirmModeItem"
+        android:orderInCategory="100"
+        android:title="confirmMode:UP"/>
+    <item
         android:id="@+id/fuzzyInputTestBegin"
         android:orderInCategory="100"
         android:title="Start Test"/>
