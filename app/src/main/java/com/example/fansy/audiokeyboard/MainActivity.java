@@ -81,7 +81,6 @@ public class MainActivity extends AppCompatActivity {
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, elapsedTimeText;
     Button confirmButton, initModeButton, speedpButton, speedmButton;
-    Button upvoiceModeButton, recordModeButton;
     Menu menu;
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
@@ -246,8 +245,6 @@ public class MainActivity extends AppCompatActivity {
                 candidatesView.setVisibility(View.VISIBLE);
                 readListView.setVisibility(View.VISIBLE);
                 speedmButton.setVisibility(View.VISIBLE);
-                upvoiceModeButton.setVisibility(View.VISIBLE);
-                recordModeButton.setVisibility(View.VISIBLE);
                 voiceSpeedText.setVisibility(View.VISIBLE);
                 confirmButton.setText("CONFIRM");
                 speedpButton.setText("SPEED+");
@@ -263,8 +260,6 @@ public class MainActivity extends AppCompatActivity {
                 candidatesView.setVisibility(View.GONE);
                 readListView.setVisibility(View.GONE);
                 speedmButton.setVisibility(View.INVISIBLE);
-                upvoiceModeButton.setVisibility(View.GONE);
-                recordModeButton.setVisibility(View.GONE);
                 voiceSpeedText.setVisibility(View.GONE);
                 initModeButton.setText("Back");
                 confirmButton.setText("Save");
@@ -570,14 +565,6 @@ public class MainActivity extends AppCompatActivity {
             initModeButton.setText("relative");
         else
             initModeButton.setText("nothing");
-        if (upvoiceMode == UPVOICE_MODE_YES)
-            upvoiceModeButton.setText("UPYES");
-        else
-            upvoiceModeButton.setText("UPNO");
-        if (recordMode == RECORD_MODE_STOPED)
-            recordModeButton.setText("START");
-        else
-            recordModeButton.setText("STOP");
     }
 
     final int MAX_CANDIDATE = 5;
@@ -1005,34 +992,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        upvoiceModeButton.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View v){
-                if (upvoiceMode == UPVOICE_MODE_YES)
-                    upvoiceMode = UPVOICE_MODE_NO;
-                else if (upvoiceMode == UPVOICE_MODE_NO)
-                    upvoiceMode = UPVOICE_MODE_YES;
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-                refresh();
-            }
-        });
-
-        recordModeButton.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View v){
-                if (recordMode == RECORD_MODE_STOPED){
-                    recordMode = RECORD_MODE_STARTED;
-                    filename = getFilename();
-                }
-                else if (recordMode == RECORD_MODE_STARTED)
-                    recordMode = RECORD_MODE_STOPED;
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-                refresh();
-            }
-        });
-
         speedmButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1170,8 +1129,6 @@ public class MainActivity extends AppCompatActivity {
         initModeButton = (Button)findViewById(R.id.init_mode_button);
         speedmButton = (Button)findViewById(R.id.speed_m_button);
         speedpButton = (Button)findViewById(R.id.speed_p_button);
-        upvoiceModeButton = (Button)findViewById(R.id.upvoice_mode_button);
-        recordModeButton = (Button)findViewById(R.id.record_mode_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
         fuzzyInputTestCharShow=(TextView)findViewById(R.id.fuzzyInputTestCharShow);
         fuzzyInputTestCharShow.setVisibility(View.GONE);
@@ -2551,6 +2508,23 @@ public class MainActivity extends AppCompatActivity {
          *
          * 将会执行此case
          */
+            case R.id.recordModeItem:{
+                switch (recordMode){
+                    case RECORD_MODE_STOPED:{
+                        recordMode = RECORD_MODE_STARTED;
+                        filename = getFilename();
+                        break;
+                    }
+                    case RECORD_MODE_STARTED:{
+                        recordMode = RECORD_MODE_STOPED;
+                        break;
+                    }
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+                break;
+            }
             case R.id.langModeItem:{
                 switch (languageMode){
                     case LANG_MODE_ENG:{
@@ -2575,6 +2549,22 @@ public class MainActivity extends AppCompatActivity {
                     }
                     case CONFIRM_MODE_DOUBLECLICK:{
                         confirmMode = CONFIRM_MODE_UP;
+                        break;
+                    }
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+                break;
+            }
+            case R.id.upVoiceModeItem:{
+                switch (upvoiceMode){
+                    case UPVOICE_MODE_YES:{
+                        upvoiceMode = UPVOICE_MODE_NO;
+                        break;
+                    }
+                    case UPVOICE_MODE_NO:{
+                        upvoiceMode = UPVOICE_MODE_YES;
                         break;
                     }
                 }
@@ -2738,6 +2728,16 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
+        switch (recordMode){
+            case RECORD_MODE_STOPED:{
+                menu.findItem(R.id.recordModeItem).setTitle("recordMode:stoped");
+                break;
+            }
+            case RECORD_MODE_STARTED:{
+                menu.findItem(R.id.recordModeItem).setTitle("recordMode:started");
+                break;
+            }
+        }
         switch (languageMode){
             case LANG_MODE_ENG:{
                 menu.findItem(R.id.langModeItem).setTitle("langMode:ENG");
@@ -2755,6 +2755,16 @@ public class MainActivity extends AppCompatActivity {
             }
             case CONFIRM_MODE_DOUBLECLICK:{
                 menu.findItem(R.id.confirmModeItem).setTitle("confirmMode:CLICK");
+                break;
+            }
+        }
+        switch (upvoiceMode){
+            case UPVOICE_MODE_YES:{
+                menu.findItem(R.id.upVoiceModeItem).setTitle("upVoiceMode:YES");
+                break;
+            }
+            case UPVOICE_MODE_NO:{
+                menu.findItem(R.id.upVoiceModeItem).setTitle("upVoiceMode:NO");
                 break;
             }
         }

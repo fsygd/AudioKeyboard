@@ -2,6 +2,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/AudioKeyboardMenu">
     <item
+        android:id="@+id/recordModeItem"
+        android:orderInCategory="100"
+        android:title="recordMode:stoped"/>
+    <item
         android:id="@+id/langModeItem"
         android:orderInCategory="100"
         android:title="langMode:ENG"/>
@@ -9,6 +13,10 @@
         android:id="@+id/confirmModeItem"
         android:orderInCategory="100"
         android:title="confirmMode:UP"/>
+    <item
+        android:id="@+id/upVoiceModeItem"
+        android:orderInCategory="100"
+        android:title="upVoiceMode:YES"/>
     <item
         android:id="@+id/SDPlusItem"
         android:orderInCategory="100"

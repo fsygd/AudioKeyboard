@@ -44,11 +44,10 @@
 
     <TextView
         android:id="@+id/readList"
-        android:layout_width="wrap_content"
+        android:layout_width="150dp"
         android:layout_height="wrap_content"
         android:layout_alignTop="@+id/candidates"
-        android:layout_marginStart="84dp"
-        android:layout_toEndOf="@+id/text"
+        android:layout_alignParentRight="true"
         android:textSize="30sp"
         android:text="" />
 
@@ -83,34 +82,18 @@
         android:text="50"
         android:textAppearance="@android:style/TextAppearance.Material.Small"
         android:textSize="30sp"
-        android:layout_alignTop="@+id/text"
-        android:layout_toStartOf="@+id/record_mode_button"
-        android:layout_marginTop="19dp" />
-
-    <Button
-        android:id="@+id/upvoice_mode_button"
-        android:layout_width="wrap_content"
-        android:layout_height="100px"
-        android:text="UPYES"
-        android:layout_alignBottom="@+id/voice_speed_text"
-        android:layout_alignParentEnd="true" />
-
-    <Button
-        android:id="@+id/record_mode_button"
-        android:layout_width="wrap_content"
-        android:layout_height="100px"
-        android:layout_alignStart="@+id/upvoice_mode_button"
-        android:layout_below="@+id/upvoice_mode_button"
-        android:text="START" />
+        android:layout_below="@+id/elapsedtime"
+        android:layout_alignStart="@+id/elapsedtime" />
 
     // FuzzyInputTest
+
     <ListView
         android:id="@+id/list_view"
         android:layout_width="match_parent"
 
         android:layout_height="match_parent"
-        android:layout_alignParentBottom="true"
-        android:layout_alignStart="@+id/text">
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@+id/candidates">
     </ListView>
     <TextView
         android:id="@+id/fuzzyInputTestCharShow"
@@ -136,6 +119,6 @@
         android:layout_height="wrap_content"
         android:text="0"
         android:textSize="30sp"
-        android:layout_below="@+id/speed_m_button"
-        android:layout_alignStart="@+id/voice_speed_text" />
+        android:layout_below="@+id/speed_p_button"
+        android:layout_alignStart="@+id/readList" />
 </RelativeLayout>
