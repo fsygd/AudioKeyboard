@@ -10,6 +10,14 @@
         android:orderInCategory="100"
         android:title="confirmMode:UP"/>
     <item
+        android:id="@+id/SDPlusItem"
+        android:orderInCategory="100"
+        android:title="SDPlus:10"/>
+    <item
+        android:id="@+id/SDMinusItem"
+        android:orderInCategory="100"
+        android:title="SDMinus:10"/>
+    <item
         android:id="@+id/fuzzyInputTestBegin"
         android:orderInCategory="100"
         android:title="Start Test"/>

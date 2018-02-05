@@ -79,8 +79,8 @@ public class MainActivity extends AppCompatActivity {
     int SD_coefficient = 10;
 
     ImageView keyboard;
-    TextView text, candidatesView, readListView, voiceSpeedText, predictionRepeatText, elapsedTimeText;
-    Button confirmButton, initModeButton, speedpButton, speedmButton, SDPButton, SDMButton;
+    TextView text, candidatesView, readListView, voiceSpeedText, elapsedTimeText;
+    Button confirmButton, initModeButton, speedpButton, speedmButton;
     Button upvoiceModeButton, recordModeButton;
     Menu menu;
     String readList = ""; //current voice list
@@ -246,12 +246,9 @@ public class MainActivity extends AppCompatActivity {
                 candidatesView.setVisibility(View.VISIBLE);
                 readListView.setVisibility(View.VISIBLE);
                 speedmButton.setVisibility(View.VISIBLE);
-                SDMButton.setVisibility(View.VISIBLE);
-                SDPButton.setVisibility(View.VISIBLE);
                 upvoiceModeButton.setVisibility(View.VISIBLE);
                 recordModeButton.setVisibility(View.VISIBLE);
                 voiceSpeedText.setVisibility(View.VISIBLE);
-                predictionRepeatText.setVisibility(View.VISIBLE);
                 confirmButton.setText("CONFIRM");
                 speedpButton.setText("SPEED+");
                 refresh();
@@ -266,12 +263,9 @@ public class MainActivity extends AppCompatActivity {
                 candidatesView.setVisibility(View.GONE);
                 readListView.setVisibility(View.GONE);
                 speedmButton.setVisibility(View.INVISIBLE);
-                SDMButton.setVisibility(View.GONE);
-                SDPButton.setVisibility(View.GONE);
                 upvoiceModeButton.setVisibility(View.GONE);
                 recordModeButton.setVisibility(View.GONE);
                 voiceSpeedText.setVisibility(View.GONE);
-                predictionRepeatText.setVisibility(View.GONE);
                 initModeButton.setText("Back");
                 confirmButton.setText("Save");
                 speedpButton.setText("BackSpace");
@@ -1085,31 +1079,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-        SDPButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //predictionRepeatTime++;
-                //predictionRepeatText.setText(predictionRepeatTime+"");
-                SD_coefficient += 5;
-                predictionRepeatText.setText(SD_coefficient + "");
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-            }
-        });
-
-        SDMButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //if(predictionRepeatTime>1) predictionRepeatTime--;
-                //predictionRepeatText.setText(predictionRepeatTime+"");
-                if (SD_coefficient - 5 > 0)
-                    SD_coefficient -= 5;
-                predictionRepeatText.setText(SD_coefficient + "");
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-            }
-        });
     }
 
     public void playFirstVoice(){
@@ -1204,9 +1173,6 @@ public class MainActivity extends AppCompatActivity {
         upvoiceModeButton = (Button)findViewById(R.id.upvoice_mode_button);
         recordModeButton = (Button)findViewById(R.id.record_mode_button);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
-        SDPButton = (Button)findViewById(R.id.SD_p);
-        SDMButton = (Button)findViewById(R.id.SD_m);
-        predictionRepeatText = (TextView)findViewById(R.id.predictionReoeatText);
         fuzzyInputTestCharShow=(TextView)findViewById(R.id.fuzzyInputTestCharShow);
         fuzzyInputTestCharShow.setVisibility(View.GONE);
         progressBar=(ProgressBar)findViewById(R.id.progress_bar);
@@ -2617,6 +2583,21 @@ public class MainActivity extends AppCompatActivity {
                 refresh();
                 break;
             }
+            case R.id.SDPlusItem:{
+                SD_coefficient += 5;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+                break;
+            }
+            case R.id.SDMinusItem:{
+                if (SD_coefficient > 5)
+                    SD_coefficient -= 5;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+                break;
+            }
             case R.id.fuzzyInputTestBegin:{
                 switch (activity_mode){
                     case KEYBOARD_MODE:{
@@ -2777,6 +2758,8 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
+        menu.findItem(R.id.SDPlusItem).setTitle("SDPlus:" + SD_coefficient);
+        menu.findItem(R.id.SDMinusItem).setTitle("SDMinus:" + SD_coefficient);
         menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
         if(activity_mode==KEYBOARD_MODE){
             menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
