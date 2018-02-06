@@ -1186,6 +1186,18 @@ public class MainActivity extends AppCompatActivity {
     char upKey = KEY_NOT_FOUND;
     boolean isOverScreen=false;
     char lastChar='A';
+    public boolean checkLeftwipe(int x, int y, long tempTime) {
+        return x < downX - SLIP_DIST && Math.abs(downX - x) > Math.abs(downY - y) + 50 && tempTime < downTime + STAY_TIME;
+    }
+    public boolean checkRightwipe(int x, int y, long tempTime) {
+        return x > downX + SLIP_DIST && Math.abs(downX - x) > Math.abs(downY - y) + 50 && tempTime < downTime + STAY_TIME;
+    }
+    public boolean checkUpwipe(int x, int y, long tempTime){
+        return y < downY - SLIP_DIST && Math.abs(downY - y) > Math.abs(downX - x) + 50 && tempTime < downTime + STAY_TIME;
+    }
+    public boolean checkDownwipe(int x, int y, long tempTime){
+        return y > downY + SLIP_DIST && Math.abs(downY - y) > Math.abs(downX - x) + 50 && tempTime < downTime + STAY_TIME;
+    }
     public boolean onTouchEvent(MotionEvent event){
         int[] location = new int[2];
         keyboard.getLocationOnScreen(location);
@@ -1229,13 +1241,13 @@ public class MainActivity extends AppCompatActivity {
                             boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
                             stopInput();
                             if (confirmMode == CONFIRM_MODE_UP) {
-                                if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                                if (checkLeftwipe(x, y, tempTime)) {
                                     deleteLastChar();
                                     write("leftwipe");
                                     playMedia("delete", 0, false);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
-                                } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                                } else if (checkRightwipe(x, y, tempTime)) {
                                     deleteAllChar();
                                     write("rightwipe");
                                     elapsedTimeText.setText("0");
@@ -1243,6 +1255,10 @@ public class MainActivity extends AppCompatActivity {
                                     playMedia("delete", 0, false);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
+                                } else if (checkUpwipe(x, y, tempTime)) {
+                                    //todo
+                                } else if (checkDownwipe(x, y, tempTime)) {
+                                    //todo
                                 } else {
                                     upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                     if (upvoiceMode == UPVOICE_MODE_YES) {
@@ -1256,14 +1272,14 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                             else{
-                                if (x < downX - SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                                if (checkLeftwipe(x, y, tempTime)) {
                                     deleteLastChar();
                                     write("leftwipe");
                                     nowChSaved = '*';
                                     playMedia("delete", 0, false);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
-                                } else if (x > downX + SLIP_DIST && tempTime < downTime + STAY_TIME) {
+                                } else if (checkRightwipe(x, y, tempTime)) {
                                     deleteAllChar();
                                     write("rightwipe");
                                     elapsedTimeText.setText("0");
@@ -1272,6 +1288,10 @@ public class MainActivity extends AppCompatActivity {
                                     playMedia("delete", 0, false);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
+                                } else if (checkUpwipe(x, y, tempTime)) {
+                                    //todo
+                                } else if (checkDownwipe(x, y, tempTime)) {
+                                    //todo
                                 } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
                                     //double click
                                     if (nowChSaved != '*'){
