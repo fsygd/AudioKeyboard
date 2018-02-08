@@ -93,8 +93,7 @@
 
         android:layout_height="match_parent"
         android:layout_alignParentTop="true"
-        android:layout_toEndOf="@+id/candidates">
-    </ListView>
+        android:layout_toEndOf="@+id/candidates"></ListView>
     <TextView
         android:id="@+id/fuzzyInputTestCharShow"
         android:layout_width="wrap_content"
@@ -105,14 +104,14 @@
         android:layout_below="@id/init_mode_button"
         android:text="Ok"
         />
+
     <ProgressBar
         android:id="@+id/progress_bar"
         style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:max="100"
-        android:visibility="invisible"
-        />
+        android:visibility="invisible" />
     <TextView
         android:id="@+id/elapsedtime"
         android:layout_width="wrap_content"

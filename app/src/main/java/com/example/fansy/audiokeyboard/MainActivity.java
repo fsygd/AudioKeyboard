@@ -1645,11 +1645,11 @@ public class MainActivity extends AppCompatActivity {
         }
         KEY keys[];
         void defaultPara(){// set the parameters to default value
-            keyboardHeight=500;
-            keyboardWidth=1438;
-            deltaY=100;
+            keyboardHeight=680;
+            keyboardWidth=1440;
+            deltaY=0;
             topThreshold=0;
-            bottomThreshold=900;
+            bottomThreshold=680;
             minWidth=72;
             minHetight=110;
             scalingNum=3;
@@ -2392,20 +2392,17 @@ public class MainActivity extends AppCompatActivity {
                 float bottom=this.location[1]+getBottom(CURR_LAYOUT);
                 this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
                 this.canvas=new Canvas(this.baseBitmap);
-                RectF rect = new RectF(left, top, right, bottom);
-                this.canvas.drawRect(rect, this.backgroundPaint);
-                this.canvas.drawLine(0,this.keys[TL].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[TR].getTop(CURR_LAYOUT),this.linePaint);
-                this.canvas.drawLine(0,this.keys[ML].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[MR].getTop(CURR_LAYOUT),this.linePaint);
-                this.canvas.drawLine(0,this.keys[BL].getTop(CURR_LAYOUT),this.keyboardWidth,this.keys[BR].getTop(CURR_LAYOUT),this.linePaint);
-                this.canvas.drawLine(0,this.keys[BL].getBottom(CURR_LAYOUT),this.keyboardWidth,this.keys[BR].getBottom(CURR_LAYOUT),this.linePaint);
+                //RectF rect = new RectF(left, top, right, bottom);
+                //this.canvas.drawRect(rect, this.backgroundPaint);
 
+                Paint.FontMetrics fontMetrics = this.textPaint.getFontMetrics();
+                float fonttop = fontMetrics.top;//为基线到字体上边框的距离
+                float fontbottom = fontMetrics.bottom;//为基线到字体下边框的距离
                 for (int i:allLine){
-                    this.canvas.drawLine(this.keys[i].getLeft(CURR_LAYOUT),this.keys[i].getTop(CURR_LAYOUT),this.keys[i].getLeft(CURR_LAYOUT),this.keys[i].getBottom(CURR_LAYOUT),this.linePaint);
-                    this.canvas.drawText(String.valueOf(this.keys[i].ch),this.keys[i].curr_x+this.location[0],this.keys[i].curr_y+this.location[1],this.textPaint);
+                    RectF rect = new RectF(this.keys[i].getLeft(CURR_LAYOUT)+5,this.keys[i].getTop(CURR_LAYOUT)+10,this.keys[i].getRight(CURR_LAYOUT)-5,this.keys[i].getBottom(CURR_LAYOUT)-10);
+                    this.canvas.drawRoundRect(rect,10,10,this.backgroundPaint);
+                    this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x+this.location[0],this.keys[i].curr_y+this.location[1]-fonttop/2-fontbottom/2,this.textPaint);
                 }
-                this.canvas.drawLine(this.keys[TR].getRight(CURR_LAYOUT),this.keys[TR].getTop(CURR_LAYOUT),this.keys[TR].getRight(CURR_LAYOUT),this.keys[TR].getBottom(CURR_LAYOUT),this.linePaint);
-                this.canvas.drawLine(this.keys[MR].getRight(CURR_LAYOUT),this.keys[MR].getTop(CURR_LAYOUT),this.keys[MR].getRight(CURR_LAYOUT),this.keys[MR].getBottom(CURR_LAYOUT),this.linePaint);
-                this.canvas.drawLine(this.keys[BR].getRight(CURR_LAYOUT),this.keys[BR].getTop(CURR_LAYOUT),this.keys[BR].getRight(CURR_LAYOUT),this.keys[BR].getBottom(CURR_LAYOUT),this.linePaint);
                 this.keyboard.setImageBitmap(this.baseBitmap);
             }else{
                 this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
@@ -2473,7 +2470,7 @@ public class MainActivity extends AppCompatActivity {
             defaultPara();
             this.backgroundPaint=new Paint();
             this.textPaint=new Paint();
-            this.backgroundPaint.setColor(Color.rgb(230,255,255));
+            this.backgroundPaint.setColor(Color.rgb(239,239,239));
             this.backgroundPaint.setStrokeJoin(Paint.Join.ROUND);
             this.backgroundPaint.setStrokeCap(Paint.Cap.ROUND);
             this.backgroundPaint.setStrokeWidth(3);
