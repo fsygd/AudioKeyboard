@@ -1238,7 +1238,6 @@ public class MainActivity extends AppCompatActivity {
                             write("up " + x + " " + y);
                             long tempTime = System.currentTimeMillis();
                             elapsedTimeText.setText(String.valueOf(tempTime - wordDownTime));
-                            boolean predictLetterFlag = (myPlayList.size() == 0); // if the predict letter is considered
                             stopInput();
                             if (confirmMode == CONFIRM_MODE_UP) {
                                 if (checkLeftwipe(x, y, tempTime)) {
@@ -1261,7 +1260,7 @@ public class MainActivity extends AppCompatActivity {
                                     //todo
                                 } else {
                                     upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
-                                    if (upvoiceMode == UPVOICE_MODE_YES) {
+                                    if (upvoiceMode == UPVOICE_MODE_YES && nowCh >= 'a' && nowCh <= 'z') {
                                         playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
                                     }
                                     currentWord += nowCh;
@@ -1318,6 +1317,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                             write("word " + currentWord);
+                            nowCh = 0;
                             break;
                     }
                 }
