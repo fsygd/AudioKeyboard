@@ -22,6 +22,7 @@
         android:layout_marginStart="13dp"
         android:layout_marginTop="18dp"
         android:text="TextView"
+        android:typeface="monospace"
         android:textSize="30sp" />
 
     <TextView
@@ -32,6 +33,7 @@
         android:layout_below="@+id/text"
         android:layout_marginTop="54dp"
         android:textSize="30sp"
+        android:typeface="monospace"
         android:text="" />
 
     <Button
