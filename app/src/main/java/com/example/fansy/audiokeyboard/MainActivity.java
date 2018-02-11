@@ -13,6 +13,7 @@ import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Vibrator;
+import android.speech.tts.TextToSpeech;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -34,6 +35,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.w3c.dom.Text;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -46,6 +49,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     final char KEY_NOT_FOUND = 0;
@@ -55,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<Integer> myPlayList = new ArrayList<>();
     MediaPlayer current;
 
+    TextToSpeech textToSpeech;
+
     final int INIT_MODE_ABSOLUTE = 0;
     final int INIT_MODE_RELATIVE = 1;
     final int INIT_MODE_NOTHING = 2;
@@ -62,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
 
     final int LANG_MODE_ENG = 0;
     final int LANG_MODE_CHN = 1;
+    final int LANG_MODE_CHN_PINYIN = 2;
     int languageMode = LANG_MODE_ENG;
 
     final int CONFIRM_MODE_UP = 0;
@@ -91,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
     char delete_key='<';
     ArrayList<Word> dict_eng = new ArrayList<>();
     ArrayList<Word> dict_chn = new ArrayList<>();
+    ArrayList<Word> dict_chn_pinyin = new ArrayList<>();
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keysNearby[] = new String[26];
     double keysNearbyProb[][] = new double[26][26]; //keysNearbyProb[x][y] the possibility when want y but touch x
@@ -529,16 +537,16 @@ public class MainActivity extends AppCompatActivity {
     public void write(String content){
         if (recordMode != RECORD_MODE_STARTED)
             return;
-        Log.i("fsy", content);
+        Log.i("write", content);
         try{
             String path = Environment.getExternalStorageDirectory().getPath() + "/Android/data/com.example.fansy.audiokeyboard/files";
             File path1 = new File(path);
             if (!path1.exists()) {
-                Log.i("fsy", path + " doesn't exist!");
+                Log.i("write", path + " doesn't exist!");
                 try {
                     path1.mkdirs();
                 }catch (Exception e){
-                    Log.i("fsy", "mkdirs failed");
+                    Log.i("write", "mkdirs failed");
                 }
             }
             PrintWriter logger = new PrintWriter(new OutputStreamWriter(new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/Android/data/com.example.fansy.audiokeyboard/files/" + filename, true)), true);
@@ -546,8 +554,8 @@ public class MainActivity extends AppCompatActivity {
             logger.flush();
             logger.close();
         } catch (Exception e){
-            Log.i("fsy", "failed");
-            Log.i("fsy", Log.getStackTraceString(e));
+            Log.i("write", "failed");
+            Log.i("write", Log.getStackTraceString(e));
         }
     }
 
@@ -556,7 +564,7 @@ public class MainActivity extends AppCompatActivity {
         text.setText(currentWord + "\n" + currentBaseline);
         String str = "";
         for (int i = 0; i < candidates.size(); ++i)
-            str += candidates.get(i).text + "\n";
+            str += candidates.get(i).alias + "\n";
         candidatesView.setText(str);
         readListView.setText(readList);
         if (initMode == INIT_MODE_ABSOLUTE)
@@ -574,17 +582,19 @@ public class MainActivity extends AppCompatActivity {
     public void predict(String currentWord){
         candidates.clear();
 
+        if (currentWord == "")
+            return;
         ArrayList<Word> dict = new ArrayList<>();
         if (languageMode == LANG_MODE_ENG)
             dict = dict_eng;
         else if (languageMode == LANG_MODE_CHN)
-            dict = dict_chn;
+            dict = dict_chn_pinyin;
 
         for (int i = 0; i < dict.size(); ++i){
             if (candidates.size() >= MAX_CANDIDATE)
                 break;
             Word candidate = dict.get(i);
-            if (candidate.text.length() != currentWord.length())
+            if (candidate.text.length() < currentWord.length())
                 continue;
 
             boolean flag = true;
@@ -691,7 +701,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    final int DICT_SIZE[] = {50000, 38991};
+    final int DICT_SIZE[] = {50000, 38991, 65105};
     //read dict from file
     public void initDict(){
         Log.i("init", "start loading dict_eng");
@@ -726,6 +736,23 @@ public class MainActivity extends AppCompatActivity {
             Log.i("init", "read dict_chn finished" + dict_chn.size());
         } catch (Exception e){
             Log.i("init", "read dict_chn failed");
+        }
+
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_chn_pinyin)));
+        try{
+            int lineNo = 0;
+            while ((line = reader.readLine()) != null){
+                lineNo++;
+                String[] ss = line.split(" ");
+                dict_chn_pinyin.add(new Word(ss[0], Double.valueOf(ss[1])));
+                dict_chn_pinyin.get(dict_chn_pinyin.size() - 1).alias = ss[2];
+                if (lineNo == DICT_SIZE[LANG_MODE_CHN_PINYIN])
+                    break;
+            }
+            reader.close();
+            Log.i("init", "read dict_chn_pinyin finished" + dict_chn_pinyin.size());
+        } catch (Exception e){
+            Log.i("init", "read dict_chn_pinyin failed");
         }
     }
 
@@ -995,6 +1022,7 @@ public class MainActivity extends AppCompatActivity {
         speedmButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                textToSpeech.stop();
                 if(voiceSpeed>=60){
                     voiceSpeed -= 10;
                 }
@@ -1007,6 +1035,7 @@ public class MainActivity extends AppCompatActivity {
         speedpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                textToSpeech.speak("你好你好你好", TextToSpeech.QUEUE_ADD, null);
                 switch(activity_mode){
                     case KEYBOARD_MODE:{
                         if(voiceSpeed<=90){
@@ -1120,6 +1149,17 @@ public class MainActivity extends AppCompatActivity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_main_relative);
 
+        textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status){
+                if (status == textToSpeech.SUCCESS){
+                    int result = textToSpeech.setLanguage(Locale.CHINA);
+                    if (result != TextToSpeech.LANG_COUNTRY_AVAILABLE && result != TextToSpeech.LANG_AVAILABLE){
+                        Toast.makeText(MainActivity.this, "TTS暂时不支持这种语音的朗读！", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
         keyboard = (ImageView)findViewById(R.id.keyboard);
         text = (TextView)findViewById(R.id.text);
         elapsedTimeText = (TextView)findViewById(R.id.elapsedtime);
@@ -1156,6 +1196,8 @@ public class MainActivity extends AppCompatActivity {
             current.release();
             current = null;
         }
+        if (textToSpeech != null)
+            textToSpeech.shutdown();
         super.onDestroy();
     }
 
@@ -1403,10 +1445,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     class Word implements Comparable<Word>{
-        String text;
+        String text, alias;
         double freq;
         Word(String text, double freq){
-            this.text = text;
+            this.text = this.alias = text;
             this.freq = freq;
         }
 
