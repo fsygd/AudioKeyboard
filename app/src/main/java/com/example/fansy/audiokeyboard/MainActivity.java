@@ -576,6 +576,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     final int MAX_CANDIDATE = 5;
+    int currentCandidate;
     public ArrayList<Word> candidates = new ArrayList<Word>();
 
     //predict the candidates according the currentWord and currentWord2 and refresh
@@ -610,6 +611,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void stopVoice(){
+        textToSpeech.stop();
         if (current != null) {
             current.stop();
             current.reset();
@@ -1022,7 +1024,6 @@ public class MainActivity extends AppCompatActivity {
         speedmButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                textToSpeech.stop();
                 if(voiceSpeed>=60){
                     voiceSpeed -= 10;
                 }
@@ -1035,7 +1036,6 @@ public class MainActivity extends AppCompatActivity {
         speedpButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                textToSpeech.speak("你好你好你好", TextToSpeech.QUEUE_ADD, null);
                 switch(activity_mode){
                     case KEYBOARD_MODE:{
                         if(voiceSpeed<=90){
@@ -1285,26 +1285,33 @@ public class MainActivity extends AppCompatActivity {
                                 if (checkLeftwipe(x, y, tempTime)) {
                                     deleteLastChar();
                                     write("leftwipe");
-                                    playMedia("delete", 0, false);
+                                    currentCandidate = 0;
+                                    textToSpeech.speak("删除", TextToSpeech.QUEUE_ADD, null);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (checkRightwipe(x, y, tempTime)) {
                                     deleteAllChar();
                                     write("rightwipe");
+                                    currentCandidate = 0;
                                     elapsedTimeText.setText("0");
                                     upKey = KEY_NOT_FOUND;
-                                    playMedia("delete", 0, false);
+                                    textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (checkUpwipe(x, y, tempTime)) {
+                                    if (currentCandidate > 0)
+                                        --currentCandidate;
                                     //todo
                                 } else if (checkDownwipe(x, y, tempTime)) {
+                                    if (currentCandidate + 1 < candidates.size())
+                                        ++currentCandidate;
                                     //todo
                                 } else {
+                                    currentCandidate = 0;
                                     upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
-                                    if (upvoiceMode == UPVOICE_MODE_YES && nowCh >= 'a' && nowCh <= 'z') {
-                                        playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
-                                    }
+                                    //if (upvoiceMode == UPVOICE_MODE_YES && nowCh >= 'a' && nowCh <= 'z') {
+                                    //    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
+                                    //}
                                     currentWord += nowCh;
                                     currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],autoKeyboard.INIT_LAYOUT);
                                     predict(currentWord);
@@ -1317,7 +1324,7 @@ public class MainActivity extends AppCompatActivity {
                                     deleteLastChar();
                                     write("leftwipe");
                                     nowChSaved = '*';
-                                    playMedia("delete", 0, false);
+                                    textToSpeech.speak("删除", TextToSpeech.QUEUE_ADD, null);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (checkRightwipe(x, y, tempTime)) {
@@ -1326,7 +1333,7 @@ public class MainActivity extends AppCompatActivity {
                                     elapsedTimeText.setText("0");
                                     upKey = KEY_NOT_FOUND;
                                     nowChSaved = '*';
-                                    playMedia("delete", 0, false);
+                                    textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (checkUpwipe(x, y, tempTime)) {
@@ -1358,6 +1365,8 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                 }
                             }
+                            if (currentCandidate < candidates.size())
+                                textToSpeech.speak(candidates.get(currentCandidate).alias, TextToSpeech.QUEUE_ADD, null);
                             write("word " + currentWord);
                             nowCh = 0;
                             break;
