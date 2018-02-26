@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
     TextView text, candidatesView, readListView, voiceSpeedText, elapsedTimeText;
     Button confirmButton, initModeButton, speedpButton, speedmButton;
     Menu menu;
+    String currentInput = "";
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
     String currentBaseline = "";
@@ -561,7 +562,7 @@ public class MainActivity extends AppCompatActivity {
 
     //redraw the views
     public void refresh(){
-        text.setText(currentWord + "\n" + currentBaseline);
+        text.setText(currentInput + "\n" + currentWord + "\n" + currentBaseline);
         String str = "";
         for (int i = 0; i < candidates.size(); ++i)
             str += candidates.get(i).alias + "\n";
@@ -1219,9 +1220,10 @@ public class MainActivity extends AppCompatActivity {
         refresh();
     }
 
-    int downX, downY;
-    long downTime = 0;
+    int downX, downY, downX2, downY2;
+    long downTime = 0, downTime2 = 0;
     long wordDownTime = 0;
+    boolean TwoFingersFlag = false;
     long firstDownTime = 0, lastDownTime = 0; // used for check double-click
     final long STAY_TIME = 400;
     final int SLIP_DIST = 90;
@@ -1240,6 +1242,9 @@ public class MainActivity extends AppCompatActivity {
     public boolean checkDownwipe(int x, int y, long tempTime){
         return y > downY + SLIP_DIST && Math.abs(downY - y) > Math.abs(downX - x) + 50 && tempTime < downTime + STAY_TIME;
     }
+    public boolean checkUpwipe2(int x, int y, long tempTime){
+        return y < downY2 - SLIP_DIST && Math.abs(downY2 - y) > Math.abs(downX2 - x) + 50 && tempTime < downTime2 + STAY_TIME;
+    }
     public boolean onTouchEvent(MotionEvent event){
         int[] location = new int[2];
         keyboard.getLocationOnScreen(location);
@@ -1247,7 +1252,27 @@ public class MainActivity extends AppCompatActivity {
         int y = (int)event.getY();
         switch(activity_mode){
             case KEYBOARD_MODE:{
-                if (event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT) == upKey
+                if (event.getPointerCount() == 2){
+                    TwoFingersFlag = true;
+                    switch (event.getActionMasked()) {
+                        case MotionEvent.ACTION_POINTER_DOWN:
+                            downX2 = (int)event.getX(0);
+                            downY2 = (int)event.getY(0);
+                            downTime2 = event.getEventTime();
+                            break;
+                        case MotionEvent.ACTION_POINTER_UP:
+                            stopInput();
+                            if (checkUpwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
+                                if (currentCandidate < candidates.size()) {
+                                    currentInput = candidates.get(currentCandidate).alias;
+                                    refresh();
+                                    textToSpeech.speak("确认输入 " + currentInput, TextToSpeech.QUEUE_ADD, null);
+                                }
+                            }
+                            break;
+                    }
+                }
+                if (!TwoFingersFlag && event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT) == upKey
                         || autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.INIT_LAYOUT) != KEY_NOT_FOUND)){ // in the keyboard area
                     switch (event.getActionMasked()) {
                         case MotionEvent.ACTION_DOWN:
@@ -1296,6 +1321,8 @@ public class MainActivity extends AppCompatActivity {
                                     elapsedTimeText.setText("0");
                                     upKey = KEY_NOT_FOUND;
                                     textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
+                                    currentInput = "";
+                                    refresh();
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (checkUpwipe(x, y, tempTime)) {
@@ -1371,6 +1398,9 @@ public class MainActivity extends AppCompatActivity {
                             nowCh = 0;
                             break;
                     }
+                }
+                if (event.getActionMasked() == MotionEvent.ACTION_UP){
+                    TwoFingersFlag = false;
                 }
                 break;
             }
