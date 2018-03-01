@@ -1269,6 +1269,8 @@ public class MainActivity extends AppCompatActivity {
                                     textToSpeech.speak("确认输入 " + currentInput, TextToSpeech.QUEUE_ADD, null);
                                 }
                             }
+                            autoKeyboard.resetLayout();
+                            autoKeyboard.drawLayout();
                             break;
                     }
                 }
@@ -1328,10 +1330,14 @@ public class MainActivity extends AppCompatActivity {
                                 } else if (checkUpwipe(x, y, tempTime)) {
                                     if (currentCandidate > 0)
                                         --currentCandidate;
+                                    autoKeyboard.resetLayout();
+                                    autoKeyboard.drawLayout();
                                     //todo
                                 } else if (checkDownwipe(x, y, tempTime)) {
                                     if (currentCandidate + 1 < candidates.size())
                                         ++currentCandidate;
+                                    autoKeyboard.resetLayout();
+                                    autoKeyboard.drawLayout();
                                     //todo
                                 } else {
                                     currentCandidate = 0;
