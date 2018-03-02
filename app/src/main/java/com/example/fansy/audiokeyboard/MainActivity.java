@@ -1264,6 +1264,7 @@ public class MainActivity extends AppCompatActivity {
                             stopInput();
                             if (checkUpwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
                                 if (currentCandidate < candidates.size()) {
+                                    write("up2wipe");
                                     currentInput = candidates.get(currentCandidate).alias;
                                     refresh();
                                     textToSpeech.speak("确认输入 " + currentInput, TextToSpeech.QUEUE_ADD, null);
