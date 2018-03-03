@@ -583,8 +583,7 @@ public class MainActivity extends AppCompatActivity {
     //predict the candidates according the currentWord and currentWord2 and refresh
     public void predict(String currentWord){
         candidates.clear();
-
-        if (currentWord == "")
+        if (currentWord.length() == 0)
             return;
         ArrayList<Word> dict = new ArrayList<>();
         if (languageMode == LANG_MODE_ENG)
@@ -1202,14 +1201,21 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    public void deleteLastChar() {
+    public String deleteLastChar() {
+        String str = "";
         if (currentWord.length() > 0) {
+            str += currentWord.charAt(currentWord.length() - 1);
             currentWord = currentWord.substring(0, currentWord.length() - 1);
             currentBaseline = currentBaseline.substring(0, currentBaseline.length() - 1);
+        }
+        else if (currentInput.length() > 0){
+            str += currentInput.charAt(currentInput.length() - 1);
+            currentInput = currentInput.substring(0, currentInput.length() - 1);
         }
         readList = "";
         predict(currentWord);
         refresh();
+        return str;
     }
 
     public void deleteAllChar(){
@@ -1265,7 +1271,9 @@ public class MainActivity extends AppCompatActivity {
                             if (checkUpwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
                                 if (currentCandidate < candidates.size()) {
                                     write("up2wipe");
-                                    currentInput = candidates.get(currentCandidate).alias;
+                                    currentInput += candidates.get(currentCandidate).alias;
+                                    currentWord = "";
+                                    currentBaseline = "";
                                     refresh();
                                     textToSpeech.speak("确认输入 " + currentInput, TextToSpeech.QUEUE_ADD, null);
                                 }
@@ -1311,10 +1319,10 @@ public class MainActivity extends AppCompatActivity {
                             stopInput();
                             if (confirmMode == CONFIRM_MODE_UP) {
                                 if (checkLeftwipe(x, y, tempTime)) {
-                                    deleteLastChar();
+                                    String deleted = deleteLastChar();
                                     write("leftwipe");
                                     currentCandidate = 0;
-                                    textToSpeech.speak("删除", TextToSpeech.QUEUE_ADD, null);
+                                    textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (checkRightwipe(x, y, tempTime)) {
@@ -1355,10 +1363,11 @@ public class MainActivity extends AppCompatActivity {
                             }
                             else{
                                 if (checkLeftwipe(x, y, tempTime)) {
-                                    deleteLastChar();
+                                    String deleted = deleteLastChar();
                                     write("leftwipe");
                                     nowChSaved = '*';
-                                    textToSpeech.speak("删除", TextToSpeech.QUEUE_ADD, null);
+                                    currentCandidate = 0;
+                                    textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (checkRightwipe(x, y, tempTime)) {
@@ -1379,12 +1388,12 @@ public class MainActivity extends AppCompatActivity {
                                     if (nowChSaved != '*'){
                                         write("doubleclick");
                                         currentWord += nowChSaved;
-                                        if (upvoiceMode == UPVOICE_MODE_YES) {
+                                        /*if (upvoiceMode == UPVOICE_MODE_YES) {
                                             playMedia("ios11_" + voiceSpeed, nowChSaved - 'a', true);
                                         }
                                         else{
                                             playMedia("delete", 0, false);
-                                        }
+                                        }*/
                                         currentBaseline += nowChBaselineSaved;
                                         predict(currentWord);
                                         refresh();
