@@ -1402,6 +1402,7 @@ public class MainActivity extends AppCompatActivity {
                                     //todo
                                 } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
                                     //double click
+                                    currentCandidate = 0;
                                     if (nowChSaved != '*'){
                                         write("doubleclick");
                                         currentWord += nowChSaved;
@@ -1763,7 +1764,7 @@ public class MainActivity extends AppCompatActivity {
             keyboardWidth=1440;
             deltaY=0;
             topThreshold=0;
-            bottomThreshold=680;
+            bottomThreshold=750;
             minWidth=72;
             minHetight=110;
             scalingNum=3;
