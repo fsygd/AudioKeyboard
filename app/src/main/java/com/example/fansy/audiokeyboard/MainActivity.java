@@ -658,7 +658,7 @@ public class MainActivity extends AppCompatActivity {
                         autoKeyboard.drawLayout();
                         addToSeq(best);
                     }else{
-                        if (autoKeyboard.tryLayout(ch, x, y)){
+                        if (ch != KEY_NOT_FOUND && autoKeyboard.tryLayout(ch, x, y)){
                             write("try " + ch + " " + x + " " + y);
                             autoKeyboard.drawLayout();
                         }
@@ -1237,19 +1237,19 @@ public class MainActivity extends AppCompatActivity {
     boolean isOverScreen=false;
     char lastChar='A';
     public boolean checkLeftwipe(int x, int y, long tempTime) {
-        return x < downX - SLIP_DIST && Math.abs(downX - x) > Math.abs(downY - y) + 50 && tempTime < downTime + STAY_TIME;
+        return x < downX - SLIP_DIST && Math.abs(downX - x) > Math.abs(downY - y) && tempTime < downTime + STAY_TIME;
     }
     public boolean checkRightwipe(int x, int y, long tempTime) {
-        return x > downX + SLIP_DIST && Math.abs(downX - x) > Math.abs(downY - y) + 50 && tempTime < downTime + STAY_TIME;
+        return x > downX + SLIP_DIST && Math.abs(downX - x) > Math.abs(downY - y) && tempTime < downTime + STAY_TIME;
     }
     public boolean checkUpwipe(int x, int y, long tempTime){
-        return y < downY - SLIP_DIST && Math.abs(downY - y) > Math.abs(downX - x) + 50 && tempTime < downTime + STAY_TIME;
+        return y < downY - SLIP_DIST && Math.abs(downY - y) > Math.abs(downX - x) && tempTime < downTime + STAY_TIME;
     }
     public boolean checkDownwipe(int x, int y, long tempTime){
-        return y > downY + SLIP_DIST && Math.abs(downY - y) > Math.abs(downX - x) + 50 && tempTime < downTime + STAY_TIME;
+        return y > downY + SLIP_DIST && Math.abs(downY - y) > Math.abs(downX - x) && tempTime < downTime + STAY_TIME;
     }
     public boolean checkUpwipe2(int x, int y, long tempTime){
-        return y < downY2 - SLIP_DIST && Math.abs(downY2 - y) > Math.abs(downX2 - x) + 50 && tempTime < downTime2 + STAY_TIME;
+        return y < downY2 - SLIP_DIST && Math.abs(downY2 - y) > Math.abs(downX2 - x) && tempTime < downTime2 + STAY_TIME;
     }
     public boolean onTouchEvent(MotionEvent event){
         int[] location = new int[2];
@@ -1275,7 +1275,7 @@ public class MainActivity extends AppCompatActivity {
                                     currentWord = "";
                                     currentBaseline = "";
                                     refresh();
-                                    textToSpeech.speak("确认输入 " + currentInput, TextToSpeech.QUEUE_ADD, null);
+                                    textToSpeech.speak("确认输入 " + candidates.get(currentCandidate).alias, TextToSpeech.QUEUE_ADD, null);
                                 }
                             }
                             autoKeyboard.resetLayout();
@@ -1283,8 +1283,9 @@ public class MainActivity extends AppCompatActivity {
                             break;
                     }
                 }
-                if (!TwoFingersFlag && event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT) == upKey
-                        || autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.INIT_LAYOUT) != KEY_NOT_FOUND)){ // in the keyboard area
+                if (!TwoFingersFlag && event.getPointerCount() == 1){
+                //if (!TwoFingersFlag && event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT) == upKey
+                //        || autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.INIT_LAYOUT) != KEY_NOT_FOUND)){ // in the keyboard area
                     switch (event.getActionMasked()) {
                         case MotionEvent.ACTION_DOWN:
                         case MotionEvent.ACTION_POINTER_DOWN:
@@ -1354,8 +1355,10 @@ public class MainActivity extends AppCompatActivity {
                                     //if (upvoiceMode == UPVOICE_MODE_YES && nowCh >= 'a' && nowCh <= 'z') {
                                     //    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
                                     //}
-                                    currentWord += nowCh;
-                                    currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1],autoKeyboard.INIT_LAYOUT);
+                                    if (nowCh != KEY_NOT_FOUND) {
+                                        currentWord += nowCh;
+                                        currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.INIT_LAYOUT);
+                                    }
                                     predict(currentWord);
                                     write("enter " + nowCh);
                                     refresh();
