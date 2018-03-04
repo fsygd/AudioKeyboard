@@ -565,7 +565,7 @@ public class MainActivity extends AppCompatActivity {
     public void refresh(){
         text.setText(currentInput + "\n" + currentWord + "\n" + currentBaseline);
         String str = "";
-        for (int i = 0; i < candidates.size(); ++i)
+        for (int i = currentCandidate; i < Math.min(currentCandidate + MAX_CANDIDATE, candidates.size()); ++i)
             str += candidates.get(i).alias + "\n";
         candidatesView.setText(str);
         readListView.setText(readList);
@@ -593,8 +593,8 @@ public class MainActivity extends AppCompatActivity {
             dict = dict_chn_pinyin;
 
         for (int i = 0; i < dict.size(); ++i){
-            if (candidates.size() >= MAX_CANDIDATE)
-                break;
+            //if (candidates.size() >= MAX_CANDIDATE)
+            //    break;
             Word candidate = dict.get(i);
             if (candidate.text.length() < currentWord.length())
                 continue;
@@ -605,9 +605,16 @@ public class MainActivity extends AppCompatActivity {
                     flag = false;
                     break;
                 }
-            if (flag)
+            if (flag) {
                 candidates.add(candidate);
+            }
         }
+
+        double delta = dict.get(1).freq;
+        for (int i = 0; i < candidates.size(); ++i)
+            candidates.get(i).freq -= delta * candidates.get(i).alias.length();
+        Collections.sort(candidates);
+
         refresh();
     }
 
@@ -1346,12 +1353,14 @@ public class MainActivity extends AppCompatActivity {
                                         --currentCandidate;
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
+                                    refresh();
                                     //todo
                                 } else if (checkDownwipe(x, y, tempTime)) {
                                     if (currentCandidate + 1 < candidates.size())
                                         ++currentCandidate;
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
+                                    refresh();
                                     //todo
                                 } else {
                                     currentCandidate = 0;
@@ -1394,12 +1403,14 @@ public class MainActivity extends AppCompatActivity {
                                         --currentCandidate;
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
+                                    refresh();
                                     //todo
                                 } else if (checkDownwipe(x, y, tempTime)) {
                                     if (currentCandidate + 1 < candidates.size())
                                         ++currentCandidate;
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
+                                    refresh();
                                     //todo
                                 } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
                                     //double click
