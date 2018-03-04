@@ -296,6 +296,7 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setProgress(fuzzyInputTestTurn*100/MAX_FUZZY_INPUT_TURN);
         ifSave=false;
         ifCalDone=false;
+        listView.setVisibility(View.GONE);
         fuzzyInputTestFigerRecord.clear();
     }
     @RequiresApi(api = Build.VERSION_CODES.N)
