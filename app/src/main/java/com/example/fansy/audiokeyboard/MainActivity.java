@@ -1125,7 +1125,7 @@ public class MainActivity extends AppCompatActivity {
                 if (flag){
                     for (int j = 0; j < letters.size(); ++j)
                         if (letters.get(j).text.charAt(0) == word.text.charAt(currentWord.length())) {
-                            letters.get(j).freq += word.freq;
+                            letters.get(j).freq = Math.max(letters.get(j).freq, word.freq);
                         }
                 }
             }
