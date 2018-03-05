@@ -1257,8 +1257,23 @@ public class MainActivity extends AppCompatActivity {
     public boolean checkDownwipe(int x, int y, long tempTime){
         return y > downY + SLIP_DIST && Math.abs(downY - y) > Math.abs(downX - x) && tempTime < downTime + STAY_TIME;
     }
+    public boolean checkLeftwipe2(int x, int y, long tempTime){
+        return x < downX2 - SLIP_DIST && Math.abs(downX2 - x) > Math.abs(downY2 - y) && tempTime < downTime2 + STAY_TIME;
+    }
     public boolean checkUpwipe2(int x, int y, long tempTime){
         return y < downY2 - SLIP_DIST && Math.abs(downY2 - y) > Math.abs(downX2 - x) && tempTime < downTime2 + STAY_TIME;
+    }
+    public void confirmWord(){
+        if (currentCandidate < candidates.size()) {
+            write("rightwipe");
+            String delta = candidates.get(currentCandidate).alias;
+            currentInput += delta;
+            currentWord = "";
+            currentBaseline = "";
+            predict(currentWord);
+            refresh();
+            textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
+        }
     }
     public boolean onTouchEvent(MotionEvent event){
         int[] location = new int[2];
@@ -1278,16 +1293,25 @@ public class MainActivity extends AppCompatActivity {
                         case MotionEvent.ACTION_POINTER_UP:
                             stopInput();
                             if (checkUpwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
-                                if (currentCandidate < candidates.size()) {
-                                    write("up2wipe");
-                                    String delta = candidates.get(currentCandidate).alias;
-                                    currentInput += delta;
-                                    currentWord = "";
-                                    currentBaseline = "";
-                                    predict(currentWord);
-                                    refresh();
-                                    textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
+                                if (currentInput.length() == 0){
+                                    textToSpeech.speak("当前还没有输入", TextToSpeech.QUEUE_ADD, null);
                                 }
+                                else{
+                                    textToSpeech.speak("当前输入 " + currentInput, textToSpeech.QUEUE_ADD, null);
+                                }
+                            }
+                            else if (checkLeftwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
+                                write("left2wipe");
+                                deleteAllChar();
+                                currentCandidate = 0;
+                                elapsedTimeText.setText("0");
+                                upKey = KEY_NOT_FOUND;
+                                nowChSaved = '*';
+                                textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
+                                currentInput = "";
+                                refresh();
+                                autoKeyboard.resetLayout();
+                                autoKeyboard.drawLayout();
                             }
                             autoKeyboard.resetLayout();
                             autoKeyboard.drawLayout();
@@ -1339,16 +1363,7 @@ public class MainActivity extends AppCompatActivity {
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (checkRightwipe(x, y, tempTime)) {
-                                    deleteAllChar();
-                                    write("rightwipe");
-                                    currentCandidate = 0;
-                                    elapsedTimeText.setText("0");
-                                    upKey = KEY_NOT_FOUND;
-                                    textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
-                                    currentInput = "";
-                                    refresh();
-                                    autoKeyboard.resetLayout();
-                                    autoKeyboard.drawLayout();
+                                    confirmWord();
                                 } else if (checkUpwipe(x, y, tempTime)) {
                                     if (currentCandidate > 0)
                                         --currentCandidate;
@@ -1388,17 +1403,7 @@ public class MainActivity extends AppCompatActivity {
                                     autoKeyboard.resetLayout();
                                     autoKeyboard.drawLayout();
                                 } else if (checkRightwipe(x, y, tempTime)) {
-                                    deleteAllChar();
-                                    write("rightwipe");
-                                    currentCandidate = 0;
-                                    elapsedTimeText.setText("0");
-                                    upKey = KEY_NOT_FOUND;
-                                    nowChSaved = '*';
-                                    textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
-                                    currentInput = "";
-                                    refresh();
-                                    autoKeyboard.resetLayout();
-                                    autoKeyboard.drawLayout();
+                                    confirmWord();
                                 } else if (checkUpwipe(x, y, tempTime)) {
                                     if (currentCandidate > 0)
                                         --currentCandidate;
