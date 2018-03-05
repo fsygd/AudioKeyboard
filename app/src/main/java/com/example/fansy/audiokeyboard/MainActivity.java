@@ -618,6 +618,24 @@ public class MainActivity extends AppCompatActivity {
         refresh();
     }
 
+    public void predictBylastch(char lastCh){
+        candidates.clear();
+        ArrayList<Word> dict = new ArrayList<>();
+        dict = dict_chn_pinyin;
+
+        for (int i = 0; i < dict.size(); ++i){
+            //if (candidates.size() >= MAX_CANDIDATE)
+            //    break;
+            Word candidate = dict.get(i);
+            if (candidate.alias.charAt(0) == lastCh && candidate.alias.length() >= 2){
+                candidates.add(new Word(candidate.alias.substring(1), candidate.freq));
+            }
+        }
+        Collections.sort(candidates);
+
+        refresh();
+    }
+
     public void stopVoice(){
         textToSpeech.stop();
         if (current != null) {
@@ -1267,10 +1285,17 @@ public class MainActivity extends AppCompatActivity {
         if (currentCandidate < candidates.size()) {
             write("rightwipe");
             String delta = candidates.get(currentCandidate).alias;
+            char lastCh = delta.charAt(delta.length() - 1);
             currentInput += delta;
             currentWord = "";
             currentBaseline = "";
-            predict(currentWord);
+            if (languageMode == LANG_MODE_CHN) {
+                predictBylastch(lastCh);
+                currentCandidate = 0;
+            }
+            else {
+                predict(currentWord);
+            }
             refresh();
             textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
         }
