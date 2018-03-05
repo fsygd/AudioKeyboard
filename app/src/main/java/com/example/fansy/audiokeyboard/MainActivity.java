@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
     final int RECORD_MODE_STOPED = 1;
     int recordMode = RECORD_MODE_STOPED;
 
-    int SD_coefficient = 10;
+    int SD_coefficient = 5;
 
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, elapsedTimeText;
@@ -606,13 +606,13 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
             if (flag) {
-                candidates.add(candidate);
+                candidates.add(new Word(candidate));
             }
         }
 
-        double delta = dict.get(1).freq;
+        double delta = dict.get(0).freq;
         for (int i = 0; i < candidates.size(); ++i)
-            candidates.get(i).freq -= delta * candidates.get(i).alias.length();
+            candidates.get(i).freq -= delta * candidates.get(i).text.length();
         Collections.sort(candidates);
 
         refresh();
@@ -1124,8 +1124,9 @@ public class MainActivity extends AppCompatActivity {
                     }
                 if (flag){
                     for (int j = 0; j < letters.size(); ++j)
-                        if (letters.get(j).text.charAt(0) == word.text.charAt(currentWord.length()))
+                        if (letters.get(j).text.charAt(0) == word.text.charAt(currentWord.length())) {
                             letters.get(j).freq += word.freq;
+                        }
                 }
             }
         for (int i = 0; i < letters.size(); ++i){
@@ -1535,6 +1536,12 @@ public class MainActivity extends AppCompatActivity {
         Word(String text, double freq){
             this.text = this.alias = text;
             this.freq = freq;
+        }
+
+        Word(Word tmp){
+            this.text = tmp.text;
+            this.alias = tmp.alias;
+            this.freq = tmp.freq;
         }
 
         @Override
