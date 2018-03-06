@@ -100,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<Word> dict_eng = new ArrayList<>();
     ArrayList<Word> dict_chn = new ArrayList<>();
     ArrayList<Word> dict_chn_pinyin = new ArrayList<>();
+    HashMap<String,String> dict_chn_hint = new HashMap<>();
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keysNearby[] = new String[26];
     double keysNearbyProb[][] = new double[26][26]; //keysNearbyProb[x][y] the possibility when want y but touch x
@@ -781,6 +782,22 @@ public class MainActivity extends AppCompatActivity {
             Log.i("init", "read dict_chn_pinyin finished" + dict_chn_pinyin.size());
         } catch (Exception e){
             Log.i("init", "read dict_chn_pinyin failed");
+        }
+
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_chn_hint)));
+        try{
+            while((line = reader.readLine()) != null){
+                String[] ss = line.split(" ");
+                if(ss.length==2) {
+                    dict_chn_hint.put(ss[0], ss[1]);
+                }else{
+                    dict_chn_hint.put(ss[0],"");
+                }
+            }
+            reader.close();
+            Log.i("init", "read dict_chn_hint finished" + dict_chn_hint.size());
+        }catch (Exception e){
+            Log.i("init", "read dict_chn_hint failed");
         }
     }
 
