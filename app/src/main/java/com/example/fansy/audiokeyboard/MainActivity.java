@@ -613,7 +613,8 @@ public class MainActivity extends AppCompatActivity {
 
         double delta = dict.get(0).freq;
         for (int i = 0; i < candidates.size(); ++i)
-            candidates.get(i).freq -= delta * candidates.get(i).text.length();
+            if (candidates.get(i).text.length() > currentWord.length())
+                candidates.get(i).freq -= delta;
         Collections.sort(candidates);
 
         refresh();
@@ -1298,6 +1299,18 @@ public class MainActivity extends AppCompatActivity {
     public boolean checkUpwipe2(int x, int y, long tempTime){
         return y < downY2 - SLIP_DIST && Math.abs(downY2 - y) > Math.abs(downX2 - x) && tempTime < downTime2 + STAY_TIME;
     }
+
+    public String getChnHint(String sentence){
+        String ans = "";
+        if (languageMode == LANG_MODE_CHN) {
+            for (int i = 0; i < sentence.length(); ++i)
+                if (dict_chn_hint.get(sentence.charAt(i) + "").length() > 0) {
+                    ans += "，" + dict_chn_hint.get(sentence.charAt(i) + "") + "的" + sentence.charAt(i);
+                }
+        }
+        return ans + "，";
+    }
+
     public void confirmWord(){
         if (currentCandidate < candidates.size()) {
             write("rightwipe");
@@ -1314,7 +1327,7 @@ public class MainActivity extends AppCompatActivity {
                 predict(currentWord);
             }
             refresh();
-            textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
+            textToSpeech.speak("确认输入 " + delta + "，推荐候选：", TextToSpeech.QUEUE_ADD, null);
         }
     }
     public boolean onTouchEvent(MotionEvent event){
@@ -1487,7 +1500,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                             if (currentCandidate < candidates.size())
-                                textToSpeech.speak(candidates.get(currentCandidate).alias, TextToSpeech.QUEUE_ADD, null);
+                                textToSpeech.speak(candidates.get(currentCandidate).alias + getChnHint(candidates.get(currentCandidate).alias), TextToSpeech.QUEUE_ADD, null);
                             write("word " + currentWord);
                             nowCh = KEY_NOT_FOUND;
                             break;
