@@ -1,7 +1,10 @@
 package com.example.fansy.audiokeyboard;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -12,6 +15,8 @@ import android.icu.text.SimpleDateFormat;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Environment;
+import android.os.IBinder;
+import android.os.RemoteException;
 import android.os.Vibrator;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.RequiresApi;
@@ -35,8 +40,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.w3c.dom.Text;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -49,9 +52,21 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
+    class PinyinDecoderServiceConnection implements ServiceConnection {
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mIPinyinDecoderService = IPinyinDecoderService.Stub.asInterface(service);
+        }
+
+        public void onServiceDisconnected(ComponentName name) {
+        }
+    }
+    public IPinyinDecoderService mIPinyinDecoderService = null;
+    public PinyinDecoderServiceConnection mPinyinDecoderServiceConnection = null;
+
     final char KEY_NOT_FOUND = 0;
 
     //voice manager
@@ -564,7 +579,18 @@ public class MainActivity extends AppCompatActivity {
 
     //redraw the views
     public void refresh(){
-        text.setText(currentInput + "\n" + currentWord + "\n" + currentBaseline);
+        if (languageMode == LANG_MODE_CHN){
+            try {
+                String composingWord = mIPinyinDecoderService.imGetChoice(0).substring(0, mIPinyinDecoderService.imGetFixedLen());
+                composingWord += currentWord.substring(mIPinyinDecoderService.imGetSplStart()[mIPinyinDecoderService.imGetFixedLen() + 1]);
+                text.setText(currentInput + "\n" + composingWord + "\n" + currentBaseline);
+            }catch (RemoteException e){
+
+            }
+        }
+        else {
+            text.setText(currentInput + "\n" + currentWord + "\n" + currentBaseline);
+        }
         String str = "";
         for (int i = currentCandidate; i < Math.min(currentCandidate + MAX_CANDIDATE, candidates.size()); ++i)
             str += candidates.get(i).alias + "\n";
@@ -587,6 +613,21 @@ public class MainActivity extends AppCompatActivity {
         candidates.clear();
         if (currentWord.length() == 0)
             return;
+        if (languageMode == LANG_MODE_CHN){
+            try {
+                int listlen = mIPinyinDecoderService.imSearch(currentWord.getBytes(), currentWord.length());
+                List<String> wordlist = mIPinyinDecoderService.imGetChoiceList(0, listlen, mIPinyinDecoderService.imGetFixedLen());
+                for (int i = 0; i < wordlist.size(); ++i)
+                    candidates.add(new Word(wordlist.get(i), 0));
+                for (int i = 0; i < 3 && i < wordlist.size(); ++i)
+                    Log.i("fsy", "candidate:" + wordlist.get(i) + ";");
+            }catch (RemoteException e){
+
+            }
+            Log.i("fsy", "succeed!");
+            refresh();
+            return;
+        }
         ArrayList<Word> dict = new ArrayList<>();
         if (languageMode == LANG_MODE_ENG)
             dict = dict_eng;
@@ -1234,6 +1275,19 @@ public class MainActivity extends AppCompatActivity {
         initVoice();
         initButtons();
         initKeyboard();
+
+        //startPinyinDecoderService
+        if (mIPinyinDecoderService == null) {
+            Intent serviceIntent = new Intent();
+            serviceIntent.setClass(this, PinyinDecoderService.class);
+
+            if (mPinyinDecoderServiceConnection == null) {
+                mPinyinDecoderServiceConnection = new PinyinDecoderServiceConnection();
+            }
+
+            if (bindService(serviceIntent, mPinyinDecoderServiceConnection, Context.BIND_AUTO_CREATE))
+                Log.i("fsy", "true");
+        }
     }
     @Override
     public void onDestroy(){
@@ -1243,6 +1297,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (textToSpeech != null)
             textToSpeech.shutdown();
+        unbindService(mPinyinDecoderServiceConnection);
         super.onDestroy();
     }
 
@@ -1311,9 +1366,67 @@ public class MainActivity extends AppCompatActivity {
         return ans + "，";
     }
 
-    public void confirmWord(){
+    public void actionRightwipe(){
+        /*byte[] bytearray = "fadongjidewenti".getBytes();
+        try {
+            Log.i("fsy", mIPinyinDecoderService.imSearch(bytearray, bytearray.length) + "");
+            for (int i = 0; i < 3; ++i)
+                Log.i("fsy", mIPinyinDecoderService.imGetChoice(i));
+            Log.i("fsy", mIPinyinDecoderService.imChoose(1) + "");
+            for (int i = 0; i < 3; ++i)
+                Log.i("fsy", mIPinyinDecoderService.imGetChoice(i));
+            mIPinyinDecoderService.imChoose(1);
+            Log.i("fsy", mIPinyinDecoderService.imGetFixedLen() + "");
+            Log.i("fsy", mIPinyinDecoderService.imCancelLastChoice() + "");
+            Log.i("fsy", mIPinyinDecoderService.imGetFixedLen() + "");
+            Log.i("fsy", mIPinyinDecoderService.imCancelLastChoice() + "");
+            Log.i("fsy", mIPinyinDecoderService.imGetFixedLen() + "");
+            Log.i("fsy", mIPinyinDecoderService.imGetChoice(0));
+        }catch (RemoteException e){
+
+        }*/
+        /*
+        try{
+            byte[] bytes = "fadongji".getBytes();
+            int len = mIPinyinDecoderService.imSearch(bytes, bytes.length);
+            mIPinyinDecoderService.imGetChoiceList(0, len, 0);
+            mIPinyinDecoderService.imChoose(0);
+            Log.i("fsy", "fixed" + mIPinyinDecoderService.imGetFixedLen());
+            bytes = "fadongjia".getBytes();
+            mIPinyinDecoderService.imSearch(bytes, bytes.length);
+            Log.i("fsy", "fixed" + mIPinyinDecoderService.imGetFixedLen());
+            for (int i = 0; i < 3; ++i)
+                Log.i("fsy", mIPinyinDecoderService.imGetChoice(i));
+            Log.i("fsy", "!!!");
+            int[] index = mIPinyinDecoderService.imGetSplStart();
+            for (int i = 0; i < index.length; ++i)
+                Log.i("fsy", index[i] + "");
+        }catch (RemoteException e){
+
+        }*/
         if (currentCandidate < candidates.size()) {
             write("rightwipe");
+            if (languageMode == LANG_MODE_CHN){
+                String delta = candidates.get(currentCandidate).alias;
+                textToSpeech.speak("确认输入 " + delta, textToSpeech.QUEUE_ADD, null);
+                try {
+                    int temp = mIPinyinDecoderService.imChoose(currentCandidate);
+                    if (temp == 1){
+                        currentInput += mIPinyinDecoderService.imGetChoice(0);
+                        currentWord = "";
+                        currentBaseline = "";
+                        mIPinyinDecoderService.imResetSearch();
+                        predict(currentWord);
+                        refresh();
+                    }
+                }catch (RemoteException e){
+
+                }
+                predict(currentWord);
+                currentCandidate = 0;
+                refresh();
+                return;
+            }
             String delta = candidates.get(currentCandidate).alias;
             char lastCh = delta.charAt(delta.length() - 1);
             currentInput += delta;
@@ -1330,6 +1443,42 @@ public class MainActivity extends AppCompatActivity {
             textToSpeech.speak("确认输入 " + delta + "，推荐候选：", TextToSpeech.QUEUE_ADD, null);
         }
     }
+
+    public void actionLeftwipe(){
+        write("leftwipe");
+        if (languageMode == LANG_MODE_CHN){
+            try{
+                if (mIPinyinDecoderService.imGetFixedLen() > 0){
+                    nowChSaved = '*';
+                    currentCandidate = 0;
+                    autoKeyboard.resetLayout();
+                    autoKeyboard.drawLayout();
+                    mIPinyinDecoderService.imCancelLastChoice();
+                    predict(currentWord);
+                    refresh();
+                }
+                else{
+                    String deleted = deleteLastChar();
+                    nowChSaved = '*';
+                    currentCandidate = 0;
+                    textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
+                    autoKeyboard.resetLayout();
+                    autoKeyboard.drawLayout();
+                    predict(currentWord);
+                    refresh();
+                }
+            }catch (RemoteException e){
+            }
+            return;
+        }
+        String deleted = deleteLastChar();
+        nowChSaved = '*';
+        currentCandidate = 0;
+        textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
+        autoKeyboard.resetLayout();
+        autoKeyboard.drawLayout();
+    }
+
     public boolean onTouchEvent(MotionEvent event){
         int[] location = new int[2];
         keyboard.getLocationOnScreen(location);
@@ -1411,14 +1560,9 @@ public class MainActivity extends AppCompatActivity {
                             stopInput();
                             if (confirmMode == CONFIRM_MODE_UP) {
                                 if (checkLeftwipe(x, y, tempTime)) {
-                                    String deleted = deleteLastChar();
-                                    write("leftwipe");
-                                    currentCandidate = 0;
-                                    textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
-                                    autoKeyboard.resetLayout();
-                                    autoKeyboard.drawLayout();
+                                    actionLeftwipe();
                                 } else if (checkRightwipe(x, y, tempTime)) {
-                                    confirmWord();
+                                    actionRightwipe();
                                 } else if (checkUpwipe(x, y, tempTime)) {
                                     if (currentCandidate > 0)
                                         --currentCandidate;
@@ -1450,15 +1594,9 @@ public class MainActivity extends AppCompatActivity {
                             }
                             else{
                                 if (checkLeftwipe(x, y, tempTime)) {
-                                    String deleted = deleteLastChar();
-                                    write("leftwipe");
-                                    nowChSaved = '*';
-                                    currentCandidate = 0;
-                                    textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
-                                    autoKeyboard.resetLayout();
-                                    autoKeyboard.drawLayout();
+                                    actionLeftwipe();
                                 } else if (checkRightwipe(x, y, tempTime)) {
-                                    confirmWord();
+                                    actionRightwipe();
                                 } else if (checkUpwipe(x, y, tempTime)) {
                                     if (currentCandidate > 0)
                                         --currentCandidate;
