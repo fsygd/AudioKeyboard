@@ -70,10 +70,6 @@
         android:orderInCategory="100"
         android:title="keyboardHeight:500"/>
     <item
-        android:id="@+id/deltaY"
-        android:orderInCategory="100"
-        android:title="deltaY:100"/>
-    <item
         android:id="@+id/topThreshold"
         android:orderInCategory="100"
         android:title="topThreshold:0"/>
