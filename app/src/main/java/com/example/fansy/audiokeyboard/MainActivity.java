@@ -2246,8 +2246,8 @@ public class MainActivity extends AppCompatActivity {
                             this.keys[i].test_height = this.keys[i].init_height;
                         }
                         for (int i = Q; i <= P; i++) {
-                            this.keys[i].test_height =this.keys[A].getTop(TEST_LAYOUT);
-                            this.keys[i].test_y = this.keys[i].test_height/2;
+                            this.keys[i].test_height =this.keys[A].getTop(TEST_LAYOUT)-topThreshold;
+                            this.keys[i].test_y =topThreshold+this.keys[i].test_height/2;
                         }
                     }else // the third line
                         for (int i = SHIFT; i <= PERIOD; i++) {
@@ -2255,8 +2255,8 @@ public class MainActivity extends AppCompatActivity {
                             this.keys[i].test_height = this.keys[i].init_height;
                         }
                     for (int i = Q; i <= P; i++) {
-                        this.keys[i].test_height = this.keys[SHIFT].getTop(TEST_LAYOUT)/2;
-                        this.keys[i].test_y =this.keys[i].test_height / 2;
+                        this.keys[i].test_height = (this.keys[SHIFT].getTop(TEST_LAYOUT)-topThreshold)/2;
+                        this.keys[i].test_y =topThreshold+keys[i].test_height / 2;
                     }
                     for (int i = A; i <= L; i++) {
                         this.keys[i].test_height = this.keys[Q].test_height;
