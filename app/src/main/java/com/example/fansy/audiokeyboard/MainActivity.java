@@ -2744,7 +2744,7 @@ public class MainActivity extends AppCompatActivity {
             this.keys[16].ch='j';
             this.keys[17].ch='k';
             this.keys[18].ch='l';
-            this.keys[19].ch=backspaceCh;
+            this.keys[19].ch=shiftCh;
             this.keys[20].ch='z';
             this.keys[21].ch='x';
             this.keys[22].ch='c';
@@ -3076,6 +3076,8 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }case R.id.default_keyboard:{
                 autoKeyboard.defaultPara();
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
                 break;
             }
             default:

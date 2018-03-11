@@ -4,7 +4,6 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/AudioKeyboard.iml" filepath="$PROJECT_DIR$/AudioKeyboard.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://C:\Users\WangTong\Documents\GitHub\AudioKeyboard\app\app.iml" filepath="C:\Users\WangTong\Documents\GitHub\AudioKeyboard\app\app.iml" />
     </modules>
   </component>
 </project>
