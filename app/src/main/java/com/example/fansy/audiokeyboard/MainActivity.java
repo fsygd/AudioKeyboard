@@ -98,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     final int RECORD_MODE_STOPED = 1;
     int recordMode = RECORD_MODE_STOPED;
 
-    int SD_coefficient = 5;
+    int SD_coefficient = 6;
 
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, elapsedTimeText;
@@ -772,7 +772,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    final int DICT_SIZE[] = {50000, 38991, 65105};
+    final int DICT_SIZE[] = {50000, 49588, 65105};
     //read dict from file
     public void initDict(){
         Log.i("init", "start loading dict_eng");
@@ -1213,6 +1213,7 @@ public class MainActivity extends AppCompatActivity {
             letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
         }
         Collections.sort(letters);
+        Log.i("fsy", "most:" + letters.get(0).text.charAt(0) + "");
         return letters.get(0).text.charAt(0);
     }
 
@@ -1404,20 +1405,44 @@ public class MainActivity extends AppCompatActivity {
         }catch (RemoteException e){
 
         }*/
+        /*try{
+            int temp = mIPinyinDecoderService.imGetPredictsNum("你好");
+            Log.i("fsy",  + temp + "");
+            List<String> list = mIPinyinDecoderService.imGetPredictList(0, temp);
+            for (int i = 0; i < 5; ++i)
+                Log.i("fsy", list.get(i));
+        }catch (RemoteException e){
+
+        }*/
         if (currentCandidate < candidates.size()) {
             write("rightwipe");
             if (languageMode == LANG_MODE_CHN){
                 String delta = candidates.get(currentCandidate).alias;
                 textToSpeech.speak("确认输入 " + delta, textToSpeech.QUEUE_ADD, null);
                 try {
-                    int temp = mIPinyinDecoderService.imChoose(currentCandidate);
+                    int temp;
+                    if (currentWord.length() == 0)
+                        temp = 1;
+                    else
+                        temp = mIPinyinDecoderService.imChoose(currentCandidate);
                     if (temp == 1){
-                        currentInput += mIPinyinDecoderService.imGetChoice(0);
+                        if (currentWord.length() == 0)
+                            currentInput += delta;
+                        else
+                            currentInput += mIPinyinDecoderService.imGetChoice(0);
                         currentWord = "";
                         currentBaseline = "";
                         mIPinyinDecoderService.imResetSearch();
-                        predict(currentWord);
+                        //predict(currentWord);
+                        //add
+                        int len = mIPinyinDecoderService.imGetPredictsNum(delta);
+                        List<String> templist = mIPinyinDecoderService.imGetPredictList(0, len);
+                        candidates.clear();
+                        for (int i = 0; i < len; ++i)
+                            candidates.add(new Word(templist.get(i), 0));
+                        currentCandidate = 0;
                         refresh();
+                        return;
                     }
                 }catch (RemoteException e){
 
@@ -1451,6 +1476,7 @@ public class MainActivity extends AppCompatActivity {
                 if (mIPinyinDecoderService.imGetFixedLen() > 0){
                     nowChSaved = '*';
                     currentCandidate = 0;
+                    textToSpeech.speak("删除", TextToSpeech.QUEUE_ADD, null);
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
                     mIPinyinDecoderService.imCancelLastChoice();
@@ -1980,10 +2006,10 @@ public class MainActivity extends AppCompatActivity {
             keyboardHeight=680;
             keyboardWidth=1440;
             deltaY=0;
-            topThreshold=0;
+            topThreshold=-180;
             bottomThreshold=750;
             minWidth=72;
-            minHetight=110;
+            minHetight=120;
             scalingNum=3;
             try_layout_mode=RESPECTIVELY_MOVEMENT;
             getKey_mode=LOOSE_MODE;
@@ -2923,15 +2949,15 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
             case R.id.SDPlusItem:{
-                SD_coefficient += 5;
+                SD_coefficient += 1;
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 refresh();
                 break;
             }
             case R.id.SDMinusItem:{
-                if (SD_coefficient > 5)
-                    SD_coefficient -= 5;
+                if (SD_coefficient > 1)
+                    SD_coefficient -= 1;
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 refresh();
