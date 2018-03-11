@@ -1269,6 +1269,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onGlobalLayout() {
                 keyboard.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                autoKeyboard.getScreenSizeRatio();
+                autoKeyboard.defaultPara();
+                autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
             }
         });
@@ -2023,7 +2026,7 @@ public class MainActivity extends AppCompatActivity {
         void defaultPara(){// set the parameters to default value
             keyboardHeight=800*screen_height_ratio;
             keyboardWidth=1440*screen_width_ratio;
-            topThreshold=0*this.screen_height_ratio;
+            topThreshold=0*screen_height_ratio;
             bottomThreshold=907*screen_height_ratio;
             minWidth=90*screen_width_ratio;
             minHetight=110*screen_height_ratio;
@@ -2653,6 +2656,7 @@ public class MainActivity extends AppCompatActivity {
                     this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x+this.location[0],this.keys[i].curr_y+this.location[1]-fonttop/2-fontbottom/2,this.textPaint);
                 }
                 // SHIFT
+                /*
                 float shiftX=keys[SHIFT].curr_x+this.location[0];
                 float shiftY=keys[SHIFT].curr_y+this.location[1];
                 float shiftH=keys[SHIFT].curr_height;
@@ -2703,7 +2707,10 @@ public class MainActivity extends AppCompatActivity {
                 this.canvas.drawLine(backspaceD[0],backspaceD[1],backspaceF[0],backspaceF[1],textPaint);
                 this.canvas.drawLine(backspaceE[0],backspaceE[1],backspaceG[0],backspaceG[1],textPaint);
                 this.canvas.drawLine(backspaceF[0],backspaceF[1],backspaceG[0],backspaceG[1],textPaint);
+                */
+
                 this.keyboard.setImageBitmap(this.baseBitmap);
+
             }else{
                 this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
                 this.keyboard.setImageBitmap(this.baseBitmap);
@@ -2711,6 +2718,7 @@ public class MainActivity extends AppCompatActivity {
 
         }
         public void resetLayout(){
+
             if(this.keys==null){
                 this.keys=new KEY[KEYNUM];
                 for (int i=0;i<KEYNUM;i++){
@@ -2756,11 +2764,11 @@ public class MainActivity extends AppCompatActivity {
                 this.keys[i].init_y=this.keyboardHeight/8+(this.bottomThreshold-this.keyboardHeight);
             }
             for (int i=A;i<=L;i++){
-                this.keys[i].init_x=(this.keys[i-10].init_x+this.keys[i-9].init_x)/2;
+                this.keys[i].init_x=(this.keys[i-(A-Q)].init_x+this.keys[i-(A-W)].init_x)/2;
                 this.keys[i].init_y=this.keyboardHeight*3/8+(this.bottomThreshold-this.keyboardHeight);
             }
             for (int i=Z;i<=M;i++){
-                this.keys[i].init_x=this.keys[i-9].init_x;
+                this.keys[i].init_x=this.keys[i-(Z-S)].init_x;
                 this.keys[i].init_y=this.keyboardHeight*5/8+(this.bottomThreshold-this.keyboardHeight);
             }
             for (int i:allLetter) {
