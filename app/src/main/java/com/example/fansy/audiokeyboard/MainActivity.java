@@ -1264,15 +1264,11 @@ public class MainActivity extends AppCompatActivity {
         listView=(ListView)findViewById(R.id.list_view);
         listView.setVisibility(View.GONE);
         ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
-        autoKeyboard=new AutoKeyboard(keyboard);
         vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
                 keyboard.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                autoKeyboard.getScreenSizeRatio();
-                autoKeyboard.defaultPara();
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
+                autoKeyboard=new AutoKeyboard(keyboard);
             }
         });
         initDict();
@@ -1783,13 +1779,15 @@ public class MainActivity extends AppCompatActivity {
         ImageView keyboard;
         Canvas canvas;
         Bitmap baseBitmap;
-        Paint backgroundPaint,textPaint,boundPaint;
+        Paint backgroundPaint,textPaint,boundPaint,movePaint;
         boolean Visibility=true;
         float screen_width_ratio = 1F;
         float screen_height_ratio = 1F;
         //Fuzzy Input Test Var
         float keyboardHeight;// the height of the keyboard
         float keyboardWidth;// the width of the keyboard
+        float baseImageWidth;
+        float baseImageHeight;
         float topThreshold;// the upper bound
         float bottomThreshold;// the lower bound
         float minWidth;// the minimum width of a key
@@ -2135,10 +2133,14 @@ public class MainActivity extends AppCompatActivity {
             return this.keys[P].getRight(mode);
         }
         void getScreenSizeRatio(){
+            this.screen_width_ratio = keyboard.getWidth()/1440F;
+            this.screen_height_ratio = keyboard.getHeight()/907F;
+            /*
             DisplayMetrics metrics =new DisplayMetrics();
             getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
             this.screen_width_ratio = metrics.widthPixels/1440F;
             this.screen_height_ratio = metrics.heightPixels/2560F;
+            */
         }
         boolean inKeyboard(float x,float y, int mode){
             return x>=getLeft(mode)&&x<=getRight(mode)&&y>=getTop(mode)&&y<=getBottom(mode);
@@ -2627,10 +2629,6 @@ public class MainActivity extends AppCompatActivity {
 
         public void drawLayout(){ // curr_x,curr_y
             if(Visibility){
-                float left=this.location[0]+getLeft(CURR_LAYOUT);
-                float top=this.location[1]+getTop(CURR_LAYOUT);
-                float right=this.location[0]+getRight(CURR_LAYOUT);
-                float bottom=this.location[1]+getBottom(CURR_LAYOUT);
                 this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
                 this.canvas=new Canvas(this.baseBitmap);
                 //RectF rect = new RectF(left, top, right, bottom);
@@ -2639,22 +2637,29 @@ public class MainActivity extends AppCompatActivity {
                 Paint.FontMetrics fontMetrics = this.textPaint.getFontMetrics();
                 float fonttop = fontMetrics.top;//为基线到字体上边框的距离
                 float fontbottom = fontMetrics.bottom;//为基线到字体下边框的距离
-                // 画上边界
-                RectF upperBoundRect = new RectF(0,0,this.keys[P].getRight(CURR_LAYOUT),this.keys[P].getTop(CURR_LAYOUT));
+                // 画底图上边界
+                RectF upperBoundRect = new RectF(0,0,keyboardWidth,topThreshold);
                 this.canvas.drawRect(upperBoundRect,this.boundPaint);
-
+                // 画上可移动边界
+                RectF upperMoveBoundRect = new RectF(0,topThreshold,keyboardWidth,keys[P].getTop(CURR_LAYOUT));
+                this.canvas.drawRect(upperMoveBoundRect,this.movePaint);
+                // 画下可移动边界
+                RectF lowerMoveBound = new RectF(0,this.keys[SYMBOL].getBottom(CURR_LAYOUT),keyboardWidth,bottomThreshold);
+                this.canvas.drawRect(lowerMoveBound,this.movePaint);
                 // 画下边界
-                RectF lowerBound = new RectF(this.keys[SYMBOL].getLeft(CURR_LAYOUT),this.keys[SYMBOL].getBottom(CURR_LAYOUT),keyboardWidth,bottomThreshold);
+                RectF lowerBound = new RectF(0,bottomThreshold,keyboardWidth,baseImageHeight);
                 this.canvas.drawRect(lowerBound,this.boundPaint);
+
                 // 画边框
                 for (int i=0;i<KEYNUM;i++){
-                    RectF rect = new RectF(this.keys[i].getLeft(CURR_LAYOUT)+5,this.keys[i].getTop(CURR_LAYOUT)+10,this.keys[i].getRight(CURR_LAYOUT)-5,this.keys[i].getBottom(CURR_LAYOUT)-10);
+                    RectF rect = new RectF(this.keys[i].getLeft(CURR_LAYOUT)+5*screen_width_ratio,this.keys[i].getTop(CURR_LAYOUT)+10*screen_height_ratio,this.keys[i].getRight(CURR_LAYOUT)-5*screen_width_ratio,this.keys[i].getBottom(CURR_LAYOUT)-10*screen_height_ratio);
                     this.canvas.drawRoundRect(rect,10,10,this.backgroundPaint);
                 }
                 // 画A-Z
                 for (int i:allLetter){
-                    this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x+this.location[0],this.keys[i].curr_y+this.location[1]-fonttop/2-fontbottom/2,this.textPaint);
+                    this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x,this.keys[i].curr_y-fonttop/2-fontbottom/2,this.textPaint);
                 }
+
                 // SHIFT
                 /*
                 float shiftX=keys[SHIFT].curr_x+this.location[0];
@@ -2821,10 +2826,17 @@ public class MainActivity extends AppCompatActivity {
                 this.keys[i].reset();
             }
         }
-
         public AutoKeyboard(ImageView keyBoard){
+            this.keyboard=keyBoard;
             getScreenSizeRatio();
             defaultPara();
+            this.location=new int[2];
+            this.keyboard.getLocationOnScreen(this.location);
+            this.keyPos=new int[]{10,24,22,12,2,13,14,15,7,16,17,18,26,25,8,9,0,3,11,4,6,23,1,21,5,20};// A-Z to the position in the keyboard
+            this.keys=new KEY[KEYNUM];
+            for (int i=0;i<KEYNUM;i++){
+                this.keys[i]=new KEY();
+            }
             this.backgroundPaint=new Paint();
             this.backgroundPaint.setColor(Color.rgb(239,239,239));
             this.backgroundPaint.setStrokeJoin(Paint.Join.ROUND);
@@ -2848,20 +2860,16 @@ public class MainActivity extends AppCompatActivity {
             this.boundPaint.setStrokeCap(Paint.Cap.ROUND);
             this.boundPaint.setStrokeWidth(3);
 
+            this.movePaint=new Paint();
+            this.movePaint.setColor(Color.rgb(255,201,14));
+            this.movePaint.setStrokeJoin(Paint.Join.ROUND);
+            this.movePaint.setStrokeCap(Paint.Cap.ROUND);
+            this.movePaint.setStrokeWidth(3);
 
-
-
-
-            this.keyboard=keyBoard;
-
-            this.location=new int[2];
-            this.keyboard.getLocationOnScreen(this.location);
-            this.keyPos=new int[]{10,24,22,12,2,13,14,15,7,16,17,18,26,25,8,9,0,3,11,4,6,23,1,21,5,20};// A-Z to the position in the keyboard
-            this.keys=new KEY[KEYNUM];
-            for (int i=0;i<KEYNUM;i++){
-                this.keys[i]=new KEY();
-            }
+            baseImageHeight=keyboard.getHeight();
+            baseImageWidth=keyboard.getWidth();
             this.resetLayout();
+            this.drawLayout();
         }
     }
     @Override
@@ -3037,7 +3045,7 @@ public class MainActivity extends AppCompatActivity {
                 autoKeyboard.drawLayout();
                 break;
             }case R.id.bottomThreshold:{
-                autoKeyboard.bottomThreshold=(autoKeyboard.bottomThreshold-900+5)%50+900;
+                autoKeyboard.bottomThreshold=(autoKeyboard.bottomThreshold-900+5)%50+800;
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
