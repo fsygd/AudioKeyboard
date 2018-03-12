@@ -18,13 +18,9 @@
         android:orderInCategory="100"
         android:title="upVoiceMode:YES"/>
     <item
-        android:id="@+id/SDPlusItem"
+        android:id="@+id/SDItem"
         android:orderInCategory="100"
-        android:title="SDPlus:10"/>
-    <item
-        android:id="@+id/SDMinusItem"
-        android:orderInCategory="100"
-        android:title="SDMinus:10"/>
+        android:title="SD:10"/>
     <item
         android:id="@+id/fuzzyInputTestBegin"
         android:orderInCategory="100"
@@ -78,17 +74,17 @@
         android:orderInCategory="100"
         android:title="bottomThreshold:900"/>
     <item
-        android:id="@+id/minWidth"
+        android:id="@+id/minWidthRatio"
         android:orderInCategory="100"
-        android:title="minWidth:72"/>
+        android:title="minWidthRatio:50%"/>
     <item
-        android:id="@+id/minHetight"
+        android:id="@+id/minHeightRatio"
         android:orderInCategory="100"
-        android:title="minHetight:110"/>
+        android:title="minHetight:50%"/>
     <item
-        android:id="@+id/tap_range"
+        android:id="@+id/tapRange"
         android:orderInCategory="100"
-        android:title="tap range:0.8"/>
+        android:title="tap range:80%"/>
 
 
     <item

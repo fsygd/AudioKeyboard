@@ -37,6 +37,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -103,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, elapsedTimeText;
     Button confirmButton, initModeButton, speedpButton, speedmButton;
-    Menu menu;
     String currentInput = "";
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
@@ -111,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
     char nowCh = 0; //the most possible char
     char nowChSaved = 0; // for double click
     char nowChBaselineSaved = 0;
-    char delete_key='<';
+
     ArrayList<Word> dict_eng = new ArrayList<>();
     ArrayList<Word> dict_chn = new ArrayList<>();
     ArrayList<Word> dict_chn_pinyin = new ArrayList<>();
@@ -154,7 +154,10 @@ public class MainActivity extends AppCompatActivity {
     String DataToSave;//记录每一次触摸事件的准确数据
     String DataToShowAndSave;//计算出概率
     String DataTouchModel;
+
+
     //Fuzzy Input test Var
+
     class Data{
         char target;
         char actual;
@@ -309,7 +312,7 @@ public class MainActivity extends AppCompatActivity {
         playMedia("google",fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
         String nextChar=String.valueOf((char)('A'+fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
         fuzzyInputTestCharShow.setText(String.valueOf(fuzzyInputTestTurn)+" "+nextChar);
-        progressBar.setProgress(fuzzyInputTestTurn*100/MAX_FUZZY_INPUT_TURN);
+        progressBar.setProgress((fuzzyInputTestTurn*100)/MAX_FUZZY_INPUT_TURN);
         ifSave=false;
         ifCalDone=false;
         listView.setVisibility(View.GONE);
@@ -405,7 +408,7 @@ public class MainActivity extends AppCompatActivity {
                     playMedia("google",fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
                     String nextChar=String.valueOf((char)('A'+fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
                     fuzzyInputTestCharShow.setText(nextChar);
-                    progressBar.setProgress(fuzzyInputTestTurn*100/MAX_FUZZY_INPUT_TURN);
+                    progressBar.setProgress((fuzzyInputTestTurn*100)/MAX_FUZZY_INPUT_TURN);
                     ifSave=false;
                     ifCalDone=false;
                     listView.setVisibility(View.GONE);
@@ -425,7 +428,7 @@ public class MainActivity extends AppCompatActivity {
             playMedia("google",fuzzyInputTestList.get(fuzzyInputTestTurn%26),false);
             String nextChar=String.valueOf((char)('A'+fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
             fuzzyInputTestCharShow.setText(nextChar);
-            progressBar.setProgress(fuzzyInputTestTurn*100/MAX_FUZZY_INPUT_TURN);
+            progressBar.setProgress((fuzzyInputTestTurn*100)/MAX_FUZZY_INPUT_TURN);
             ifSave=false;
             ifCalDone=false;
             listView.setVisibility(View.GONE);
@@ -1145,7 +1148,7 @@ public class MainActivity extends AppCompatActivity {
                         playMedia("google", fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
                         String nextChar = String.valueOf((char) ('A' + fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
                         fuzzyInputTestCharShow.setText(String.valueOf(fuzzyInputTestTurn)+" "+nextChar);
-                        progressBar.setProgress(fuzzyInputTestTurn * 100 / MAX_FUZZY_INPUT_TURN);
+                        progressBar.setProgress((fuzzyInputTestTurn * 100) / MAX_FUZZY_INPUT_TURN);
                         break;
                     }
                     default:
@@ -1249,6 +1252,10 @@ public class MainActivity extends AppCompatActivity {
         });
         keyboard = (ImageView)findViewById(R.id.keyboard);
         text = (TextView)findViewById(R.id.text);
+        seekBar=(SeekBar)findViewById(R.id.seekBar);
+        seekBar.setVisibility(View.GONE);
+        seekBarText=(TextView)findViewById(R.id.seekBarText);
+        seekBarText.setVisibility(View.GONE);
         elapsedTimeText = (TextView)findViewById(R.id.elapsedtime);
         candidatesView = (TextView)findViewById(R.id.candidates);
         confirmButton = (Button)findViewById(R.id.confirm_button);
@@ -1263,6 +1270,7 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setVisibility(View.GONE);
         listView=(ListView)findViewById(R.id.list_view);
         listView.setVisibility(View.GONE);
+
         ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
         vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -1275,7 +1283,7 @@ public class MainActivity extends AppCompatActivity {
         initVoice();
         initButtons();
         initKeyboard();
-
+        seekBarInit();
         //startPinyinDecoderService
         if (mIPinyinDecoderService == null) {
             Intent serviceIntent = new Intent();
@@ -1509,6 +1517,7 @@ public class MainActivity extends AppCompatActivity {
         keyboard.getLocationOnScreen(location);
         int x = (int)event.getX();
         int y = (int)event.getY();
+        HideSeekBar(event);
         switch(activity_mode){
             case KEYBOARD_MODE:{
                 if (event.getPointerCount() == 2){
@@ -1729,7 +1738,7 @@ public class MainActivity extends AppCompatActivity {
                             playMedia("google", fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
                             String nextChar = String.valueOf((char) ('A' + fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
                             fuzzyInputTestCharShow.setText(String.valueOf(fuzzyInputTestTurn)+" "+nextChar);
-                            progressBar.setProgress(fuzzyInputTestTurn * 100 / MAX_FUZZY_INPUT_TURN);
+                            progressBar.setProgress((fuzzyInputTestTurn * 100 )/ MAX_FUZZY_INPUT_TURN);
                             break;
                         }
                         default:
@@ -1790,8 +1799,8 @@ public class MainActivity extends AppCompatActivity {
         float baseImageHeight;
         float topThreshold;// the upper bound
         float bottomThreshold;// the lower bound
-        float minWidth;// the minimum width of a key
-        float minHetight;// the minimum height of a key
+        float minWidthRatio;// the minimum width of a key
+        float minHeightRatio;// the minimum height of a key
         int keyPos[];// the position of each key
         int[] location;// the coordinate of the left top corner of the keyboard
         int[] allLetter={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,21,22,23,24,25,26};
@@ -1838,16 +1847,12 @@ public class MainActivity extends AppCompatActivity {
         final int MIDDLE=1;
         final int BOTTOM=2;
         int scalingMode;// LINEAR_MODE EXPONENT_MODE
-        double[] exponent_array={0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5};
-        int exponent_index;
-        float exponent;//
+        float exponent;// 0.05 ~ 0.5
         int scalingNum;// left and shift scaling number of keys
         int try_layout_mode;// BODILY_MOVEMENT RESPECTIVELY_MOVEMENT
         int getKey_mode;// STRICT_MODE LOOSE_MODE
-        double[] tap_range_array={0.95,0.90,0.85,0.80,0.75,0.70,0.65,0.60,0.55,0.50};
         float[][][] expRatio=new float[6][3][6];//scalingNum,Line,index
-        int tap_range_index;
-        float tap_range;
+        float tapRange;// 0.5 ~ 1
         class KEY{
             char ch;
             float init_x;
@@ -1879,44 +1884,44 @@ public class MainActivity extends AppCompatActivity {
                 // mode==0 init_layout
                 // mode==1 current_layout
                 if(mode==INIT_LAYOUT){
-                    return init_y+init_height/2;
+                    return init_y+init_height/2F;
                 }else if(mode==CURR_LAYOUT){
-                    return curr_y+curr_height/2;
+                    return curr_y+curr_height/2F;
                 }else{
-                    return test_y+test_height/2;
+                    return test_y+test_height/2F;
                 }
             }
             float getTop(int mode){
                 // mode==0 init_layout
                 // mode==1 current_layout
                 if(mode==INIT_LAYOUT){
-                    return init_y-init_height/2;
+                    return init_y-init_height/2F;
                 }else if(mode==CURR_LAYOUT){
-                    return curr_y-curr_height/2;
+                    return curr_y-curr_height/2F;
                 }else{
-                    return test_y-test_height/2;
+                    return test_y-test_height/2F;
                 }
             }
             float getLeft(int mode){
                 // mode==0 init_layout
                 // mode==1 current_layout
                 if(mode==INIT_LAYOUT){
-                    return init_x-init_width/2;
+                    return init_x-init_width/2F;
                 }else if(mode==CURR_LAYOUT){
-                    return curr_x-curr_width/2;
+                    return curr_x-curr_width/2F;
                 }else{
-                    return test_x-test_width/2;
+                    return test_x-test_width/2F;
                 }
             }
             float getRight(int mode){
                 // mode==0 init_layout
                 // mode==1 current_layout
                 if(mode==INIT_LAYOUT){
-                    return init_x+init_width/2;
+                    return init_x+init_width/2F;
                 }else if(mode==CURR_LAYOUT){
-                    return curr_x+curr_width/2;
+                    return curr_x+curr_width/2F;
                 }else{
-                    return test_x+test_width/2;
+                    return test_x+test_width/2F;
                 }
             }
             boolean contain(float x,float y,int mode){
@@ -1956,44 +1961,44 @@ public class MainActivity extends AppCompatActivity {
                 // mode==0 init_layout
                 // mode==1 current_layout
                 if(mode==INIT_LAYOUT){
-                    return init_y+init_height*tap_range/2;
+                    return init_y+init_height*tapRange/2F;
                 }else if(mode==CURR_LAYOUT){
-                    return curr_y+curr_height*tap_range/2;
+                    return curr_y+curr_height*tapRange/2F;
                 }else{
-                    return test_y+test_height*tap_range/2;
+                    return test_y+test_height*tapRange/2F;
                 }
             }
             float getTop_tap(int mode){
                 // mode==0 init_layout
                 // mode==1 current_layout
                 if(mode==INIT_LAYOUT){
-                    return init_y-init_height*tap_range/2;
+                    return init_y-init_height*tapRange/2F;
                 }else if(mode==CURR_LAYOUT){
-                    return curr_y-curr_height*tap_range/2;
+                    return curr_y-curr_height*tapRange/2F;
                 }else{
-                    return test_y-test_height*tap_range/2;
+                    return test_y-test_height*tapRange/2F;
                 }
             }
             float getLeft_tap(int mode){
                 // mode==0 init_layout
                 // mode==1 current_layout
                 if(mode==INIT_LAYOUT){
-                    return init_x-init_width*tap_range/2;
+                    return init_x-init_width*tapRange/2F;
                 }else if(mode==CURR_LAYOUT){
-                    return curr_x-curr_width*tap_range/2;
+                    return curr_x-curr_width*tapRange/2F;
                 }else{
-                    return test_x-test_width*tap_range/2;
+                    return test_x-test_width*tapRange/2F;
                 }
             }
             float getRight_tap(int mode){
                 // mode==0 init_layout
                 // mode==1 current_layout
                 if(mode==INIT_LAYOUT){
-                    return init_x+init_width*tap_range/2;
+                    return init_x+init_width*tapRange/2F;
                 }else if(mode==CURR_LAYOUT){
-                    return curr_x+curr_width*tap_range/2;
+                    return curr_x+curr_width*tapRange/2F;
                 }else{
-                    return test_x+test_width*tap_range/2;
+                    return test_x+test_width*tapRange/2F;
                 }
             }
             void reset(){
@@ -2026,16 +2031,14 @@ public class MainActivity extends AppCompatActivity {
             keyboardWidth=1440*screen_width_ratio;
             topThreshold=0*screen_height_ratio;
             bottomThreshold=907*screen_height_ratio;
-            minWidth=90*screen_width_ratio;
-            minHetight=110*screen_height_ratio;
+            minWidthRatio=1F/2F;
+            minHeightRatio=1F/2F;
             scalingNum=3;
             try_layout_mode=RESPECTIVELY_MOVEMENT;
             getKey_mode=LOOSE_MODE;
-            tap_range_index=3;
-            tap_range=(float)tap_range_array[tap_range_index];
+            tapRange=8F/10F;
             scalingMode=LINEAR_MODE;
-            exponent_index=1;
-            exponent=(float)exponent_array[exponent_index];
+            exponent=1F/10F;
             calExpRatio();
         }
         void calExpRatio(){
@@ -2069,8 +2072,8 @@ public class MainActivity extends AppCompatActivity {
             expRatio[SCALINGNUM_5][TOP][3]=e_1/(e_0+e_1+e_2+e_3+e_4);
             expRatio[SCALINGNUM_5][TOP][4]=e_0/(e_0+e_1+e_2+e_3+e_4);
 
-            expRatio[SCALINGNUM_1][MIDDLE][0]=(float)(2.0/3.0);
-            expRatio[SCALINGNUM_1][MIDDLE][1]=(float)(1.0/3.0);
+            expRatio[SCALINGNUM_1][MIDDLE][0]=2F/3F;
+            expRatio[SCALINGNUM_1][MIDDLE][1]=1F/3F;
 
             expRatio[SCALINGNUM_2][MIDDLE][0]=e_1/(e_0+e_1+e_0/2);
             expRatio[SCALINGNUM_2][MIDDLE][1]=e_0/(e_0+e_1+e_0/2);
@@ -2094,8 +2097,8 @@ public class MainActivity extends AppCompatActivity {
             expRatio[SCALINGNUM_5][MIDDLE][4]=e_0/(e_0+e_1+e_2+e_3+e_4+e_0/2);
             expRatio[SCALINGNUM_5][MIDDLE][5]=e_0/2/(e_0+e_1+e_2+e_3+e_4+e_0/2);
 
-            expRatio[SCALINGNUM_1][BOTTOM][0]=(float)(2.0/3.0);
-            expRatio[SCALINGNUM_1][BOTTOM][1]=(float)(1.0/3.0);
+            expRatio[SCALINGNUM_1][BOTTOM][0]=2F/3F;
+            expRatio[SCALINGNUM_1][BOTTOM][1]=1F/3F;
 
             expRatio[SCALINGNUM_2][BOTTOM][0]=e_1/(e_0+e_1+e_0*3/2);
             expRatio[SCALINGNUM_2][BOTTOM][1]=e_0/(e_0+e_1+e_0*3/2);
@@ -2198,7 +2201,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         for(int i=SYMBOL;i<=PERIOD;i++){
                             this.keys[i].test_height=bottomThreshold-this.keys[SHIFT].getBottom(TEST_LAYOUT);
-                            this.keys[i].test_y=this.keys[SHIFT].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2;
+                            this.keys[i].test_y=this.keys[SHIFT].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2F;
 
                         }
                     }else if(pos>=A)// the second line
@@ -2208,12 +2211,12 @@ public class MainActivity extends AppCompatActivity {
                             this.keys[i].test_height = this.keys[i].init_height;
                         }
                         for(int i=SHIFT;i<=BACKSPACE;i++){
-                            this.keys[i].test_height=(bottomThreshold-this.keys[A].getBottom(TEST_LAYOUT))/2;
-                            this.keys[i].test_y=this.keys[A].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2;
+                            this.keys[i].test_height=(bottomThreshold-this.keys[A].getBottom(TEST_LAYOUT))/2F;
+                            this.keys[i].test_y=this.keys[A].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2F;
                         }
                         for(int i=SYMBOL;i<=PERIOD;i++){
                             this.keys[i].test_height=this.keys[SHIFT].test_height;
-                            this.keys[i].test_y=this.keys[Z].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2;
+                            this.keys[i].test_y=this.keys[Z].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2F;
                         }
                     }else // the first line
                     {
@@ -2222,16 +2225,16 @@ public class MainActivity extends AppCompatActivity {
                             this.keys[i].test_height = this.keys[i].init_height;
                         }
                         for(int i=A;i<=L;i++){
-                            this.keys[i].test_height=(bottomThreshold-this.keys[Q].getBottom(TEST_LAYOUT))/3;
-                            this.keys[i].test_y=this.keys[Q].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2;
+                            this.keys[i].test_height=(bottomThreshold-this.keys[Q].getBottom(TEST_LAYOUT))/3F;
+                            this.keys[i].test_y=this.keys[Q].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2F;
                         }
                         for(int i=SHIFT;i<=BACKSPACE;i++){
                             this.keys[i].test_height=this.keys[A].test_height;
-                            this.keys[i].test_y=this.keys[A].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2;
+                            this.keys[i].test_y=this.keys[A].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2F;
                         }
                         for(int i=SYMBOL;i<=PERIOD;i++){
                             this.keys[i].test_height=this.keys[SHIFT].test_height;
-                            this.keys[i].test_y=this.keys[SHIFT].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2;
+                            this.keys[i].test_y=this.keys[SHIFT].getBottom(TEST_LAYOUT)+this.keys[i].test_height/2F;
                         }
                     }
                 }
@@ -2252,7 +2255,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         for (int i = Q; i <= P; i++) {
                             this.keys[i].test_height =this.keys[A].getTop(TEST_LAYOUT)-topThreshold;
-                            this.keys[i].test_y =topThreshold+this.keys[i].test_height/2;
+                            this.keys[i].test_y =topThreshold+this.keys[i].test_height/2F;
                         }
                     }else // the third line
                         for (int i = SHIFT; i <= PERIOD; i++) {
@@ -2260,18 +2263,19 @@ public class MainActivity extends AppCompatActivity {
                             this.keys[i].test_height = this.keys[i].init_height;
                         }
                     for (int i = Q; i <= P; i++) {
-                        this.keys[i].test_height = (this.keys[SHIFT].getTop(TEST_LAYOUT)-topThreshold)/2;
-                        this.keys[i].test_y =topThreshold+keys[i].test_height / 2;
+                        this.keys[i].test_height = (this.keys[SHIFT].getTop(TEST_LAYOUT)-topThreshold)/2F;
+                        this.keys[i].test_y =topThreshold+keys[i].test_height / 2F;
                     }
                     for (int i = A; i <= L; i++) {
                         this.keys[i].test_height = this.keys[Q].test_height;
-                        this.keys[i].test_y =this.keys[Q].getBottom(TEST_LAYOUT)+this.keys[i].test_height / 2;
+                        this.keys[i].test_y =this.keys[Q].getBottom(TEST_LAYOUT)+this.keys[i].test_height / 2F;
                     }
                 }
             }
             // check the height of each key
+            float minHeight=minHeightRatio*(keyboardHeight/4F);
             for (int i=0;i<KEYNUM;i++){
-                if(this.keys[i].test_height<this.minHetight){
+                if(this.keys[i].test_height<minHeight){
                     return false;
                 }
             }
@@ -2334,18 +2338,18 @@ public class MainActivity extends AppCompatActivity {
                     for (int i=begin-1;i>=Q;i--){
                         int index=begin-1-i;
                         this.keys[i].test_width=leftLength*expRatio[leftScalingNum][TOP][index];
-                        this.keys[i].test_x=this.keys[i+1].getLeft(TEST_LAYOUT)-this.keys[i].test_width/2;
+                        this.keys[i].test_x=this.keys[i+1].getLeft(TEST_LAYOUT)-this.keys[i].test_width/2F;
                     }
                     for (int i=end+1;i<=P;i++){
                         int index=i-end-1;
                         this.keys[i].test_width=rightLength*expRatio[rightScalingNum][TOP][index];
-                        this.keys[i].test_x=this.keys[i-1].getRight(TEST_LAYOUT)+this.keys[i].test_width/2;
+                        this.keys[i].test_x=this.keys[i-1].getRight(TEST_LAYOUT)+this.keys[i].test_width/2F;
                     }
                 }
                 if(try_layout_mode==BODILY_MOVEMENT){// BODILY MOVEMENT
                     // match the second line
                     for (int i=A;i<=L;i++){
-                        this.keys[i].test_x=(this.keys[i-(A-Q)].test_x+this.keys[i-(A-W)].test_x)/2;
+                        this.keys[i].test_x=(this.keys[i-(A-Q)].test_x+this.keys[i-(A-W)].test_x)/2F;
                         this.keys[i].test_width=this.keys[i-(A-W)].test_x-this.keys[i-(A-Q)].test_x;
                     }
                     // match the third line
@@ -2405,17 +2409,17 @@ public class MainActivity extends AppCompatActivity {
                     for (int i=end+1;i<=L;i++){
                         int index=i-end-1;
                         this.keys[i].test_width=rightLength*expRatio[rightScalingNum][MIDDLE][index];
-                        this.keys[i].test_x=this.keys[i-1].getRight(TEST_LAYOUT)+this.keys[i].test_width/2;
+                        this.keys[i].test_x=this.keys[i-1].getRight(TEST_LAYOUT)+this.keys[i].test_width/2F;
                     }
                 }
                 if(try_layout_mode==BODILY_MOVEMENT) {// BODILY MOVEMENT
                     //  match the first line
-                    this.keys[Q].test_x = this.keys[A].test_x / 2;
+                    this.keys[Q].test_x = this.keys[A].test_x / 2F;
                     this.keys[Q].test_width = this.keys[A].test_x;
                     this.keys[P].test_width = this.keyboardWidth - this.keys[L].test_x;
-                    this.keys[P].test_x = this.keyboardWidth - this.keys[L].test_width / 2;
+                    this.keys[P].test_x = this.keyboardWidth - this.keys[L].test_width / 2F;
                     for (int i = W; i <=O ; i++) {
-                        this.keys[i].test_x = (this.keys[i + (A - W)].test_x + this.keys[i + (S - W)].test_x) / 2;
+                        this.keys[i].test_x = (this.keys[i + (A - W)].test_x + this.keys[i + (S - W)].test_x) / 2F;
                         this.keys[i].test_width = this.keys[i + (S - W)].test_x - this.keys[i + (A - W)].test_x;
                     }
                     // match the third line
@@ -2468,12 +2472,12 @@ public class MainActivity extends AppCompatActivity {
                     for (int i=begin-1;i>=SHIFT;i--){
                         int index=begin-1-i;
                         this.keys[i].test_width=leftLength*expRatio[leftScalingNum][BOTTOM][index];
-                        this.keys[i].test_x=this.keys[i+1].getLeft(TEST_LAYOUT)-this.keys[i].test_width/2;
+                        this.keys[i].test_x=this.keys[i+1].getLeft(TEST_LAYOUT)-this.keys[i].test_width/2F;
                     }
                     for (int i=end+1;i<=BACKSPACE;i++){
                         int index=i-end-1;
                         this.keys[i].test_width=rightLength*expRatio[leftScalingNum][BOTTOM][index];
-                        this.keys[i].test_x=this.keys[i-1].getRight(TEST_LAYOUT)+this.keys[i].test_width/2;
+                        this.keys[i].test_x=this.keys[i-1].getRight(TEST_LAYOUT)+this.keys[i].test_width/2F;
                     }
                 }
                 if(try_layout_mode==BODILY_MOVEMENT) {// BODILY MOVEMENT
@@ -2482,18 +2486,18 @@ public class MainActivity extends AppCompatActivity {
                         this.keys[i].test_x = this.keys[i + (Z - S)].test_x;
                         this.keys[i].test_width = this.keys[i + (Z - S)].test_width;
                     }
-                    this.keys[A].test_width = this.keys[S].getLeft(TEST_LAYOUT)*2/3;
+                    this.keys[A].test_width = this.keys[S].getLeft(TEST_LAYOUT)*2F/3F;
                     this.keys[A].test_x = this.keys[A].test_width;
-                    this.keys[L].test_width =(this.keyboardWidth - this.keys[K].getRight(TEST_LAYOUT))*2/3;
-                    this.keys[L].test_x = this.keys[K].getRight(TEST_LAYOUT)+this.keys[L].test_width/2;
+                    this.keys[L].test_width =(this.keyboardWidth - this.keys[K].getRight(TEST_LAYOUT))*2F/3F;
+                    this.keys[L].test_x = this.keys[K].getRight(TEST_LAYOUT)+this.keys[L].test_width/2F;
 
                     // match first line
-                    this.keys[Q].test_x = this.keys[A].test_x / 2;
+                    this.keys[Q].test_x = this.keys[A].test_x / 2F;
                     this.keys[Q].test_width = this.keys[A].test_x;
                     this.keys[P].test_width = this.keyboardWidth - this.keys[L].test_x;
-                    this.keys[P].test_x = this.keyboardWidth - this.keys[L].test_width / 2;
+                    this.keys[P].test_x = this.keyboardWidth - this.keys[L].test_width / 2F;
                     for (int i = W; i <= O; i++) {
-                        this.keys[i].test_x = (this.keys[i + (A - W)].test_x + this.keys[i + (S - W)].test_x) / 2;
+                        this.keys[i].test_x = (this.keys[i + (A - W)].test_x + this.keys[i + (S - W)].test_x) / 2F;
                         this.keys[i].test_width = this.keys[i + (S - W)].test_x - this.keys[i + (A - W)].test_x;
                     }
                 }else{// RESPECTIVELY MOVEMENT
@@ -2514,11 +2518,11 @@ public class MainActivity extends AppCompatActivity {
             if(try_layout_mode==BODILY_MOVEMENT) {// BODILY MOVEMENT
                 // SHIFT
                 this.keys[SHIFT].test_width = this.keys[Z].getLeft(TEST_LAYOUT);
-                this.keys[SHIFT].test_x = this.keys[SHIFT].test_width / 2;
+                this.keys[SHIFT].test_x = this.keys[SHIFT].test_width / 2F;
 
                 // BACKSPACE
                 this.keys[BACKSPACE].test_width = keyboardWidth - this.keys[M].getRight(TEST_LAYOUT);
-                this.keys[BACKSPACE].test_x = this.keys[M].getRight(TEST_LAYOUT) + this.keys[BACKSPACE].test_width / 2;
+                this.keys[BACKSPACE].test_x = this.keys[M].getRight(TEST_LAYOUT) + this.keys[BACKSPACE].test_width / 2F;
 
                 // match the fourth line
 
@@ -2528,7 +2532,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // LANGUAGE
                 this.keys[LANGUAGE].test_width = this.keys[X].test_x - this.keys[Z].getLeft(TEST_LAYOUT);
-                this.keys[LANGUAGE].test_x = this.keys[SYMBOL].getRight(TEST_LAYOUT) + this.keys[LANGUAGE].test_width / 2;
+                this.keys[LANGUAGE].test_x = this.keys[SYMBOL].getRight(TEST_LAYOUT) + this.keys[LANGUAGE].test_width / 2F;
 
                 // PERIOD
                 this.keys[PERIOD].test_width = this.keys[BACKSPACE].test_width;
@@ -2536,11 +2540,11 @@ public class MainActivity extends AppCompatActivity {
 
                 // COMMA
                 this.keys[COMMA].test_width = this.keys[M].getRight(TEST_LAYOUT) - this.keys[N].test_x;
-                this.keys[COMMA].test_x = this.keys[PERIOD].getLeft(TEST_LAYOUT) - this.keys[COMMA].test_width / 2;
+                this.keys[COMMA].test_x = this.keys[PERIOD].getLeft(TEST_LAYOUT) - this.keys[COMMA].test_width / 2F;
 
                 // SPACE
                 this.keys[SPACE].test_width = this.keys[COMMA].getLeft(TEST_LAYOUT) - this.keys[LANGUAGE].getRight(TEST_LAYOUT);
-                this.keys[SPACE].test_x = this.keys[LANGUAGE].getRight(TEST_LAYOUT) + this.keys[SPACE].test_width / 2;
+                this.keys[SPACE].test_x = this.keys[LANGUAGE].getRight(TEST_LAYOUT) + this.keys[SPACE].test_width / 2F;
             }else {// RESPECTIVELY MOVEMENT
                 // match the fourth line
                 for (int i = SYMBOL; i <= PERIOD; i++) {
@@ -2549,15 +2553,16 @@ public class MainActivity extends AppCompatActivity {
                 }
                 // SHIFT
                 this.keys[SHIFT].test_width = this.keys[Z].getLeft(TEST_LAYOUT);
-                this.keys[SHIFT].test_x = this.keys[SHIFT].test_width / 2;
+                this.keys[SHIFT].test_x = this.keys[SHIFT].test_width / 2F;
 
                 // BACKSPACE
                 this.keys[BACKSPACE].test_width = keyboardWidth - this.keys[M].getRight(TEST_LAYOUT);
-                this.keys[BACKSPACE].test_x = this.keys[M].getRight(TEST_LAYOUT) + this.keys[BACKSPACE].test_width / 2;
+                this.keys[BACKSPACE].test_x = this.keys[M].getRight(TEST_LAYOUT) + this.keys[BACKSPACE].test_width / 2F;
             }
             // check the width of each key
+            float minWidth=minWidthRatio*keyboardWidth/10F;
             for (int i=0;i<KEYNUM;i++){
-                if(this.keys[i].test_width<this.minWidth){
+                if(this.keys[i].test_width<minWidth){
                     return false;
                 }
             }
@@ -2657,7 +2662,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 // 画A-Z
                 for (int i:allLetter){
-                    this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x,this.keys[i].curr_y-fonttop/2-fontbottom/2,this.textPaint);
+                    this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x,this.keys[i].curr_y-fonttop/2F-fontbottom/2F,this.textPaint);
                 }
 
                 // SHIFT
@@ -2765,61 +2770,61 @@ public class MainActivity extends AppCompatActivity {
             this.keys[32].ch=periodCh;
 
             for (int i=Q;i<=P;i++){
-                this.keys[i].init_x=this.keyboardWidth*(2*i+1)/20;
-                this.keys[i].init_y=this.keyboardHeight/8+(this.bottomThreshold-this.keyboardHeight);
+                this.keys[i].init_x=this.keyboardWidth*(2*i+1)/20F;
+                this.keys[i].init_y=this.keyboardHeight/8F+(this.bottomThreshold-this.keyboardHeight);
             }
             for (int i=A;i<=L;i++){
-                this.keys[i].init_x=(this.keys[i-(A-Q)].init_x+this.keys[i-(A-W)].init_x)/2;
-                this.keys[i].init_y=this.keyboardHeight*3/8+(this.bottomThreshold-this.keyboardHeight);
+                this.keys[i].init_x=(this.keys[i-(A-Q)].init_x+this.keys[i-(A-W)].init_x)/2F;
+                this.keys[i].init_y=this.keyboardHeight*3F/8F+(this.bottomThreshold-this.keyboardHeight);
             }
             for (int i=Z;i<=M;i++){
                 this.keys[i].init_x=this.keys[i-(Z-S)].init_x;
-                this.keys[i].init_y=this.keyboardHeight*5/8+(this.bottomThreshold-this.keyboardHeight);
+                this.keys[i].init_y=this.keyboardHeight*5F/8F+(this.bottomThreshold-this.keyboardHeight);
             }
             for (int i:allLetter) {
-                this.keys[i].init_height=this.keyboardHeight/4;
-                this.keys[i].init_width=this.keyboardWidth/10;
+                this.keys[i].init_height=this.keyboardHeight/4F;
+                this.keys[i].init_width=this.keyboardWidth/10F;
             }
             // SHIFT
-            this.keys[SHIFT].init_height=this.keyboardHeight/4;
+            this.keys[SHIFT].init_height=this.keyboardHeight/4F;
             this.keys[SHIFT].init_width=this.keys[Z].getLeft(INIT_LAYOUT);
-            this.keys[SHIFT].init_x=this.keys[SHIFT].init_width/2;
+            this.keys[SHIFT].init_x=this.keys[SHIFT].init_width/2F;
             this.keys[SHIFT].init_y=this.keys[Z].init_y;
 
             // BACKSPACE
-            this.keys[BACKSPACE].init_height=this.keyboardHeight/4;
+            this.keys[BACKSPACE].init_height=this.keyboardHeight/4F;
             this.keys[BACKSPACE].init_width=this.keyboardWidth-this.keys[M].getRight(INIT_LAYOUT);
-            this.keys[BACKSPACE].init_x=this.keys[M].getRight(INIT_LAYOUT)+this.keys[BACKSPACE].init_width/2;
+            this.keys[BACKSPACE].init_x=this.keys[M].getRight(INIT_LAYOUT)+this.keys[BACKSPACE].init_width/2F;
             this.keys[BACKSPACE].init_y=this.keys[M].init_y;
 
             // SYMBOL
-            this.keys[SYMBOL].init_height=this.keyboardHeight/4;
+            this.keys[SYMBOL].init_height=this.keyboardHeight/4F;
             this.keys[SYMBOL].init_width=this.keys[SHIFT].init_width;
             this.keys[SYMBOL].init_x=this.keys[SHIFT].init_x;
-            this.keys[SYMBOL].init_y=this.keys[SHIFT].getBottom(INIT_LAYOUT)+this.keys[SYMBOL].init_height/2;
+            this.keys[SYMBOL].init_y=this.keys[SHIFT].getBottom(INIT_LAYOUT)+this.keys[SYMBOL].init_height/2F;
 
             // LANGUAGE
-            this.keys[LANGUAGE].init_height=this.keyboardHeight/4;
+            this.keys[LANGUAGE].init_height=this.keyboardHeight/4F;
             this.keys[LANGUAGE].init_width=this.keys[SYMBOL].init_width;
-            this.keys[LANGUAGE].init_x=this.keys[SYMBOL].getRight(INIT_LAYOUT)+this.keys[LANGUAGE].init_width/2;
+            this.keys[LANGUAGE].init_x=this.keys[SYMBOL].getRight(INIT_LAYOUT)+this.keys[LANGUAGE].init_width/2F;
             this.keys[LANGUAGE].init_y=this.keys[SYMBOL].init_y;
 
             // PERIOD
-            this.keys[PERIOD].init_height=this.keyboardHeight/4;
+            this.keys[PERIOD].init_height=this.keyboardHeight/4F;
             this.keys[PERIOD].init_width=this.keys[BACKSPACE].init_width;
             this.keys[PERIOD].init_x=this.keys[BACKSPACE].init_x;
             this.keys[PERIOD].init_y=this.keys[SYMBOL].init_y;
 
             // COMMA
-            this.keys[COMMA].init_height=this.keyboardHeight/4;
+            this.keys[COMMA].init_height=this.keyboardHeight/4F;
             this.keys[COMMA].init_width=this.keys[BACKSPACE].init_width;
-            this.keys[COMMA].init_x=this.keys[PERIOD].getLeft(INIT_LAYOUT)-this.keys[COMMA].init_width/2;
+            this.keys[COMMA].init_x=this.keys[PERIOD].getLeft(INIT_LAYOUT)-this.keys[COMMA].init_width/2F;
             this.keys[COMMA].init_y=this.keys[SYMBOL].init_y;
 
             // SPACE
-            this.keys[SPACE].init_height=this.keyboardHeight/4;
+            this.keys[SPACE].init_height=this.keyboardHeight/4F;
             this.keys[SPACE].init_width=this.keys[COMMA].getLeft(INIT_LAYOUT)-this.keys[LANGUAGE].getRight(INIT_LAYOUT);
-            this.keys[SPACE].init_x=this.keys[LANGUAGE].getRight(INIT_LAYOUT)+this.keys[SPACE].init_width/2;
+            this.keys[SPACE].init_x=this.keys[LANGUAGE].getRight(INIT_LAYOUT)+this.keys[SPACE].init_width/2F;
             this.keys[SPACE].init_y=this.keys[SYMBOL].init_y;
             // reset all the keys
             for (int i=0;i<KEYNUM;i++){
@@ -2870,6 +2875,135 @@ public class MainActivity extends AppCompatActivity {
             baseImageWidth=keyboard.getWidth();
             this.resetLayout();
             this.drawLayout();
+        }
+    }
+
+    // Menu var
+    // ---- edited by WangTong ----- 2018.3.11
+    Menu menu;
+    SeekBar seekBar;
+    TextView seekBarText;
+    enum MENUVAR{
+        SD,TESTTURN,EXPONENT,SCALINGNUM,KEYBOARDHEIGHT,TOPTHRESHOLD,BOTTOMTHRESHOLD,MINWIDTH,MINHEIGHT,TAPRANGE
+    }
+    MENUVAR currentMenuVar=MENUVAR.SD;
+
+    // Menu function
+    // ----- edited by WangTong ---- 2018.03.11
+    void seekBarInit(){
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float progressF=(float)(progress);
+                float ratio=progressF/100F;
+                // 当拖动条的滑块位置发生改变时触发该方法,在这里直接使用参数progress，即当前滑块代表的进度值
+                switch(currentMenuVar){
+                    case SD:{
+                        // max:20
+                        float SDMax=20F;
+                        float SDMin=1F;
+                        SD_coefficient =Math.round (ratio*(SDMax-SDMin)+SDMin);
+                        seekBarText.setText("SD:"+String.valueOf(SD_coefficient));
+                        refresh();
+                        break;
+                    }case TESTTURN:{// fuzzyInputTestTurn
+                        float TestTurnMax=8F;
+                        float TestTurnMin=1F;
+                        MAX_TURN = Math.round(ratio*(TestTurnMax-TestTurnMin)+TestTurnMin);
+                        seekBarText.setText("TestTurn:"+String.valueOf(MAX_TURN));
+                        MAX_FUZZY_INPUT_TURN=MAX_TURN*26;
+                        break;
+                    }case EXPONENT:{
+                        float expMax=1F/2F;
+                        float expMin=5F/100F;
+                        autoKeyboard.exponent=ratio*(expMax-expMin)+expMin;
+                        seekBarText.setText("Exponent:"+String.valueOf(autoKeyboard.exponent));
+                        autoKeyboard.calExpRatio();
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        break;
+                    }case MINWIDTH:{
+                        autoKeyboard.minWidthRatio=ratio;
+                        seekBarText.setText("minWidthRatio:"+String.valueOf(progress)+"%");
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        break;
+                    }case TAPRANGE:{
+                        autoKeyboard.tapRange=ratio;
+                        seekBarText.setText("tapRange:"+String.valueOf(progress)+"%");
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        break;
+                    }case MINHEIGHT:{
+                        autoKeyboard.minHeightRatio=ratio;
+                        seekBarText.setText("minHeightRatio:"+String.valueOf(progress)+"%");
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        break;
+                    }case SCALINGNUM:{
+                        float scalingNumMax=3F;
+                        float scalingNumMin=1F;
+                        autoKeyboard.scalingNum=Math.round(ratio*(scalingNumMax-scalingNumMin)+scalingNumMin);
+                        seekBarText.setText("scalingNum:"+String.valueOf(autoKeyboard.scalingNum));
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        break;
+                    }case TOPTHRESHOLD:{
+                        float topThresholdMax=autoKeyboard.bottomThreshold-autoKeyboard.keyboardHeight;
+                        float topThresholdMin=0;
+                        autoKeyboard.topThreshold=ratio*(topThresholdMax-topThresholdMin)+topThresholdMin;
+                        seekBarText.setText("topThreshold:"+String.valueOf(autoKeyboard.topThreshold));
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        break;
+                    }case KEYBOARDHEIGHT:{
+                        float keyBoardHeightMax=autoKeyboard.baseImageHeight;
+                        float keyBoardHeightMin=autoKeyboard.baseImageHeight/2F;
+                        autoKeyboard.keyboardHeight=ratio*(keyBoardHeightMax-keyBoardHeightMin)+keyBoardHeightMin;
+                        seekBarText.setText("keyboardHeight:"+String.valueOf(autoKeyboard.keyboardHeight));
+                        autoKeyboard.bottomThreshold=autoKeyboard.baseImageHeight;
+                        autoKeyboard.topThreshold=Math.min(autoKeyboard.topThreshold,autoKeyboard.bottomThreshold-autoKeyboard.keyboardHeight);
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        break;
+                    }case BOTTOMTHRESHOLD:{
+                        float bottomThresholdMax=autoKeyboard.baseImageHeight;
+                        float bottomThresholdMin=autoKeyboard.topThreshold+autoKeyboard.keyboardHeight;
+                        autoKeyboard.bottomThreshold=ratio*(bottomThresholdMax-bottomThresholdMin)+bottomThresholdMin;
+                        seekBarText.setText("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        break;
+                    }
+                }
+                // seekBarText.setText("Value:" + Integer.toString(progress));
+            }
+
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                Log.e("------------", "开始滑动！");
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                setMenuTitle();
+                Log.e("------------", "停止滑动！");
+            }
+        });
+    }
+    public void HideSeekBar(MotionEvent event) {
+        if(event.getActionMasked()==MotionEvent.ACTION_DOWN && seekBar.getVisibility()==View.VISIBLE) {
+            int[] leftTop = {0, 0};
+            seekBar.getLocationInWindow(leftTop);
+            int left = leftTop[0]-10, top = leftTop[1]-20, bottom = leftTop[1] + seekBar.getHeight()+20, right = leftTop[0]
+                    + seekBar.getWidth()+10;
+            if (event.getX() > left && event.getX() < right
+                    && event.getY() > top && event.getY() < bottom) {
+                // 保留seekBar
+            } else {
+                seekBar.setVisibility(View.GONE);
+                seekBarText.setVisibility(View.GONE);
+                setMenuTitle();
+            }
         }
     }
     @Override
@@ -2953,16 +3087,15 @@ public class MainActivity extends AppCompatActivity {
                 refresh();
                 break;
             }
-            case R.id.SDPlusItem:{
-                SD_coefficient += 1;
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-                refresh();
-                break;
-            }
-            case R.id.SDMinusItem:{
-                if (SD_coefficient > 1)
-                    SD_coefficient -= 1;
+            case R.id.SDItem:{
+                // SD MAX=20 , MIN=1
+                currentMenuVar=MENUVAR.SD;
+                float SDMax=20F;
+                float SDMin=1F;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                seekBarText.setText("SD:"+String.valueOf(SD_coefficient));
+                seekBar.setProgress(Math.round((SD_coefficient-SDMin)/(SDMax-SDMin)*100));
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 refresh();
@@ -2982,8 +3115,15 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
             case R.id.testTurnChange:{
+                // MAX=8
                 if(activity_mode==KEYBOARD_MODE){
-                    MAX_TURN=(MAX_TURN+1)%8+1;
+                    currentMenuVar=MENUVAR.TESTTURN;
+                    float TestTurnMax=8F;
+                    float TestTurnMin=1F;
+                    seekBar.setVisibility(View.VISIBLE);
+                    seekBarText.setVisibility(View.VISIBLE);
+                    seekBarText.setText("TestTurn:"+String.valueOf(MAX_TURN));
+                    seekBar.setProgress(Math.round((MAX_TURN-TestTurnMin)/(TestTurnMax-TestTurnMin)*100));
                     MAX_FUZZY_INPUT_TURN=MAX_TURN*26;
                 }
                 break;
@@ -3022,8 +3162,14 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
             case R.id.scalingNum:{
-                autoKeyboard.scalingNum=(autoKeyboard.scalingNum+1)%3+1;
-                Toast.makeText(this, "scalingNum="+String.valueOf(autoKeyboard.scalingNum), Toast.LENGTH_LONG).show();
+                currentMenuVar=MENUVAR.SCALINGNUM;
+                float scalingNumMax=3F;
+                float scalingNumMin=1F;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                seekBar.setProgress(Math.round((autoKeyboard.scalingNum-scalingNumMin)/(scalingNumMax-scalingNumMin)*100));
+                seekBarText.setText("scalingNum:"+String.valueOf(autoKeyboard.scalingNum));
+                //Toast.makeText(this, "scalingNum="+String.valueOf(autoKeyboard.scalingNum), Toast.LENGTH_LONG).show();
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
@@ -3040,33 +3186,65 @@ public class MainActivity extends AppCompatActivity {
                 autoKeyboard.drawLayout();
                 break;
             }case R.id.topThreshold:{
-                autoKeyboard.topThreshold=(autoKeyboard.topThreshold+5)%50;
+                currentMenuVar=MENUVAR.TOPTHRESHOLD;
+                float topThresholdMax=autoKeyboard.bottomThreshold-autoKeyboard.keyboardHeight;
+                float topThresholdMin=0F;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                seekBar.setProgress(Math.round((autoKeyboard.topThreshold-topThresholdMin)/(topThresholdMax-topThresholdMin)*100));
+                seekBarText.setText("topThreshold:"+String.valueOf(autoKeyboard.topThreshold));
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
             }case R.id.bottomThreshold:{
-                autoKeyboard.bottomThreshold=(autoKeyboard.bottomThreshold-900+5)%50+800;
+                currentMenuVar=MENUVAR.BOTTOMTHRESHOLD;
+                float bottomThresholdMax=autoKeyboard.baseImageHeight;
+                float bottomThresholdMin=autoKeyboard.topThreshold+autoKeyboard.keyboardHeight;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                seekBar.setProgress(Math.round((autoKeyboard.bottomThreshold-bottomThresholdMin)/(bottomThresholdMax-bottomThresholdMin)*100));
+                seekBarText.setText("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
-            }case R.id.minWidth:{
-                autoKeyboard.minWidth=(autoKeyboard.minWidth-30+3)%90+30;
+            }case R.id.minWidthRatio:{
+                currentMenuVar=MENUVAR.MINWIDTH;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                int progress = Math.min(100,Math.round(autoKeyboard.minWidthRatio*100));
+                seekBar.setProgress(progress);
+                seekBarText.setText("minWidthRatio:"+String.valueOf(progress)+"%");
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
-            }case R.id.minHetight:{
-                autoKeyboard.minHetight=(autoKeyboard.minHetight-30+3)%90+30;
+            }case R.id.minHeightRatio:{
+                currentMenuVar=MENUVAR.MINHEIGHT;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                int progress=Math.min(100,Math.round(autoKeyboard.minHeightRatio*100));
+                seekBar.setProgress(progress);
+                seekBarText.setText("minHeightRatio:"+String.valueOf(progress)+"%");
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
-            }case R.id.tap_range:{
-                autoKeyboard.tap_range_index=(autoKeyboard.tap_range_index+1)%autoKeyboard.tap_range_array.length;
-                autoKeyboard.tap_range=(float)autoKeyboard.tap_range_array[autoKeyboard.tap_range_index];
+            }case R.id.tapRange:{
+                currentMenuVar=MENUVAR.TAPRANGE;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                int progress=Math.min(100,Math.round(autoKeyboard.tapRange*100));
+                seekBar.setProgress(progress);
+                seekBarText.setText("tapRange:"+String.valueOf(progress)+"%");
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
             }case R.id.keyboardHeight:{
-                autoKeyboard.keyboardHeight=(autoKeyboard.keyboardHeight-500+5)%200+500;
+                currentMenuVar=MENUVAR.KEYBOARDHEIGHT;
+                float keyBoardHeightMax=autoKeyboard.baseImageHeight;
+                float keyBoardHeightMin=autoKeyboard.baseImageHeight/2F;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                seekBar.setProgress(Math.round((autoKeyboard.keyboardHeight-keyBoardHeightMin)/(keyBoardHeightMax-keyBoardHeightMin)*100));
+                seekBarText.setText("keyBoardHeight:"+String.valueOf(autoKeyboard.keyboardHeight));
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
@@ -3078,9 +3256,16 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
             }case R.id.exponent:{
-                autoKeyboard.exponent_index=(autoKeyboard.exponent_index+1)%autoKeyboard.exponent_array.length;
-                autoKeyboard.exponent=(float)autoKeyboard.exponent_array[autoKeyboard.exponent_index];
+                currentMenuVar=MENUVAR.EXPONENT;
+                float expMax=1F/2F;
+                float expMin=5F/100F;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                seekBar.setProgress(Math.round((autoKeyboard.exponent-expMin)/(expMax-expMin)*100));
+                seekBarText.setText("Exponent:"+String.valueOf(autoKeyboard.exponent));
                 autoKeyboard.calExpRatio();
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
                 break;
             }case R.id.default_keyboard:{
                 autoKeyboard.defaultPara();
@@ -3145,8 +3330,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
-        menu.findItem(R.id.SDPlusItem).setTitle("SDPlus:" + SD_coefficient);
-        menu.findItem(R.id.SDMinusItem).setTitle("SDMinus:" + SD_coefficient);
+        menu.findItem(R.id.SDItem).setTitle("SD:" + String.valueOf(SD_coefficient));
         menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
         if(activity_mode==KEYBOARD_MODE){
             menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
@@ -3188,9 +3372,9 @@ public class MainActivity extends AppCompatActivity {
         }
         menu.findItem(R.id.topThreshold).setTitle("topThreshold:"+String.valueOf(autoKeyboard.topThreshold));
         menu.findItem(R.id.bottomThreshold).setTitle("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
-        menu.findItem(R.id.minWidth).setTitle("minWidth:"+String.valueOf(autoKeyboard.minWidth));
-        menu.findItem(R.id.minHetight).setTitle("minHetight:"+String.valueOf(autoKeyboard.minHetight));
-        menu.findItem(R.id.tap_range).setTitle("tap range:"+String.valueOf(autoKeyboard.tap_range));
+        menu.findItem(R.id.minWidthRatio).setTitle("minWidthRatio:"+String.valueOf(Math.round(autoKeyboard.minWidthRatio*100))+"%");
+        menu.findItem(R.id.minHeightRatio).setTitle("minHeightRatio:"+String.valueOf(Math.round(autoKeyboard.minHeightRatio*100))+"%");
+        menu.findItem(R.id.tapRange).setTitle("tap range:"+String.valueOf(Math.round(autoKeyboard.tapRange*100))+"%");
         menu.findItem(R.id.keyboardHeight).setTitle("keyboardHeight:"+String.valueOf(autoKeyboard.keyboardHeight));
         if(autoKeyboard.scalingMode==autoKeyboard.LINEAR_MODE){
             menu.findItem(R.id.scalingMode).setTitle("scalingMode:LINEAR_MODE");

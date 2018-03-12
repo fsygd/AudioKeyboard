@@ -122,4 +122,28 @@
         android:textSize="30sp"
         android:layout_below="@+id/speed_p_button"
         android:layout_alignStart="@+id/readList" />
+
+    <SeekBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/seekBar"
+        android:layout_above="@id/keyboard"
+        android:layout_marginBottom="40dp"
+        android:layout_alignParentStart="true"
+        android:max="100"
+        android:secondaryProgress="0"
+        android:progress="0"
+        android:indeterminate="false" />
+
+    <TextView
+        android:id="@+id/seekBarText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="seekBarText"
+        android:textSize="30sp"
+        android:layout_marginBottom="40dp"
+        android:layout_above="@id/seekBar"
+        android:layout_centerHorizontal="true"
+         />
+
 </RelativeLayout>
