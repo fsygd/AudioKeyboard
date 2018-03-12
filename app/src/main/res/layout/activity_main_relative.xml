@@ -21,7 +21,7 @@
         android:layout_below="@+id/init_mode_button"
         android:layout_marginStart="13dp"
         android:layout_marginTop="18dp"
-        android:text="TextView"
+        android:text=""
         android:typeface="monospace"
         android:textSize="30sp" />
 

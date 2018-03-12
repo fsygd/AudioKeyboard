@@ -112,6 +112,11 @@ public class MainActivity extends AppCompatActivity {
     char nowChSaved = 0; // for double click
     char nowChBaselineSaved = 0;
 
+    final int TESTCASE_ALL = 3;
+    final int TESTCASE_TURN = 3;
+    int currentTestcase;
+    ArrayList<String> testcases = new ArrayList<>();
+
     ArrayList<Word> dict_eng = new ArrayList<>();
     ArrayList<Word> dict_chn = new ArrayList<>();
     ArrayList<Word> dict_chn_pinyin = new ArrayList<>();
@@ -582,17 +587,20 @@ public class MainActivity extends AppCompatActivity {
 
     //redraw the views
     public void refresh(){
+        String testcase = "";
+        if (recordMode == RECORD_MODE_STARTED)
+            testcase = currentTestcase + ":" + testcases.get(currentTestcase) + "\n";
         if (languageMode == LANG_MODE_CHN){
             try {
                 String composingWord = mIPinyinDecoderService.imGetChoice(0).substring(0, mIPinyinDecoderService.imGetFixedLen());
                 composingWord += currentWord.substring(mIPinyinDecoderService.imGetSplStart()[mIPinyinDecoderService.imGetFixedLen() + 1]);
-                text.setText(currentInput + "\n" + composingWord + "\n" + currentBaseline);
+                text.setText(testcase + currentInput + "\n" + composingWord + "\n" + currentBaseline);
             }catch (RemoteException e){
 
             }
         }
         else {
-            text.setText(currentInput + "\n" + currentWord + "\n" + currentBaseline);
+            text.setText(testcase + currentInput + "\n" + currentWord + "\n" + currentBaseline);
         }
         String str = "";
         for (int i = currentCandidate; i < Math.min(currentCandidate + MAX_CANDIDATE, candidates.size()); ++i)
@@ -843,6 +851,22 @@ public class MainActivity extends AppCompatActivity {
             Log.i("init", "read dict_chn_hint finished" + dict_chn_hint.size());
         }catch (Exception e){
             Log.i("init", "read dict_chn_hint failed");
+        }
+
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.testcases)));
+        try{
+            int lineNo = 0;
+            while ((line = reader.readLine()) != null){
+                lineNo++;
+                testcases.add(line);
+                Log.i("fsy", line + line.length());
+                if (lineNo == TESTCASE_ALL)
+                    break;
+            }
+            reader.close();
+            Log.i("init", "read testcases finished" + testcases.size());
+        } catch (Exception e){
+            Log.i("init", "read testcases failed");
         }
     }
 
@@ -1250,6 +1274,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        textToSpeech.setSpeechRate(2.0f);
         keyboard = (ImageView)findViewById(R.id.keyboard);
         text = (TextView)findViewById(R.id.text);
         seekBar=(SeekBar)findViewById(R.id.seekBar);
@@ -1362,6 +1387,9 @@ public class MainActivity extends AppCompatActivity {
     public boolean checkUpwipe2(int x, int y, long tempTime){
         return y < downY2 - SLIP_DIST && Math.abs(downY2 - y) > Math.abs(downX2 - x) && tempTime < downTime2 + STAY_TIME;
     }
+    public boolean checkRightwipe2(int x, int y, long tempTime){
+        return x > downX2 + SLIP_DIST && Math.abs(downX2 - x) > Math.abs(downY2 - y) && tempTime < downTime2 + STAY_TIME;
+    }
 
     public String getChnHint(String sentence){
         String ans = "";
@@ -1372,6 +1400,12 @@ public class MainActivity extends AppCompatActivity {
                 }
         }
         return ans + "，";
+    }
+
+    public void nextTestcase(){
+        ++currentTestcase;
+        write("sentence " + testcases.get(currentTestcase));
+        textToSpeech.speak("请输入:" + testcases.get(currentTestcase), textToSpeech.QUEUE_ADD, null);
     }
 
     public void actionRightwipe(){
@@ -1448,6 +1482,7 @@ public class MainActivity extends AppCompatActivity {
                         for (int i = 0; i < len; ++i)
                             candidates.add(new Word(templist.get(i), 0));
                         currentCandidate = 0;
+                        textToSpeech.speak("推荐候选", textToSpeech.QUEUE_ADD, null);
                         refresh();
                         return;
                     }
@@ -1472,7 +1507,11 @@ public class MainActivity extends AppCompatActivity {
                 predict(currentWord);
             }
             refresh();
-            textToSpeech.speak("确认输入 " + delta + "，推荐候选：", TextToSpeech.QUEUE_ADD, null);
+            textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
+        }
+        else{
+            currentInput += " ";
+            textToSpeech.speak("空格", TextToSpeech.QUEUE_ADD, null);
         }
     }
 
@@ -1533,6 +1572,31 @@ public class MainActivity extends AppCompatActivity {
                             if (checkUpwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
                                 if (currentInput.length() == 0){
                                     textToSpeech.speak("当前还没有输入", TextToSpeech.QUEUE_ADD, null);
+                                }
+                                else{
+                                    textToSpeech.speak("当前输入 " + currentInput, textToSpeech.QUEUE_ADD, null);
+                                }
+                            }
+                            else if (checkRightwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())) {
+                                write("right2wipe");
+                                Log.i("fsy", currentInput.length() + "" + testcases.get(currentTestcase).length());
+                                if (recordMode == RECORD_MODE_STARTED && currentInput.equals(testcases.get(currentTestcase))){
+                                    if (currentTestcase + 1 < TESTCASE_TURN)
+                                        nextTestcase();
+                                    else{
+                                        recordMode = RECORD_MODE_STOPED;
+                                        setMenuTitle();
+                                        textToSpeech.speak("实验结束，谢谢您的配合", textToSpeech.QUEUE_ADD, null);
+                                    }
+                                    deleteAllChar();
+                                    currentCandidate = 0;
+                                    elapsedTimeText.setText("0");
+                                    upKey = KEY_NOT_FOUND;
+                                    nowChSaved = '*';
+                                    currentInput = "";
+                                    refresh();
+                                    autoKeyboard.resetLayout();
+                                    autoKeyboard.drawLayout();
                                 }
                                 else{
                                     textToSpeech.speak("当前输入 " + currentInput, textToSpeech.QUEUE_ADD, null);
@@ -3027,6 +3091,9 @@ public class MainActivity extends AppCompatActivity {
                     case RECORD_MODE_STOPED:{
                         recordMode = RECORD_MODE_STARTED;
                         filename = getFilename();
+                        Collections.shuffle(testcases);
+                        currentTestcase = -1;
+                        nextTestcase();
                         break;
                     }
                     case RECORD_MODE_STARTED:{
