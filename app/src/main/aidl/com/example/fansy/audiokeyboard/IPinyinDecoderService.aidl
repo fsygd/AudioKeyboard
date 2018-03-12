@@ -48,4 +48,5 @@ interface IPinyinDecoderService {
     int syncGetTotalCount();
     void syncClearLastGot();
     int imSyncGetCapacity();
+    void EnableSzm(boolean enabled);
 }

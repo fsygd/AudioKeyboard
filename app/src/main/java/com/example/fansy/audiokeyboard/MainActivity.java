@@ -99,6 +99,10 @@ public class MainActivity extends AppCompatActivity {
     final int RECORD_MODE_STOPED = 1;
     int recordMode = RECORD_MODE_STOPED;
 
+    final int JP_ON = 0;
+    final int JP_OFF = 1;
+    int pinyinjpMode = JP_ON;
+
     int SD_coefficient = 6;
 
     ImageView keyboard;
@@ -1348,6 +1352,9 @@ public class MainActivity extends AppCompatActivity {
         readList = "";
         predict(currentWord);
         refresh();
+        if (str.equals(" ")){
+            str = "空格";
+        }
         return str;
     }
 
@@ -1499,17 +1506,12 @@ public class MainActivity extends AppCompatActivity {
             currentInput += delta;
             currentWord = "";
             currentBaseline = "";
-            if (languageMode == LANG_MODE_CHN) {
-                predictBylastch(lastCh);
-                currentCandidate = 0;
-            }
-            else {
-                predict(currentWord);
-            }
+            predict(currentWord);
+            currentCandidate = 0;
             refresh();
             textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
         }
-        else{
+        else if (currentWord.length() == 0){
             currentInput += " ";
             textToSpeech.speak("空格", TextToSpeech.QUEUE_ADD, null);
         }
@@ -3122,6 +3124,30 @@ public class MainActivity extends AppCompatActivity {
                 refresh();
                 break;
             }
+            case R.id.pinyinjpModeItem:{
+                switch (pinyinjpMode) {
+                    case JP_ON:
+                        pinyinjpMode = JP_OFF;
+                        try {
+                            mIPinyinDecoderService.EnableSzm(false);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case JP_OFF:
+                        pinyinjpMode = JP_ON;
+                        try {
+                            mIPinyinDecoderService.EnableSzm(true);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+                break;
+            }
             case R.id.confirmModeItem:{
                 switch (confirmMode){
                     case CONFIRM_MODE_UP:{
@@ -3374,6 +3400,16 @@ public class MainActivity extends AppCompatActivity {
             }
             case LANG_MODE_CHN:{
                 menu.findItem(R.id.langModeItem).setTitle("langMode:CHN");
+                break;
+            }
+        }
+        switch (pinyinjpMode){
+            case JP_ON:{
+                menu.findItem(R.id.pinyinjpModeItem).setTitle("简拼：开启");
+                break;
+            }
+            case JP_OFF:{
+                menu.findItem(R.id.pinyinjpModeItem).setTitle("简拼：关闭");
                 break;
             }
         }

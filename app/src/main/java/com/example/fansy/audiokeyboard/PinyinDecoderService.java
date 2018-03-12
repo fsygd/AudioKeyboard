@@ -91,6 +91,8 @@ public class PinyinDecoderService extends Service {
 
   native static int nativeSyncGetCapacity();
 
+  native static void nativeEnableSzm(boolean enabled);
+
   private final static int MAX_PATH_FILE_LENGTH = 100;
   private static boolean inited = false;
 
@@ -308,6 +310,8 @@ public class PinyinDecoderService extends Service {
     public int imSyncGetCapacity() {
       return nativeSyncGetCapacity();
     }
+
+    public void EnableSzm(boolean enabled) { nativeEnableSzm(enabled); }
   };
 
   @Override public IBinder onBind(Intent intent) {

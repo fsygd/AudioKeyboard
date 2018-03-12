@@ -10,6 +10,10 @@
         android:orderInCategory="100"
         android:title="langMode:ENG"/>
     <item
+        android:id="@+id/pinyinjpModeItem"
+        android:orderInCategory="100"
+        android:title="简拼:开启"/>
+    <item
         android:id="@+id/confirmModeItem"
         android:orderInCategory="100"
         android:title="confirmMode:UP"/>

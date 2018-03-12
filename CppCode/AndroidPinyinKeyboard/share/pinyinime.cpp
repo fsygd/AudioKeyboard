@@ -187,7 +187,7 @@ extern "C" {
   void im_enable_ym_as_szm(bool enable) {
     SpellingTrie &spl_trie = SpellingTrie::get_instance();
     spl_trie.szm_enable_ym(enable);
-  }
+}
 
 #ifdef __cplusplus
 }

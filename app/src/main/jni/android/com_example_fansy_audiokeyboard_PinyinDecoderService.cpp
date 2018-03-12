@@ -304,6 +304,11 @@ JNIEXPORT jboolean JNICALL nativeSyncClearLastGot(JNIEnv *env, jclass clazz) {
   return JNI_TRUE;
 }
 
+JNIEXPORT void JNICALL nativeEnableSzm(JNIEnv *env, jclass clazz, jboolean enabled) {
+  im_enable_shm_as_szm(enabled);
+  im_enable_ym_as_szm(enabled);
+}
+
 /**
  * Table of methods associated with a single class.
  */
@@ -365,6 +370,8 @@ static JNINativeMethod gMethods[] = {
             (void*) nativeSyncGetTotalCount },
     { "nativeSyncClearLastGot", "()Z",
             (void*) nativeSyncClearLastGot },
+    { "nativeEnableSzm", "(Z)V",
+            (void*) nativeEnableSzm},
     { "nativeSyncGetCapacity", "()I",
             (void*) nativeSyncGetCapacity },
     /* <<----Functions for sync end--------------------------------- */
