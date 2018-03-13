@@ -124,9 +124,15 @@ public class MainActivity extends AppCompatActivity {
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
     String currentBaseline = "";
-    char nowCh = 0; //the most possible char
-    char nowChSaved = 0; // for double click
-    char nowChBaselineSaved = 0;
+    char nowCh = KEY_NOT_FOUND; //the most possible char
+    char nowChSaved = KEY_NOT_FOUND; // for double click
+    char nowChBaselineSaved = KEY_NOT_FOUND;
+    String currentBaselineDown = "";
+    String currentPredictDown = "";
+    char nowBaseLineDownSaved = KEY_NOT_FOUND;
+    char nowPredictDownSaved = KEY_NOT_FOUND;
+    char nowBaseLineDown = KEY_NOT_FOUND;
+    char nowPredictDown = KEY_NOT_FOUND;
 
     final int TESTCASE_ALL = 3;
     final int TESTCASE_TURN = 3;
@@ -607,18 +613,30 @@ public class MainActivity extends AppCompatActivity {
         String testcase = "";
         if (recordMode == RECORD_MODE_STARTED)
             testcase = currentTestcase + ":" + testcases.get(currentTestcase) + "\n";
+        String textContent = "";
         if (languageMode == LANG_MODE_CHN){
             try {
                 String composingWord = mIPinyinDecoderService.imGetChoice(0).substring(0, mIPinyinDecoderService.imGetFixedLen());
                 composingWord += currentWord.substring(mIPinyinDecoderService.imGetSplStart()[mIPinyinDecoderService.imGetFixedLen() + 1]);
-                text.setText(testcase + currentInput + "\n" + composingWord + "\n" + currentBaseline);
+                textContent += testcase + currentInput + "\n" + composingWord + "\n";
             }catch (RemoteException e){
 
             }
         }
         else {
-            text.setText(testcase + currentInput + "\n" + currentWord + "\n" + currentBaseline);
+            textContent += testcase + currentInput + "\n" + currentWord + "\n";
         }
+        int diff = 0;
+        for (int i = 0; i < currentWord.length(); ++i)
+            if (currentWord.charAt(i) != currentPredictDown.charAt(i))
+                diff += 1;
+        textContent += currentPredictDown + " diff = " + diff + "\n";
+        diff = 0;
+        for (int i = 0; i < currentWord.length(); ++i)
+            if (currentWord.charAt(i) != currentBaselineDown.charAt(i))
+                diff += 1;
+        textContent += currentBaselineDown + " diff = " + diff + "\n";
+        text.setText(textContent);
         String str = "";
         int temp = Math.max(currentCandidate, 0);
         for (int i = temp; i < temp + MAX_CANDIDATE; ++i)
@@ -724,6 +742,8 @@ public class MainActivity extends AppCompatActivity {
     public void finishWord(){
         currentWord = "";
         currentBaseline = "";
+        currentBaselineDown = "";
+        currentPredictDown = "";
         readList = "";
         predict(currentWord);
         refresh();
@@ -735,12 +755,12 @@ public class MainActivity extends AppCompatActivity {
             if (initMode == INIT_MODE_ABSOLUTE) {
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
-                addToSeq(autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT));
+                addToSeq(autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT), x, y);
             }
             else if(initMode == INIT_MODE_RELATIVE){
                 char ch = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT);
                 if (ch == upKey){
-                    addToSeq(ch);
+                    addToSeq(ch, x, y);
                 }
                 else{
                     autoKeyboard.resetLayout();
@@ -751,22 +771,22 @@ public class MainActivity extends AppCompatActivity {
                     if (autoKeyboard.tryLayout(best, x, y)){
                         write("try " + best + " " + x + " " + y);
                         autoKeyboard.drawLayout();
-                        addToSeq(best);
+                        addToSeq(best, x, y);
                     }else{
                         if (ch != KEY_NOT_FOUND && autoKeyboard.tryLayout(ch, x, y)){
                             write("try " + ch + " " + x + " " + y);
                             autoKeyboard.drawLayout();
                         }
-                        addToSeq(ch);
+                        addToSeq(ch, x, y);
                     }
                 }
             }else{
                 char ch = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT);
-                addToSeq(ch);
+                addToSeq(ch, x, y);
             }
         }
         else{
-            addToSeq(autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT));
+            addToSeq(autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT), x, y);
         }
     }
 
@@ -1281,8 +1301,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //if write=false, just return the most possible key
-    public void addToSeq(char ch){
+    public void addToSeq(char ch, int x, int y){
         if (ch != KEY_NOT_FOUND && (seq.size() == 0 || seq.get(seq.size() - 1) != ch)) {
+            if (seq.size() == 0){
+                if (confirmMode == CONFIRM_MODE_UP){
+                    nowPredictDownSaved = ch;
+                    nowBaseLineDownSaved = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT);
+                }
+                else{
+                    nowPredictDown = ch;
+                    nowBaseLineDown = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.INIT_LAYOUT);
+                }
+            }
             seq.add(ch);
             stopVoice();
             readList = "";
@@ -1375,6 +1405,8 @@ public class MainActivity extends AppCompatActivity {
         if (currentWord.length() > 0) {
             str += currentWord.charAt(currentWord.length() - 1);
             currentWord = currentWord.substring(0, currentWord.length() - 1);
+            currentBaselineDown = currentBaselineDown.substring(0, currentBaselineDown.length() - 1);
+            currentPredictDown = currentPredictDown.substring(0, currentPredictDown.length() - 1);
             currentBaseline = currentBaseline.substring(0, currentBaseline.length() - 1);
         }
         else if (currentInput.length() > 0){
@@ -1393,6 +1425,8 @@ public class MainActivity extends AppCompatActivity {
     public void deleteAllChar(){
         currentWord = "";
         currentBaseline = "";
+        currentBaselineDown = "";
+        currentPredictDown = "";
         readList = "";
         predict(currentWord);
         refresh();
@@ -1404,7 +1438,7 @@ public class MainActivity extends AppCompatActivity {
     boolean TwoFingersFlag = false;
     long firstDownTime = 0, lastDownTime = 0; // used for check double-click
     final long STAY_TIME = 400;
-    final int SLIP_DIST = 90;
+    final int SLIP_DIST = 70;
     char upKey = KEY_NOT_FOUND;
     boolean isOverScreen=false;
     char lastChar='A';
@@ -1466,17 +1500,20 @@ public class MainActivity extends AppCompatActivity {
                             currentInput += mIPinyinDecoderService.imGetChoice(0);
                         currentWord = "";
                         currentBaseline = "";
+                        currentBaselineDown = "";
+                        currentPredictDown = "";
                         mIPinyinDecoderService.imResetSearch();
                         if (predictEnableMode == PREDICT_OFF){
                             predict(currentWord);
                         }
                         else {
-                            int len = mIPinyinDecoderService.imGetPredictsNum(delta);
+                            int len = mIPinyinDecoderService.imGetPredictsNum(currentInput);
                             List<String> templist = mIPinyinDecoderService.imGetPredictList(0, len);
                             candidates.clear();
                             for (int i = 0; i < len; ++i)
                                 candidates.add(new Word(templist.get(i), 0));
-                            textToSpeech.speak("推荐候选", textToSpeech.QUEUE_ADD, null);
+                            if (autoreadMode == AUTOREAD_ON)
+                                textToSpeech.speak("推荐候选", textToSpeech.QUEUE_ADD, null);
                         }
                         currentCandidate = autoreadMode;
                         refresh();
@@ -1495,6 +1532,8 @@ public class MainActivity extends AppCompatActivity {
             currentInput += delta;
             currentWord = "";
             currentBaseline = "";
+            currentBaselineDown = "";
+            currentPredictDown = "";
             predict(currentWord);
             currentCandidate = autoreadMode;
             refresh();
@@ -1508,6 +1547,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void actionLeftwipe(){
         write("leftwipe");
+        upKey = KEY_NOT_FOUND;
         if (languageMode == LANG_MODE_CHN){
             try{
                 if (mIPinyinDecoderService.imGetFixedLen() > 0){
@@ -1688,11 +1728,13 @@ public class MainActivity extends AppCompatActivity {
                                     //    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
                                     //}
                                     if (nowCh != KEY_NOT_FOUND) {
+                                        write("enter " + nowCh);
                                         currentWord += nowCh;
+                                        currentPredictDown += (nowPredictDownSaved != KEY_NOT_FOUND) ? nowPredictDownSaved : '*';
+                                        currentBaselineDown += (nowBaseLineDownSaved != KEY_NOT_FOUND) ? nowBaseLineDownSaved : '*';
                                         currentBaseline += autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.INIT_LAYOUT);
                                     }
                                     predict(currentWord);
-                                    write("enter " + nowCh);
                                     refresh();
                                 }
                             }
@@ -1713,6 +1755,8 @@ public class MainActivity extends AppCompatActivity {
                                     if (nowChSaved != '*'){
                                         write("doubleclick");
                                         currentWord += nowChSaved;
+                                        currentPredictDown += (nowPredictDownSaved != KEY_NOT_FOUND) ? nowPredictDownSaved : '*';
+                                        currentBaselineDown += (nowBaseLineDownSaved != KEY_NOT_FOUND) ? nowBaseLineDownSaved : '*';
                                         /*if (upvoiceMode == UPVOICE_MODE_YES) {
                                             playMedia("ios11_" + voiceSpeed, nowChSaved - 'a', true);
                                         }
@@ -1728,6 +1772,8 @@ public class MainActivity extends AppCompatActivity {
                                     if (tempTime - downTime > 300) {
                                         upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                         nowChSaved = nowCh;
+                                        nowPredictDownSaved = nowPredictDown;
+                                        nowBaseLineDownSaved = nowBaseLineDown;
                                         nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],autoKeyboard.INIT_LAYOUT);
                                         write("enter " + nowCh);
                                     }
