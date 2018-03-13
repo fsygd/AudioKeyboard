@@ -99,6 +99,10 @@ public class MainActivity extends AppCompatActivity {
     final int RECORD_MODE_STOPED = 1;
     int recordMode = RECORD_MODE_STOPED;
 
+    final int PREDICT_ON = 0;
+    final int PREDICT_OFF = 1;
+    int predictEnableMode = PREDICT_ON;
+
     final int JP_ON = 0;
     final int JP_OFF = 1;
     int pinyinjpMode = JP_ON;
@@ -122,8 +126,9 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<String> testcases = new ArrayList<>();
 
     ArrayList<Word> dict_eng = new ArrayList<>();
-    ArrayList<Word> dict_chn = new ArrayList<>();
+    ArrayList<Word> dict_chn_jianpin = new ArrayList<>();
     ArrayList<Word> dict_chn_pinyin = new ArrayList<>();
+    ArrayList<Word> dict_chn_quanpin = new ArrayList<>();
     HashMap<String,String> dict_chn_hint = new HashMap<>();
     ArrayList<Character> seq = new ArrayList<Character>(); //char sequence during the whole touch
     String keysNearby[] = new String[26];
@@ -788,6 +793,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     final int DICT_SIZE[] = {50000, 49588, 65105};
+    final int DICT_SIZE_QUANPIN = 38991;
     //read dict from file
     public void initDict(){
         Log.i("init", "start loading dict_eng");
@@ -808,20 +814,36 @@ public class MainActivity extends AppCompatActivity {
             Log.i("init", "read dict_eng failed");
         }
 
-        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_chn)));
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_chn_jianpin)));
         try{
             int lineNo = 0;
             while ((line = reader.readLine()) != null){
                 lineNo++;
                 String[] ss = line.split(" ");
-                dict_chn.add(new Word(ss[0], Double.valueOf(ss[1])));
+                dict_chn_jianpin.add(new Word(ss[0], Double.valueOf(ss[1])));
                 if (lineNo == DICT_SIZE[LANG_MODE_CHN])
                     break;
             }
             reader.close();
-            Log.i("init", "read dict_chn finished" + dict_chn.size());
+            Log.i("init", "read dict_chn_jianpin finished" + dict_chn_jianpin.size());
         } catch (Exception e){
-            Log.i("init", "read dict_chn failed");
+            Log.i("init", "read dict_chn_jianpin failed");
+        }
+
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_chn_quanpin)));
+        try{
+            int lineNo = 0;
+            while ((line = reader.readLine()) != null){
+                lineNo++;
+                String[] ss = line.split(" ");
+                dict_chn_quanpin.add(new Word(ss[0], Double.valueOf(ss[1])));
+                if (lineNo == DICT_SIZE_QUANPIN)
+                    break;
+            }
+            reader.close();
+            Log.i("init", "read dict_chn_quanpin finished" + dict_chn_quanpin.size());
+        } catch (Exception e){
+            Log.i("init", "read dict_chn_quanpin failed");
         }
 
         reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_chn_pinyin)));
@@ -1218,8 +1240,12 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<Word> dict = new ArrayList<>();
         if (languageMode == LANG_MODE_ENG)
             dict = dict_eng;
-        else if (languageMode == LANG_MODE_CHN)
-            dict = dict_chn;
+        else if (languageMode == LANG_MODE_CHN) {
+            if (pinyinjpMode == JP_ON)
+                dict = dict_chn_jianpin;
+            else
+                dict = dict_chn_quanpin;
+        }
 
         for (int i = 0; i < dict.size(); ++i)
             if (dict.get(i).text.length() >= currentWord.length() + 1){
@@ -1416,52 +1442,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionRightwipe(){
-        /*byte[] bytearray = "fadongjidewenti".getBytes();
-        try {
-            Log.i("fsy", mIPinyinDecoderService.imSearch(bytearray, bytearray.length) + "");
-            for (int i = 0; i < 3; ++i)
-                Log.i("fsy", mIPinyinDecoderService.imGetChoice(i));
-            Log.i("fsy", mIPinyinDecoderService.imChoose(1) + "");
-            for (int i = 0; i < 3; ++i)
-                Log.i("fsy", mIPinyinDecoderService.imGetChoice(i));
-            mIPinyinDecoderService.imChoose(1);
-            Log.i("fsy", mIPinyinDecoderService.imGetFixedLen() + "");
-            Log.i("fsy", mIPinyinDecoderService.imCancelLastChoice() + "");
-            Log.i("fsy", mIPinyinDecoderService.imGetFixedLen() + "");
-            Log.i("fsy", mIPinyinDecoderService.imCancelLastChoice() + "");
-            Log.i("fsy", mIPinyinDecoderService.imGetFixedLen() + "");
-            Log.i("fsy", mIPinyinDecoderService.imGetChoice(0));
-        }catch (RemoteException e){
-
-        }*/
-        /*
-        try{
-            byte[] bytes = "fadongji".getBytes();
-            int len = mIPinyinDecoderService.imSearch(bytes, bytes.length);
-            mIPinyinDecoderService.imGetChoiceList(0, len, 0);
-            mIPinyinDecoderService.imChoose(0);
-            Log.i("fsy", "fixed" + mIPinyinDecoderService.imGetFixedLen());
-            bytes = "fadongjia".getBytes();
-            mIPinyinDecoderService.imSearch(bytes, bytes.length);
-            Log.i("fsy", "fixed" + mIPinyinDecoderService.imGetFixedLen());
-            for (int i = 0; i < 3; ++i)
-                Log.i("fsy", mIPinyinDecoderService.imGetChoice(i));
-            Log.i("fsy", "!!!");
-            int[] index = mIPinyinDecoderService.imGetSplStart();
-            for (int i = 0; i < index.length; ++i)
-                Log.i("fsy", index[i] + "");
-        }catch (RemoteException e){
-
-        }*/
-        /*try{
-            int temp = mIPinyinDecoderService.imGetPredictsNum("你好");
-            Log.i("fsy",  + temp + "");
-            List<String> list = mIPinyinDecoderService.imGetPredictList(0, temp);
-            for (int i = 0; i < 5; ++i)
-                Log.i("fsy", list.get(i));
-        }catch (RemoteException e){
-
-        }*/
         if (currentCandidate < candidates.size()) {
             write("rightwipe");
             if (languageMode == LANG_MODE_CHN){
@@ -1481,15 +1461,18 @@ public class MainActivity extends AppCompatActivity {
                         currentWord = "";
                         currentBaseline = "";
                         mIPinyinDecoderService.imResetSearch();
-                        //predict(currentWord);
-                        //add
-                        int len = mIPinyinDecoderService.imGetPredictsNum(delta);
-                        List<String> templist = mIPinyinDecoderService.imGetPredictList(0, len);
-                        candidates.clear();
-                        for (int i = 0; i < len; ++i)
-                            candidates.add(new Word(templist.get(i), 0));
+                        if (predictEnableMode == PREDICT_OFF){
+                            predict(currentWord);
+                        }
+                        else {
+                            int len = mIPinyinDecoderService.imGetPredictsNum(delta);
+                            List<String> templist = mIPinyinDecoderService.imGetPredictList(0, len);
+                            candidates.clear();
+                            for (int i = 0; i < len; ++i)
+                                candidates.add(new Word(templist.get(i), 0));
+                            textToSpeech.speak("推荐候选", textToSpeech.QUEUE_ADD, null);
+                        }
                         currentCandidate = 0;
-                        textToSpeech.speak("推荐候选", textToSpeech.QUEUE_ADD, null);
                         refresh();
                         return;
                     }
@@ -1511,7 +1494,7 @@ public class MainActivity extends AppCompatActivity {
             refresh();
             textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
         }
-        else if (currentWord.length() == 0){
+        else if (currentWord.length() == 0 && languageMode == LANG_MODE_ENG){
             currentInput += " ";
             textToSpeech.speak("空格", TextToSpeech.QUEUE_ADD, null);
         }
@@ -3148,6 +3131,20 @@ public class MainActivity extends AppCompatActivity {
                 refresh();
                 break;
             }
+            case R.id.predictEnableItem:{
+                switch (predictEnableMode) {
+                    case PREDICT_ON:
+                        predictEnableMode = PREDICT_OFF;
+                        break;
+                    case PREDICT_OFF:
+                        predictEnableMode = PREDICT_ON;
+                        break;
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+                break;
+            }
             case R.id.confirmModeItem:{
                 switch (confirmMode){
                     case CONFIRM_MODE_UP:{
@@ -3410,6 +3407,16 @@ public class MainActivity extends AppCompatActivity {
             }
             case JP_OFF:{
                 menu.findItem(R.id.pinyinjpModeItem).setTitle("简拼：关闭");
+                break;
+            }
+        }
+        switch (predictEnableMode){
+            case PREDICT_ON:{
+                menu.findItem(R.id.predictEnableItem).setTitle("预测：开启");
+                break;
+            }
+            case PREDICT_OFF:{
+                menu.findItem(R.id.predictEnableItem).setTitle("预测：关闭");
                 break;
             }
         }
