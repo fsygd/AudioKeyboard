@@ -107,7 +107,15 @@ public class MainActivity extends AppCompatActivity {
     final int JP_OFF = 1;
     int pinyinjpMode = JP_ON;
 
+    final int AUTOREAD_ON = 0;
+    final int AUTOREAD_OFF = -1;
+    int autoreadMode = AUTOREAD_ON;
+
     int SD_coefficient = 6;
+
+    final int MAX_CANDIDATE = 5;
+    int currentCandidate = autoreadMode;
+    public ArrayList<Word> candidates = new ArrayList<Word>();
 
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, elapsedTimeText;
@@ -612,8 +620,10 @@ public class MainActivity extends AppCompatActivity {
             text.setText(testcase + currentInput + "\n" + currentWord + "\n" + currentBaseline);
         }
         String str = "";
-        for (int i = currentCandidate; i < Math.min(currentCandidate + MAX_CANDIDATE, candidates.size()); ++i)
-            str += candidates.get(i).alias + "\n";
+        int temp = Math.max(currentCandidate, 0);
+        for (int i = temp; i < temp + MAX_CANDIDATE; ++i)
+            if (i >= 0 && i < candidates.size())
+                str += candidates.get(i).alias + "\n";
         candidatesView.setText(str);
         readListView.setText(readList);
         if (initMode == INIT_MODE_ABSOLUTE)
@@ -623,10 +633,6 @@ public class MainActivity extends AppCompatActivity {
         else
             initModeButton.setText("nothing");
     }
-
-    final int MAX_CANDIDATE = 5;
-    int currentCandidate;
-    public ArrayList<Word> candidates = new ArrayList<Word>();
 
     //predict the candidates according the currentWord and currentWord2 and refresh
     public void predict(String currentWord){
@@ -1442,8 +1448,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionRightwipe(){
-        if (currentCandidate < candidates.size()) {
-            write("rightwipe");
+        write("rightwipe");
+        if (currentCandidate >= 0 && currentCandidate < candidates.size()) {
             if (languageMode == LANG_MODE_CHN){
                 String delta = candidates.get(currentCandidate).alias;
                 textToSpeech.speak("确认输入 " + delta, textToSpeech.QUEUE_ADD, null);
@@ -1472,7 +1478,7 @@ public class MainActivity extends AppCompatActivity {
                                 candidates.add(new Word(templist.get(i), 0));
                             textToSpeech.speak("推荐候选", textToSpeech.QUEUE_ADD, null);
                         }
-                        currentCandidate = 0;
+                        currentCandidate = autoreadMode;
                         refresh();
                         return;
                     }
@@ -1480,7 +1486,7 @@ public class MainActivity extends AppCompatActivity {
 
                 }
                 predict(currentWord);
-                currentCandidate = 0;
+                currentCandidate = autoreadMode;
                 refresh();
                 return;
             }
@@ -1490,7 +1496,7 @@ public class MainActivity extends AppCompatActivity {
             currentWord = "";
             currentBaseline = "";
             predict(currentWord);
-            currentCandidate = 0;
+            currentCandidate = autoreadMode;
             refresh();
             textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
         }
@@ -1506,7 +1512,7 @@ public class MainActivity extends AppCompatActivity {
             try{
                 if (mIPinyinDecoderService.imGetFixedLen() > 0){
                     nowChSaved = '*';
-                    currentCandidate = 0;
+                    currentCandidate = autoreadMode;
                     textToSpeech.speak("删除", TextToSpeech.QUEUE_ADD, null);
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
@@ -1517,7 +1523,7 @@ public class MainActivity extends AppCompatActivity {
                 else{
                     String deleted = deleteLastChar();
                     nowChSaved = '*';
-                    currentCandidate = 0;
+                    currentCandidate = autoreadMode;
                     textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
@@ -1530,10 +1536,86 @@ public class MainActivity extends AppCompatActivity {
         }
         String deleted = deleteLastChar();
         nowChSaved = '*';
-        currentCandidate = 0;
+        currentCandidate = autoreadMode;
         textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
         autoKeyboard.resetLayout();
         autoKeyboard.drawLayout();
+    }
+
+    public void actionPointerDown(MotionEvent event){
+        downX2 = (int)event.getX(0);
+        downY2 = (int)event.getY(0);
+        downTime2 = event.getEventTime();
+    }
+
+    public void actionPointerUp(MotionEvent event){
+        stopInput();
+        if (checkUpwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
+            write("up2wipe");
+            if (currentInput.length() == 0){
+                textToSpeech.speak("当前还没有输入", TextToSpeech.QUEUE_ADD, null);
+            }
+            else{
+                textToSpeech.speak("当前输入" + currentInput, textToSpeech.QUEUE_ADD, null);
+            }
+        }
+        else if (checkRightwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())) {
+            write("right2wipe");
+            if (recordMode == RECORD_MODE_STARTED && currentInput.equals(testcases.get(currentTestcase))){
+                if (currentTestcase + 1 < TESTCASE_TURN)
+                    nextTestcase();
+                else{
+                    recordMode = RECORD_MODE_STOPED;
+                    setMenuTitle();
+                    textToSpeech.speak("实验结束，谢谢您的配合", textToSpeech.QUEUE_ADD, null);
+                }
+                deleteAllChar();
+                currentCandidate = autoreadMode;
+                elapsedTimeText.setText("0");
+                upKey = KEY_NOT_FOUND;
+                nowChSaved = '*';
+                currentInput = "";
+                refresh();
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+            }
+            else{
+                textToSpeech.speak("当前输入 " + currentInput, textToSpeech.QUEUE_ADD, null);
+            }
+        }
+        else if (checkLeftwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
+            write("left2wipe");
+            deleteAllChar();
+            currentCandidate = autoreadMode;
+            elapsedTimeText.setText("0");
+            upKey = KEY_NOT_FOUND;
+            nowChSaved = '*';
+            textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
+            currentInput = "";
+            refresh();
+            autoKeyboard.resetLayout();
+            autoKeyboard.drawLayout();
+        }
+        autoKeyboard.resetLayout();
+        autoKeyboard.drawLayout();
+        nowCh = KEY_NOT_FOUND;
+    }
+
+    public void actionUpwipe(){
+        write("upwipe");
+        currentCandidate = Math.max(currentCandidate - 1, 0);
+        autoKeyboard.resetLayout();
+        autoKeyboard.drawLayout();
+        refresh();
+    }
+
+    public void actionDownwipe(){
+        write("downwipe");
+        if (currentCandidate + 1 < candidates.size())
+            ++currentCandidate;
+        autoKeyboard.resetLayout();
+        autoKeyboard.drawLayout();
+        refresh();
     }
 
     public boolean onTouchEvent(MotionEvent event){
@@ -1548,61 +1630,10 @@ public class MainActivity extends AppCompatActivity {
                     TwoFingersFlag = true;
                     switch (event.getActionMasked()) {
                         case MotionEvent.ACTION_POINTER_DOWN:
-                            downX2 = (int)event.getX(0);
-                            downY2 = (int)event.getY(0);
-                            downTime2 = event.getEventTime();
+                            actionPointerDown(event);
                             break;
                         case MotionEvent.ACTION_POINTER_UP:
-                            stopInput();
-                            if (checkUpwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
-                                if (currentInput.length() == 0){
-                                    textToSpeech.speak("当前还没有输入", TextToSpeech.QUEUE_ADD, null);
-                                }
-                                else{
-                                    textToSpeech.speak("当前输入 " + currentInput, textToSpeech.QUEUE_ADD, null);
-                                }
-                            }
-                            else if (checkRightwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())) {
-                                write("right2wipe");
-                                Log.i("fsy", currentInput.length() + "" + testcases.get(currentTestcase).length());
-                                if (recordMode == RECORD_MODE_STARTED && currentInput.equals(testcases.get(currentTestcase))){
-                                    if (currentTestcase + 1 < TESTCASE_TURN)
-                                        nextTestcase();
-                                    else{
-                                        recordMode = RECORD_MODE_STOPED;
-                                        setMenuTitle();
-                                        textToSpeech.speak("实验结束，谢谢您的配合", textToSpeech.QUEUE_ADD, null);
-                                    }
-                                    deleteAllChar();
-                                    currentCandidate = 0;
-                                    elapsedTimeText.setText("0");
-                                    upKey = KEY_NOT_FOUND;
-                                    nowChSaved = '*';
-                                    currentInput = "";
-                                    refresh();
-                                    autoKeyboard.resetLayout();
-                                    autoKeyboard.drawLayout();
-                                }
-                                else{
-                                    textToSpeech.speak("当前输入 " + currentInput, textToSpeech.QUEUE_ADD, null);
-                                }
-                            }
-                            else if (checkLeftwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
-                                write("left2wipe");
-                                deleteAllChar();
-                                currentCandidate = 0;
-                                elapsedTimeText.setText("0");
-                                upKey = KEY_NOT_FOUND;
-                                nowChSaved = '*';
-                                textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
-                                currentInput = "";
-                                refresh();
-                                autoKeyboard.resetLayout();
-                                autoKeyboard.drawLayout();
-                            }
-                            autoKeyboard.resetLayout();
-                            autoKeyboard.drawLayout();
-                            nowCh = 0;
+                            actionPointerUp(event);
                             break;
                     }
                 }
@@ -1647,21 +1678,11 @@ public class MainActivity extends AppCompatActivity {
                                 } else if (checkRightwipe(x, y, tempTime)) {
                                     actionRightwipe();
                                 } else if (checkUpwipe(x, y, tempTime)) {
-                                    if (currentCandidate > 0)
-                                        --currentCandidate;
-                                    autoKeyboard.resetLayout();
-                                    autoKeyboard.drawLayout();
-                                    refresh();
-                                    //todo
+                                    actionUpwipe();
                                 } else if (checkDownwipe(x, y, tempTime)) {
-                                    if (currentCandidate + 1 < candidates.size())
-                                        ++currentCandidate;
-                                    autoKeyboard.resetLayout();
-                                    autoKeyboard.drawLayout();
-                                    refresh();
-                                    //todo
+                                    actionDownwipe();
                                 } else {
-                                    currentCandidate = 0;
+                                    currentCandidate = autoreadMode;
                                     upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                     //if (upvoiceMode == UPVOICE_MODE_YES && nowCh >= 'a' && nowCh <= 'z') {
                                     //    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
@@ -1681,22 +1702,14 @@ public class MainActivity extends AppCompatActivity {
                                 } else if (checkRightwipe(x, y, tempTime)) {
                                     actionRightwipe();
                                 } else if (checkUpwipe(x, y, tempTime)) {
-                                    if (currentCandidate > 0)
-                                        --currentCandidate;
-                                    autoKeyboard.resetLayout();
-                                    autoKeyboard.drawLayout();
-                                    refresh();
+                                    actionUpwipe();
                                     //todo
                                 } else if (checkDownwipe(x, y, tempTime)) {
-                                    if (currentCandidate + 1 < candidates.size())
-                                        ++currentCandidate;
-                                    autoKeyboard.resetLayout();
-                                    autoKeyboard.drawLayout();
-                                    refresh();
+                                    actionDownwipe();
                                     //todo
                                 } else if (downTime == lastDownTime && tempTime - firstDownTime < 800) {
                                     //double click
-                                    currentCandidate = 0;
+                                    currentCandidate = autoreadMode;
                                     if (nowChSaved != '*'){
                                         write("doubleclick");
                                         currentWord += nowChSaved;
@@ -1720,7 +1733,7 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                 }
                             }
-                            if (currentCandidate < candidates.size())
+                            if (currentCandidate >= 0 && currentCandidate < candidates.size())
                                 textToSpeech.speak(candidates.get(currentCandidate).alias + getChnHint(candidates.get(currentCandidate).alias), TextToSpeech.QUEUE_ADD, null);
                             write("word " + currentWord);
                             nowCh = KEY_NOT_FOUND;
@@ -3145,6 +3158,20 @@ public class MainActivity extends AppCompatActivity {
                 refresh();
                 break;
             }
+            case R.id.autoreadModeItem:{
+                switch (autoreadMode) {
+                    case AUTOREAD_ON:
+                        autoreadMode = AUTOREAD_OFF;
+                        break;
+                    case AUTOREAD_OFF:
+                        autoreadMode = AUTOREAD_ON;
+                        break;
+                }
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                refresh();
+                break;
+            }
             case R.id.confirmModeItem:{
                 switch (confirmMode){
                     case CONFIRM_MODE_UP:{
@@ -3417,6 +3444,16 @@ public class MainActivity extends AppCompatActivity {
             }
             case PREDICT_OFF:{
                 menu.findItem(R.id.predictEnableItem).setTitle("预测：关闭");
+                break;
+            }
+        }
+        switch (autoreadMode){
+            case AUTOREAD_ON:{
+                menu.findItem(R.id.autoreadModeItem).setTitle("自动朗读：开启");
+                break;
+            }
+            case AUTOREAD_OFF:{
+                menu.findItem(R.id.autoreadModeItem).setTitle("自动朗读：关闭");
                 break;
             }
         }

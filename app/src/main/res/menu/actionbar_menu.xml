@@ -18,6 +18,10 @@
         android:orderInCategory="100"
         android:title="预测：开启"/>
     <item
+        android:id="@+id/autoreadModeItem"
+        android:orderInCategory="100"
+        android:title="自动朗读：开启"/>
+    <item
         android:id="@+id/confirmModeItem"
         android:orderInCategory="100"
         android:title="confirmMode:UP"/>
