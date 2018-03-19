@@ -57,6 +57,16 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
+    class Parameters{
+        final long TIME_TOUCH_BY_MISTAKE = 100;
+    };
+    Parameters mpara = new Parameters();
+
+    class TouchInfo{
+        long lastNowchChangedTime = 0;
+    };
+    TouchInfo mtouchinfo = new TouchInfo();
+
     class PinyinDecoderServiceConnection implements ServiceConnection {
         public void onServiceConnected(ComponentName name, IBinder service) {
             mIPinyinDecoderService = IPinyinDecoderService.Stub.asInterface(service);
@@ -663,12 +673,9 @@ public class MainActivity extends AppCompatActivity {
                 List<String> wordlist = mIPinyinDecoderService.imGetChoiceList(0, listlen, mIPinyinDecoderService.imGetFixedLen());
                 for (int i = 0; i < wordlist.size(); ++i)
                     candidates.add(new Word(wordlist.get(i), 0));
-                for (int i = 0; i < 3 && i < wordlist.size(); ++i)
-                    Log.i("fsy", "candidate:" + wordlist.get(i) + ";");
             }catch (RemoteException e){
 
             }
-            Log.i("fsy", "succeed!");
             refresh();
             return;
         }
@@ -911,7 +918,6 @@ public class MainActivity extends AppCompatActivity {
             while ((line = reader.readLine()) != null){
                 lineNo++;
                 testcases.add(line);
-                Log.i("fsy", line + line.length());
                 if (lineNo == TESTCASE_ALL)
                     break;
             }
@@ -1296,12 +1302,17 @@ public class MainActivity extends AppCompatActivity {
             letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
         }
         Collections.sort(letters);
-        Log.i("fsy", "most:" + letters.get(0).text.charAt(0) + "");
         return letters.get(0).text.charAt(0);
     }
 
     //if write=false, just return the most possible key
     public void addToSeq(char ch, int x, int y){
+        if (ch != KEY_NOT_FOUND){
+            if (seq.size() == 0 || System.currentTimeMillis() - mtouchinfo.lastNowchChangedTime >= mpara.TIME_TOUCH_BY_MISTAKE){
+                nowCh = ch;
+                mtouchinfo.lastNowchChangedTime = System.currentTimeMillis();
+            }
+        }
         if (ch != KEY_NOT_FOUND && (seq.size() == 0 || seq.get(seq.size() - 1) != ch)) {
             if (seq.size() == 0){
                 if (confirmMode == CONFIRM_MODE_UP){
@@ -1316,9 +1327,8 @@ public class MainActivity extends AppCompatActivity {
             seq.add(ch);
             stopVoice();
             readList = "";
-            nowCh = ch;
-            playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
-            readList += nowCh;
+            playMedia("ios11_" + voiceSpeed, ch - 'a', true);
+            readList += ch;
             refresh();
         }
     }
