@@ -135,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
     char nowPredictDown = KEY_NOT_FOUND;
 
     final int TESTCASE_ALL = 3;
-    final int TESTCASE_TURN = 3;
+    final int TESTCASE_TURN = 1;
     int currentTestcase;
     ArrayList<String> testcases = new ArrayList<>();
 
@@ -1403,6 +1403,7 @@ public class MainActivity extends AppCompatActivity {
     public String deleteLastChar() {
         String str = "";
         if (currentWord.length() > 0) {
+            write("deletechar");
             str += currentWord.charAt(currentWord.length() - 1);
             currentWord = currentWord.substring(0, currentWord.length() - 1);
             currentBaselineDown = currentBaselineDown.substring(0, currentBaselineDown.length() - 1);
@@ -1728,7 +1729,7 @@ public class MainActivity extends AppCompatActivity {
                                     //    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
                                     //}
                                     if (nowCh != KEY_NOT_FOUND) {
-                                        write("enter " + nowCh);
+                                        write("enter " + nowCh + " " + ((nowPredictDownSaved != KEY_NOT_FOUND) ? nowPredictDownSaved : '*') + " " + ((nowBaseLineDownSaved != KEY_NOT_FOUND) ? nowBaseLineDownSaved : '*'));
                                         currentWord += nowCh;
                                         currentPredictDown += (nowPredictDownSaved != KEY_NOT_FOUND) ? nowPredictDownSaved : '*';
                                         currentBaselineDown += (nowBaseLineDownSaved != KEY_NOT_FOUND) ? nowBaseLineDownSaved : '*';
@@ -1757,6 +1758,7 @@ public class MainActivity extends AppCompatActivity {
                                         currentWord += nowChSaved;
                                         currentPredictDown += (nowPredictDownSaved != KEY_NOT_FOUND) ? nowPredictDownSaved : '*';
                                         currentBaselineDown += (nowBaseLineDownSaved != KEY_NOT_FOUND) ? nowBaseLineDownSaved : '*';
+                                        write("enter " + nowChSaved + " " + ((nowPredictDownSaved != KEY_NOT_FOUND) ? nowPredictDownSaved : '*') + " " + ((nowBaseLineDownSaved != KEY_NOT_FOUND) ? nowBaseLineDownSaved : '*'));
                                         /*if (upvoiceMode == UPVOICE_MODE_YES) {
                                             playMedia("ios11_" + voiceSpeed, nowChSaved - 'a', true);
                                         }
@@ -1775,7 +1777,6 @@ public class MainActivity extends AppCompatActivity {
                                         nowPredictDownSaved = nowPredictDown;
                                         nowBaseLineDownSaved = nowBaseLineDown;
                                         nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],autoKeyboard.INIT_LAYOUT);
-                                        write("enter " + nowCh);
                                     }
                                 }
                             }
