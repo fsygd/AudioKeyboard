@@ -23,7 +23,6 @@ import android.support.annotation.RequiresApi;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
@@ -64,6 +63,9 @@ public class MainActivity extends AppCompatActivity {
 
     class TouchInfo{
         long lastNowchChangedTime = 0;
+        boolean TwoFingersFlag = false;
+        boolean inKeyboard = true;
+        char upKey = KEY_NOT_FOUND;
     };
     TouchInfo mtouchinfo = new TouchInfo();
 
@@ -121,7 +123,8 @@ public class MainActivity extends AppCompatActivity {
     final int AUTOREAD_OFF = -1;
     int autoreadMode = AUTOREAD_ON;
 
-    int SD_coefficient = 6;
+    float SD_coefficient_X = 6;
+    float SD_coefficient_Y = 6;
 
     final int MAX_CANDIDATE = 5;
     int currentCandidate = autoreadMode;
@@ -590,7 +593,7 @@ public class MainActivity extends AppCompatActivity {
         int mm = starttime.get(Calendar.MINUTE);
         int SS = starttime.get(Calendar.SECOND);
         int MI = starttime.get(Calendar.MILLISECOND);
-        return "" + YY + MM + DD + HH + mm + SS + MI + "_" + initMode + "_" + languageMode + "_" + confirmMode + "_" + SD_coefficient + ".txt";
+        return "" + YY + MM + DD + HH + mm + SS + MI + "_" + initMode + "_" + languageMode + "_" + confirmMode + "_" + SD_coefficient_X + ".txt";
     }
 
     public void write(String content){
@@ -623,6 +626,7 @@ public class MainActivity extends AppCompatActivity {
         String testcase = "";
         if (recordMode == RECORD_MODE_STARTED)
             testcase = currentTestcase + ":" + testcases.get(currentTestcase) + "\n";
+
         String textContent = "";
         if (languageMode == LANG_MODE_CHN){
             try {
@@ -630,7 +634,7 @@ public class MainActivity extends AppCompatActivity {
                 composingWord += currentWord.substring(mIPinyinDecoderService.imGetSplStart()[mIPinyinDecoderService.imGetFixedLen() + 1]);
                 textContent += testcase + currentInput + "\n" + composingWord + "\n";
             }catch (RemoteException e){
-
+                e.printStackTrace();
             }
         }
         else {
@@ -766,7 +770,7 @@ public class MainActivity extends AppCompatActivity {
             }
             else if(initMode == INIT_MODE_RELATIVE){
                 char ch = autoKeyboard.getKeyByPosition(x, y, autoKeyboard.CURR_LAYOUT);
-                if (ch == upKey){
+                if (ch == mtouchinfo.upKey){
                     addToSeq(ch, x, y);
                 }
                 else{
@@ -1298,8 +1302,8 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < letters.size(); ++i){
             letters.get(i).freq += 0.01;
             int tmp = letters.get(i).text.charAt(0) - 'a';
-            letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
-            letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient / 10);
+            letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width * SD_coefficient_X / 10);
+            letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient_Y / 10);
         }
         Collections.sort(letters);
         return letters.get(0).text.charAt(0);
@@ -1307,6 +1311,16 @@ public class MainActivity extends AppCompatActivity {
 
     //if write=false, just return the most possible key
     public void addToSeq(char ch, int x, int y){
+        Log.i("fsy", "here");
+        if (ch == KEY_NOT_FOUND){
+            if (mtouchinfo.inKeyboard && System.currentTimeMillis() > downTime + STAY_TIME){
+                textToSpeech.speak("出界", textToSpeech.QUEUE_ADD, null);
+                mtouchinfo.inKeyboard = false;
+            }
+        }
+        else{
+            mtouchinfo.inKeyboard = true;
+        }
         if (ch != KEY_NOT_FOUND){
             if (seq.size() == 0 || System.currentTimeMillis() - mtouchinfo.lastNowchChangedTime >= mpara.TIME_TOUCH_BY_MISTAKE){
                 nowCh = ch;
@@ -1343,7 +1357,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onInit(int status){
                 if (status == textToSpeech.SUCCESS){
-                    int result = textToSpeech.setLanguage(Locale.CHINA);
+                    int result = textToSpeech.setLanguage(Locale.ENGLISH);
                     if (result != TextToSpeech.LANG_COUNTRY_AVAILABLE && result != TextToSpeech.LANG_AVAILABLE){
                         Toast.makeText(MainActivity.this, "TTS暂时不支持这种语音的朗读！", Toast.LENGTH_SHORT).show();
                     }
@@ -1446,11 +1460,9 @@ public class MainActivity extends AppCompatActivity {
     int downX, downY, downX2, downY2;
     long downTime = 0, downTime2 = 0;
     long wordDownTime = 0;
-    boolean TwoFingersFlag = false;
     long firstDownTime = 0, lastDownTime = 0; // used for check double-click
     final long STAY_TIME = 400;
     final int SLIP_DIST = 70;
-    char upKey = KEY_NOT_FOUND;
     boolean isOverScreen=false;
     char lastChar='A';
     public boolean checkLeftwipe(int x, int y, long tempTime) {
@@ -1494,6 +1506,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void actionRightwipe(){
         write("rightwipe");
+        mtouchinfo.upKey = KEY_NOT_FOUND;
         if (currentCandidate >= 0 && currentCandidate < candidates.size()) {
             if (languageMode == LANG_MODE_CHN){
                 String delta = candidates.get(currentCandidate).alias;
@@ -1558,7 +1571,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void actionLeftwipe(){
         write("leftwipe");
-        upKey = KEY_NOT_FOUND;
+        mtouchinfo.upKey = KEY_NOT_FOUND;
         if (languageMode == LANG_MODE_CHN){
             try{
                 if (mIPinyinDecoderService.imGetFixedLen() > 0){
@@ -1597,6 +1610,7 @@ public class MainActivity extends AppCompatActivity {
         downX2 = (int)event.getX(0);
         downY2 = (int)event.getY(0);
         downTime2 = event.getEventTime();
+        mtouchinfo.upKey = KEY_NOT_FOUND;
     }
 
     public void actionPointerUp(MotionEvent event){
@@ -1623,7 +1637,7 @@ public class MainActivity extends AppCompatActivity {
                 deleteAllChar();
                 currentCandidate = autoreadMode;
                 elapsedTimeText.setText("0");
-                upKey = KEY_NOT_FOUND;
+                mtouchinfo.upKey = KEY_NOT_FOUND;
                 nowChSaved = '*';
                 currentInput = "";
                 refresh();
@@ -1639,7 +1653,7 @@ public class MainActivity extends AppCompatActivity {
             deleteAllChar();
             currentCandidate = autoreadMode;
             elapsedTimeText.setText("0");
-            upKey = KEY_NOT_FOUND;
+            mtouchinfo.upKey = KEY_NOT_FOUND;
             nowChSaved = '*';
             textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
             currentInput = "";
@@ -1657,6 +1671,7 @@ public class MainActivity extends AppCompatActivity {
         currentCandidate = Math.max(currentCandidate - 1, 0);
         autoKeyboard.resetLayout();
         autoKeyboard.drawLayout();
+        mtouchinfo.upKey = KEY_NOT_FOUND;
         refresh();
     }
 
@@ -1666,6 +1681,7 @@ public class MainActivity extends AppCompatActivity {
             ++currentCandidate;
         autoKeyboard.resetLayout();
         autoKeyboard.drawLayout();
+        mtouchinfo.upKey = KEY_NOT_FOUND;
         refresh();
     }
 
@@ -1678,7 +1694,7 @@ public class MainActivity extends AppCompatActivity {
         switch(activity_mode){
             case KEYBOARD_MODE:{
                 if (event.getPointerCount() == 2){
-                    TwoFingersFlag = true;
+                    mtouchinfo.TwoFingersFlag = true;
                     switch (event.getActionMasked()) {
                         case MotionEvent.ACTION_POINTER_DOWN:
                             actionPointerDown(event);
@@ -1688,7 +1704,7 @@ public class MainActivity extends AppCompatActivity {
                             break;
                     }
                 }
-                if (!TwoFingersFlag && event.getPointerCount() == 1){
+                if (!mtouchinfo.TwoFingersFlag && event.getPointerCount() == 1){
                 //if (!TwoFingersFlag && event.getPointerCount() == 1 && (autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT) == upKey
                 //        || autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.INIT_LAYOUT) != KEY_NOT_FOUND)){ // in the keyboard area
                     switch (event.getActionMasked()) {
@@ -1734,7 +1750,7 @@ public class MainActivity extends AppCompatActivity {
                                     actionDownwipe();
                                 } else {
                                     currentCandidate = autoreadMode;
-                                    upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
+                                    mtouchinfo.upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                     //if (upvoiceMode == UPVOICE_MODE_YES && nowCh >= 'a' && nowCh <= 'z') {
                                     //    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
                                     //}
@@ -1782,7 +1798,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
                                 else{
                                     if (tempTime - downTime > 300) {
-                                        upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
+                                        mtouchinfo.upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                         nowChSaved = nowCh;
                                         nowPredictDownSaved = nowPredictDown;
                                         nowBaseLineDownSaved = nowBaseLineDown;
@@ -1798,7 +1814,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 if (event.getActionMasked() == MotionEvent.ACTION_UP){
-                    TwoFingersFlag = false;
+                    mtouchinfo.TwoFingersFlag = false;
+                    mtouchinfo.inKeyboard = true;
                 }
                 break;
             }
@@ -3021,8 +3038,8 @@ public class MainActivity extends AppCompatActivity {
                         // max:20
                         float SDMax=20F;
                         float SDMin=1F;
-                        SD_coefficient =Math.round (ratio*(SDMax-SDMin)+SDMin);
-                        seekBarText.setText("SD:"+String.valueOf(SD_coefficient));
+                        SD_coefficient_X =Math.round (ratio*(SDMax-SDMin)+SDMin);
+                        seekBarText.setText("SD:"+String.valueOf(SD_coefficient_X));
                         refresh();
                         break;
                     }case TESTTURN:{// fuzzyInputTestTurn
@@ -3165,10 +3182,18 @@ public class MainActivity extends AppCompatActivity {
                 switch (languageMode){
                     case LANG_MODE_ENG:{
                         languageMode = LANG_MODE_CHN;
+                        int result = textToSpeech.setLanguage(Locale.CHINA);
+                        if (result != TextToSpeech.LANG_COUNTRY_AVAILABLE && result != TextToSpeech.LANG_AVAILABLE){
+                            Toast.makeText(MainActivity.this, "TTS暂时不支持这种语音的朗读！", Toast.LENGTH_SHORT).show();
+                        }
                         break;
                     }
                     case LANG_MODE_CHN:{
                         languageMode = LANG_MODE_ENG;
+                        int result = textToSpeech.setLanguage(Locale.ENGLISH);
+                        if (result != TextToSpeech.LANG_COUNTRY_AVAILABLE && result != TextToSpeech.LANG_AVAILABLE){
+                            Toast.makeText(MainActivity.this, "TTS暂时不支持这种语音的朗读！", Toast.LENGTH_SHORT).show();
+                        }
                         break;
                     }
                 }
@@ -3268,8 +3293,8 @@ public class MainActivity extends AppCompatActivity {
                 float SDMin=1F;
                 seekBar.setVisibility(View.VISIBLE);
                 seekBarText.setVisibility(View.VISIBLE);
-                seekBarText.setText("SD:"+String.valueOf(SD_coefficient));
-                seekBar.setProgress(Math.round((SD_coefficient-SDMin)/(SDMax-SDMin)*100));
+                seekBarText.setText("SD:"+String.valueOf(SD_coefficient_X));
+                seekBar.setProgress(Math.round((SD_coefficient_X -SDMin)/(SDMax-SDMin)*100));
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 refresh();
@@ -3534,7 +3559,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
-        menu.findItem(R.id.SDItem).setTitle("SD:" + String.valueOf(SD_coefficient));
+        menu.findItem(R.id.SDItem).setTitle("SD:" + String.valueOf(SD_coefficient_X));
         menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
         if(activity_mode==KEYBOARD_MODE){
             menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
