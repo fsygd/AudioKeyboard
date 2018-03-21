@@ -1589,6 +1589,9 @@ public class MainActivity extends AppCompatActivity {
                     nowChSaved = '*';
                     currentCandidate = autoreadMode;
                     textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
+                    if (deleted.length() > 0 && deleted.charAt(0) >= 'a' && deleted.charAt(0) <= 'z' && currentWord.length() == 0){
+                        textToSpeech.speak("拼音已清空", TextToSpeech.QUEUE_ADD, null);
+                    }
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
                     predict(currentWord);
@@ -1669,6 +1672,9 @@ public class MainActivity extends AppCompatActivity {
     public void actionUpwipe(){
         write("upwipe");
         currentCandidate = Math.max(currentCandidate - 1, 0);
+        if (currentWord.length() > 0 && candidates.size() == 0){
+            textToSpeech.speak("无候选词", textToSpeech.QUEUE_ADD, null);
+        }
         autoKeyboard.resetLayout();
         autoKeyboard.drawLayout();
         mtouchinfo.upKey = KEY_NOT_FOUND;
@@ -1679,6 +1685,9 @@ public class MainActivity extends AppCompatActivity {
         write("downwipe");
         if (currentCandidate + 1 < candidates.size())
             ++currentCandidate;
+        if (currentWord.length() > 0 && candidates.size() == 0){
+            textToSpeech.speak("无候选词", textToSpeech.QUEUE_ADD, null);
+        }
         autoKeyboard.resetLayout();
         autoKeyboard.drawLayout();
         mtouchinfo.upKey = KEY_NOT_FOUND;
