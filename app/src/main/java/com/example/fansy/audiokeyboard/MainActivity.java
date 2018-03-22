@@ -1379,6 +1379,7 @@ public class MainActivity extends AppCompatActivity {
         initModeButton = (Button)findViewById(R.id.init_mode_button);
         speedButton = (Button)findViewById(R.id.speedButton);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
+        voiceSpeedText.setText(String.valueOf(voiceSpeed));
         fuzzyInputTestCharShow=(TextView)findViewById(R.id.fuzzyInputTestCharShow);
         fuzzyInputTestCharShow.setVisibility(View.GONE);
         progressBar=(ProgressBar)findViewById(R.id.progress_bar);
