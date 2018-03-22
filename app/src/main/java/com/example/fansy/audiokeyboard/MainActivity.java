@@ -133,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
 
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, elapsedTimeText;
-    Button confirmButton, initModeButton, speedpButton, speedmButton;
+    Button confirmButton, initModeButton, speedButton;
     String currentInput = "";
     String readList = ""; //current voice list
     String currentWord = ""; //most possible char sequence
@@ -162,9 +162,9 @@ public class MainActivity extends AppCompatActivity {
     String keysNearby[] = new String[26];
     double keysNearbyProb[][] = new double[26][26]; //keysNearbyProb[x][y] the possibility when want y but touch x
     String filename = "";
-
-    int voiceSpeed = 50;
-
+    // 50-1.0f 60-1.5f 70-2.0f 80-2.5f 90-3.0f 100-3.5f
+    int voiceSpeed = 60;
+    float ttsVoiceSpeed=1.5f;
     AutoKeyboard autoKeyboard;
 
     //Fuzzy Input Test Var
@@ -314,10 +314,9 @@ public class MainActivity extends AppCompatActivity {
                 //keyboard.setVisibility(View.VISIBLE);
                 candidatesView.setVisibility(View.VISIBLE);
                 readListView.setVisibility(View.VISIBLE);
-                speedmButton.setVisibility(View.VISIBLE);
                 voiceSpeedText.setVisibility(View.VISIBLE);
                 confirmButton.setText("CONFIRM");
-                speedpButton.setText("SPEED+");
+                speedButton.setText("SPEED+");
                 refresh();
                 break;
             }
@@ -329,11 +328,10 @@ public class MainActivity extends AppCompatActivity {
                 //keyboard.setVisibility(View.GONE);
                 candidatesView.setVisibility(View.GONE);
                 readListView.setVisibility(View.GONE);
-                speedmButton.setVisibility(View.INVISIBLE);
                 voiceSpeedText.setVisibility(View.GONE);
                 initModeButton.setText("Back");
                 confirmButton.setText("Save");
-                speedpButton.setText("BackSpace");
+                speedButton.setText("BackSpace");
                 break;
             }
         }
@@ -1203,29 +1201,22 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        speedmButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(voiceSpeed>=60){
-                    voiceSpeed -= 10;
-                }
-                autoKeyboard.resetLayout();
-                autoKeyboard.drawLayout();
-                voiceSpeedText.setText(voiceSpeed+"");
-            }
-        });
-
-        speedpButton.setOnClickListener(new View.OnClickListener() {
+        speedButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 switch(activity_mode){
                     case KEYBOARD_MODE:{
-                        if(voiceSpeed<=90){
-                            voiceSpeed += 10;
-                        }
+                        currentMenuVar=MENUVAR.SPEED;
+                        seekBar.setVisibility(View.VISIBLE);
+                        float voiceSpeedMax=100f;
+                        float voiceSpeedMin=50f;
+                        int progress=Math.round(100f*(voiceSpeed-voiceSpeedMin)/(voiceSpeedMax-voiceSpeedMin));
+                        seekBar.setProgress(progress);
                         autoKeyboard.resetLayout();
                         autoKeyboard.drawLayout();
                         voiceSpeedText.setText(voiceSpeed+"");
+                        seekBarText.setVisibility(View.VISIBLE);
+                        seekBarText.setText("voiceSpeed:"+String.valueOf(voiceSpeed));
                         break;
                     }
                     case FUZZY_INPUT_TEST_MODE:{// 回退一轮
@@ -1373,7 +1364,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-        textToSpeech.setSpeechRate(2.0f);
+        textToSpeech.setSpeechRate(ttsVoiceSpeed);
+        textToSpeech.setPitch(1.0f);
         keyboard = (ImageView)findViewById(R.id.keyboard);
         text = (TextView)findViewById(R.id.text);
         seekBar=(SeekBar)findViewById(R.id.seekBar);
@@ -1385,8 +1377,7 @@ public class MainActivity extends AppCompatActivity {
         confirmButton = (Button)findViewById(R.id.confirm_button);
         readListView = (TextView)findViewById(R.id.readList);
         initModeButton = (Button)findViewById(R.id.init_mode_button);
-        speedmButton = (Button)findViewById(R.id.speed_m_button);
-        speedpButton = (Button)findViewById(R.id.speed_p_button);
+        speedButton = (Button)findViewById(R.id.speedButton);
         voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
         fuzzyInputTestCharShow=(TextView)findViewById(R.id.fuzzyInputTestCharShow);
         fuzzyInputTestCharShow.setVisibility(View.GONE);
@@ -1401,6 +1392,7 @@ public class MainActivity extends AppCompatActivity {
             public void onGlobalLayout() {
                 keyboard.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 autoKeyboard=new AutoKeyboard(keyboard);
+                fitOnScreen();
             }
         });
         initDict();
@@ -1420,6 +1412,24 @@ public class MainActivity extends AppCompatActivity {
             if (bindService(serviceIntent, mPinyinDecoderServiceConnection, Context.BIND_AUTO_CREATE))
                 Log.i("fsy", "true");
         }
+    }
+    public void fitOnScreen(){
+        float ratio = Math.max(autoKeyboard.screen_height_ratio,autoKeyboard.screen_width_ratio);
+        // fit text size
+        int textSize=18;
+        text.setTextSize((int)(textSize*ratio));
+        candidatesView.setTextSize((int)(textSize*ratio));
+        readListView.setTextSize((int)(textSize*ratio));
+        voiceSpeedText.setTextSize((int)(textSize*ratio));
+        fuzzyInputTestCharShow.setTextSize((int)(40*ratio));
+        elapsedTimeText.setTextSize((int)(textSize*ratio));
+        seekBarText.setTextSize((int)(textSize*ratio));
+
+        // fit button text size
+        int buttonTextSize=12;
+        confirmButton.setTextSize((int)(buttonTextSize*ratio));
+        initModeButton.setTextSize((int)(buttonTextSize*ratio));
+        speedButton.setTextSize((int)(buttonTextSize*ratio));
     }
     @Override
     public void onDestroy(){
@@ -1942,7 +1952,7 @@ public class MainActivity extends AppCompatActivity {
         ImageView keyboard;
         Canvas canvas;
         Bitmap baseBitmap;
-        Paint backgroundPaint,textPaint,boundPaint,movePaint;
+        Paint backgroundPaint,textPaint,boundPaint,movePaint,originPaint;
         boolean Visibility=true;
         float screen_width_ratio = 1F;
         float screen_height_ratio = 1F;
@@ -2814,15 +2824,31 @@ public class MainActivity extends AppCompatActivity {
                     RectF rect = new RectF(this.keys[i].getLeft(CURR_LAYOUT)+5*screen_width_ratio,this.keys[i].getTop(CURR_LAYOUT)+10*screen_height_ratio,this.keys[i].getRight(CURR_LAYOUT)-5*screen_width_ratio,this.keys[i].getBottom(CURR_LAYOUT)-10*screen_height_ratio);
                     this.canvas.drawRoundRect(rect,10,10,this.backgroundPaint);
                 }
+                // 画原始边框
+                for (int i=0;i<KEYNUM;i++){
+
+                    float left=this.keys[i].getLeft(INIT_LAYOUT)+5*screen_width_ratio;
+                    float top=this.keys[i].getTop(INIT_LAYOUT)+10*screen_height_ratio;
+                    float right=this.keys[i].getRight(INIT_LAYOUT)-5*screen_width_ratio;
+                    float bottom=this.keys[i].getBottom(INIT_LAYOUT)-10*screen_height_ratio;
+                    this.canvas.drawLine(left,top,right,top,this.originPaint);
+                    this.canvas.drawLine(left,top,left,bottom,this.originPaint);
+                    this.canvas.drawLine(right,top,right,bottom,this.originPaint);
+                    this.canvas.drawLine(left,bottom,right,bottom,this.originPaint);
+                    /*
+                    RectF rect = new RectF(this.keys[i].getLeft(INIT_LAYOUT)+5*screen_width_ratio,this.keys[i].getTop(INIT_LAYOUT)+10*screen_height_ratio,this.keys[i].getRight(INIT_LAYOUT)-5*screen_width_ratio,this.keys[i].getBottom(INIT_LAYOUT)-10*screen_height_ratio);
+                    this.canvas.drawRoundRect(rect,10,10,this.originPaint);
+                    */
+                }
                 // 画A-Z
                 for (int i:allLetter){
                     this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x,this.keys[i].curr_y-fonttop/2F-fontbottom/2F,this.textPaint);
                 }
 
                 // SHIFT
-                /*
-                float shiftX=keys[SHIFT].curr_x+this.location[0];
-                float shiftY=keys[SHIFT].curr_y+this.location[1];
+
+                float shiftX=keys[SHIFT].curr_x;
+                float shiftY=keys[SHIFT].curr_y;
                 float shiftH=keys[SHIFT].curr_height;
                 float shiftW=keys[SHIFT].curr_width;
                 float[] shiftA={shiftX-shiftW/4,shiftY};
@@ -2841,20 +2867,20 @@ public class MainActivity extends AppCompatActivity {
                 this.canvas.drawLine(shiftF[0],shiftF[1],shiftG[0],shiftG[1],textPaint);
 
                 // SYMBOL
-                this.canvas.drawText("123",this.keys[SYMBOL].curr_x+this.location[0],this.keys[SYMBOL].curr_y+this.location[1]-fonttop/2-fontbottom/2,this.textPaint);
+                this.canvas.drawText("123",this.keys[SYMBOL].curr_x,this.keys[SYMBOL].curr_y-fonttop/2-fontbottom/2,this.textPaint);
 
                 // LANGUAGE
-                this.canvas.drawText("C/E",this.keys[LANGUAGE].curr_x+this.location[0],this.keys[LANGUAGE].curr_y+this.location[1]-fonttop/2-fontbottom/2,this.textPaint);
+                this.canvas.drawText("C/E",this.keys[LANGUAGE].curr_x,this.keys[LANGUAGE].curr_y-fonttop/2-fontbottom/2,this.textPaint);
 
                 // COMMA
-                this.canvas.drawText(",",this.keys[COMMA].curr_x+this.location[0],this.keys[COMMA].curr_y+this.location[1]-fonttop/2-fontbottom/2,this.textPaint);
+                this.canvas.drawText(",",this.keys[COMMA].curr_x,this.keys[COMMA].curr_y-fonttop/2-fontbottom/2,this.textPaint);
 
                 // PERIOD
-                this.canvas.drawText(".",this.keys[PERIOD].curr_x+this.location[0],this.keys[PERIOD].curr_y+this.location[1]-fonttop/2-fontbottom/2,this.textPaint);
+                this.canvas.drawText(".",this.keys[PERIOD].curr_x,this.keys[PERIOD].curr_y-fonttop/2-fontbottom/2,this.textPaint);
 
                 // BACKSPACE
-                float backspaceX=keys[BACKSPACE].curr_x+this.location[0];
-                float backspaceY=keys[BACKSPACE].curr_y+this.location[1];
+                float backspaceX=keys[BACKSPACE].curr_x;
+                float backspaceY=keys[BACKSPACE].curr_y;
                 float backspaceH=keys[BACKSPACE].curr_height;
                 float backspaceW=keys[BACKSPACE].curr_width;
                 float[] backspaceA={backspaceX,backspaceY+backspaceH/4};
@@ -2871,7 +2897,7 @@ public class MainActivity extends AppCompatActivity {
                 this.canvas.drawLine(backspaceD[0],backspaceD[1],backspaceF[0],backspaceF[1],textPaint);
                 this.canvas.drawLine(backspaceE[0],backspaceE[1],backspaceG[0],backspaceG[1],textPaint);
                 this.canvas.drawLine(backspaceF[0],backspaceF[1],backspaceG[0],backspaceG[1],textPaint);
-                */
+
 
                 this.keyboard.setImageBitmap(this.baseBitmap);
 
@@ -3003,6 +3029,15 @@ public class MainActivity extends AppCompatActivity {
             this.backgroundPaint.setStrokeWidth(3);
             this.backgroundPaint.setStrokeWidth(3);
 
+            this.originPaint=new Paint();
+            this.originPaint.setColor(Color.rgb(231,88,113));
+            //this.originPaint.setColor(Color.rgb(239,239,239));
+            this.originPaint.setStrokeJoin(Paint.Join.ROUND);
+            this.originPaint.setStrokeCap(Paint.Cap.ROUND);
+            this.originPaint.setStrokeWidth(3);
+            this.originPaint.setStrokeWidth(3);
+            this.originPaint.setAlpha(50);
+
             this.textPaint=new Paint();
             this.textPaint.setColor(Color.BLACK);
             this.textPaint.setStrokeJoin(Paint.Join.ROUND);
@@ -3038,7 +3073,7 @@ public class MainActivity extends AppCompatActivity {
     SeekBar seekBar;
     TextView seekBarText;
     enum MENUVAR{
-        SD,TESTTURN,EXPONENT,SCALINGNUM,KEYBOARDHEIGHT,TOPTHRESHOLD,BOTTOMTHRESHOLD,MINWIDTH,MINHEIGHT,TAPRANGE
+        SD,TESTTURN,EXPONENT,SCALINGNUM,KEYBOARDHEIGHT,TOPTHRESHOLD,BOTTOMTHRESHOLD,MINWIDTH,MINHEIGHT,TAPRANGE,SPEED
     }
     MENUVAR currentMenuVar=MENUVAR.SD;
 
@@ -3127,6 +3162,18 @@ public class MainActivity extends AppCompatActivity {
                         seekBarText.setText("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
                         autoKeyboard.resetLayout();
                         autoKeyboard.drawLayout();
+                        break;
+                    }case SPEED:{
+                        int[] speedArray={50,60,70,80,90,100};
+                        float[] ttsSpeedArray={1.0f,1.5f,2.0f,2.5f,3.0f,3.5f};
+                        int speedMin=0;
+                        int speedMax=5;
+                        int voiceSpeedIndex=Math.round(ratio*(speedMax-speedMin)+speedMin);
+                        voiceSpeed=speedArray[voiceSpeedIndex];
+                        voiceSpeedText.setText(String.valueOf(voiceSpeed));
+                        seekBarText.setText("voiceSpeed:"+String.valueOf(voiceSpeed));
+                        ttsVoiceSpeed=ttsSpeedArray[voiceSpeedIndex];
+                        textToSpeech.setSpeechRate(ttsVoiceSpeed);
                         break;
                     }
                 }

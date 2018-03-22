@@ -32,10 +32,26 @@
         android:layout_alignStart="@+id/text"
         android:layout_below="@+id/text"
         android:layout_marginTop="54dp"
-        android:textSize="30sp"
+        android:textSize="22sp"
         android:typeface="monospace"
         android:text="" />
-
+    <TextView
+        android:id="@+id/voice_speed_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="50"
+        android:textAppearance="@android:style/TextAppearance.Material.Small"
+        android:textSize="22sp"
+        android:layout_below="@+id/elapsedtime"
+        android:layout_alignStart="@+id/elapsedtime" />
+    <TextView
+        android:id="@+id/readList"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/candidates"
+        android:layout_alignParentRight="true"
+        android:textSize="22sp"
+        android:text="" />
     <Button
         android:id="@+id/confirm_button"
         android:layout_width="wrap_content"
@@ -43,16 +59,6 @@
         android:text="Confirm"
         android:layout_alignParentTop="true"
         android:layout_toEndOf="@+id/init_mode_button" />
-
-    <TextView
-        android:id="@+id/readList"
-        android:layout_width="150dp"
-        android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/candidates"
-        android:layout_alignParentRight="true"
-        android:textSize="30sp"
-        android:text="" />
-
     <Button
         android:id="@+id/init_mode_button"
         android:layout_width="wrap_content"
@@ -60,32 +66,14 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
         android:text="relative" />
-
     <Button
-        android:id="@+id/speed_m_button"
+        android:id="@+id/speedButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="speed-"
-        android:layout_alignParentTop="true"
-        android:layout_toEndOf="@+id/speed_p_button" />
-
-    <Button
-        android:id="@+id/speed_p_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="speed+"
+        android:text="speed"
         android:layout_alignParentTop="true"
         android:layout_toEndOf="@+id/confirm_button" />
 
-    <TextView
-        android:id="@+id/voice_speed_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="50"
-        android:textAppearance="@android:style/TextAppearance.Material.Small"
-        android:textSize="30sp"
-        android:layout_below="@+id/elapsedtime"
-        android:layout_alignStart="@+id/elapsedtime" />
 
     // FuzzyInputTest
 
@@ -101,7 +89,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="#f25b63"
-        android:textSize="50sp"
+        android:textSize="40sp"
         android:layout_centerHorizontal="true"
         android:layout_below="@id/init_mode_button"
         android:text="Ok"
@@ -119,8 +107,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="0"
-        android:textSize="30sp"
-        android:layout_below="@+id/speed_p_button"
+        android:textSize="22sp"
+        android:layout_below="@+id/speedButton"
         android:layout_alignStart="@+id/readList" />
 
     <SeekBar
@@ -140,7 +128,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="seekBarText"
-        android:textSize="30sp"
+        android:textSize="22sp"
         android:layout_marginBottom="40dp"
         android:layout_above="@id/seekBar"
         android:layout_centerHorizontal="true"
