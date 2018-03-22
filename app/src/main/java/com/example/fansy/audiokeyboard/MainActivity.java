@@ -1952,7 +1952,7 @@ public class MainActivity extends AppCompatActivity {
         ImageView keyboard;
         Canvas canvas;
         Bitmap baseBitmap;
-        Paint backgroundPaint,textPaint,boundPaint,movePaint,originPaint;
+        Paint backgroundPaint,textPaint,boundPaint,movePaint,originPaint,rankingPaint;
         boolean Visibility=true;
         float screen_width_ratio = 1F;
         float screen_height_ratio = 1F;
@@ -1965,7 +1965,7 @@ public class MainActivity extends AppCompatActivity {
         float bottomThreshold;// the lower bound
         float minWidthRatio;// the minimum width of a key
         float minHeightRatio;// the minimum height of a key
-        int keyPos[];// the position of each key
+        int[] keyPos={10,24,22,12,2,13,14,15,7,16,17,18,26,25,8,9,0,3,11,4,6,23,1,21,5,20};// A-Z to the position in the keyboard
         int[] location;// the coordinate of the left top corner of the keyboard
         int[] allLetter={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,21,22,23,24,25,26};
         final int KEYNUM=33;
@@ -2844,7 +2844,7 @@ public class MainActivity extends AppCompatActivity {
                 for (int i:allLetter){
                     this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x,this.keys[i].curr_y-fonttop/2F-fontbottom/2F,this.textPaint);
                 }
-
+                /*
                 // SHIFT
 
                 float shiftX=keys[SHIFT].curr_x;
@@ -2898,7 +2898,7 @@ public class MainActivity extends AppCompatActivity {
                 this.canvas.drawLine(backspaceE[0],backspaceE[1],backspaceG[0],backspaceG[1],textPaint);
                 this.canvas.drawLine(backspaceF[0],backspaceF[1],backspaceG[0],backspaceG[1],textPaint);
 
-
+                */
                 this.keyboard.setImageBitmap(this.baseBitmap);
 
             }else{
@@ -3011,13 +3011,132 @@ public class MainActivity extends AppCompatActivity {
                 this.keys[i].reset();
             }
         }
+        public void drawLayout(String rank){ // curr_x,curr_y
+            if(Visibility){
+                this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
+                this.canvas=new Canvas(this.baseBitmap);
+                //RectF rect = new RectF(left, top, right, bottom);
+                //this.canvas.drawRect(rect, this.backgroundPaint);
+
+                Paint.FontMetrics fontMetrics = this.textPaint.getFontMetrics();
+                float fonttop = fontMetrics.top;//为基线到字体上边框的距离
+                float fontbottom = fontMetrics.bottom;//为基线到字体下边框的距离
+                // 画底图上边界
+                RectF upperBoundRect = new RectF(0,0,keyboardWidth,topThreshold);
+                this.canvas.drawRect(upperBoundRect,this.boundPaint);
+                // 画上可移动边界
+                RectF upperMoveBoundRect = new RectF(0,topThreshold,keyboardWidth,keys[P].getTop(CURR_LAYOUT));
+                this.canvas.drawRect(upperMoveBoundRect,this.movePaint);
+                // 画下可移动边界
+                RectF lowerMoveBound = new RectF(0,this.keys[SYMBOL].getBottom(CURR_LAYOUT),keyboardWidth,bottomThreshold);
+                this.canvas.drawRect(lowerMoveBound,this.movePaint);
+                // 画下边界
+                RectF lowerBound = new RectF(0,bottomThreshold,keyboardWidth,baseImageHeight);
+                this.canvas.drawRect(lowerBound,this.boundPaint);
+
+                // 画边框
+                for (int i=0;i<KEYNUM;i++){
+                    RectF rect = new RectF(this.keys[i].getLeft(CURR_LAYOUT)+5*screen_width_ratio,this.keys[i].getTop(CURR_LAYOUT)+10*screen_height_ratio,this.keys[i].getRight(CURR_LAYOUT)-5*screen_width_ratio,this.keys[i].getBottom(CURR_LAYOUT)-10*screen_height_ratio);
+                    this.canvas.drawRoundRect(rect,10,10,this.backgroundPaint);
+                }
+                // 画原始边框
+                for (int i=0;i<KEYNUM;i++){
+
+                    float left=this.keys[i].getLeft(INIT_LAYOUT)+5*screen_width_ratio;
+                    float top=this.keys[i].getTop(INIT_LAYOUT)+10*screen_height_ratio;
+                    float right=this.keys[i].getRight(INIT_LAYOUT)-5*screen_width_ratio;
+                    float bottom=this.keys[i].getBottom(INIT_LAYOUT)-10*screen_height_ratio;
+                    this.canvas.drawLine(left,top,right,top,this.originPaint);
+                    this.canvas.drawLine(left,top,left,bottom,this.originPaint);
+                    this.canvas.drawLine(right,top,right,bottom,this.originPaint);
+                    this.canvas.drawLine(left,bottom,right,bottom,this.originPaint);
+                    /*
+                    RectF rect = new RectF(this.keys[i].getLeft(INIT_LAYOUT)+5*screen_width_ratio,this.keys[i].getTop(INIT_LAYOUT)+10*screen_height_ratio,this.keys[i].getRight(INIT_LAYOUT)-5*screen_width_ratio,this.keys[i].getBottom(INIT_LAYOUT)-10*screen_height_ratio);
+                    this.canvas.drawRoundRect(rect,10,10,this.originPaint);
+                    */
+                }
+                // 画A-Z
+                for (int i:allLetter){
+                    this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x,this.keys[i].curr_y-fonttop/2F-fontbottom/2F,this.textPaint);
+                }
+                /*
+                // SHIFT
+
+                float shiftX=keys[SHIFT].curr_x;
+                float shiftY=keys[SHIFT].curr_y;
+                float shiftH=keys[SHIFT].curr_height;
+                float shiftW=keys[SHIFT].curr_width;
+                float[] shiftA={shiftX-shiftW/4,shiftY};
+                float[] shiftB={shiftX,shiftY-shiftH*3/8};
+                float[] shiftC={shiftX+shiftW/4,shiftY};
+                float[] shiftD={shiftX-shiftW/8,shiftY};
+                float[] shiftE={shiftX+shiftW/8,shiftY};
+                float[] shiftF={shiftX-shiftW/8,shiftY+shiftH*3/8};
+                float[] shiftG={shiftX+shiftW/8,shiftY+shiftH*3/8};
+                this.canvas.drawLine(shiftA[0],shiftA[1],shiftB[0],shiftB[1],textPaint);
+                this.canvas.drawLine(shiftB[0],shiftB[1],shiftC[0],shiftC[1],textPaint);
+                this.canvas.drawLine(shiftA[0],shiftA[1],shiftD[0],shiftD[1],textPaint);
+                this.canvas.drawLine(shiftE[0],shiftE[1],shiftC[0],shiftC[1],textPaint);
+                this.canvas.drawLine(shiftD[0],shiftD[1],shiftF[0],shiftF[1],textPaint);
+                this.canvas.drawLine(shiftE[0],shiftE[1],shiftG[0],shiftG[1],textPaint);
+                this.canvas.drawLine(shiftF[0],shiftF[1],shiftG[0],shiftG[1],textPaint);
+
+                // SYMBOL
+                this.canvas.drawText("123",this.keys[SYMBOL].curr_x,this.keys[SYMBOL].curr_y-fonttop/2-fontbottom/2,this.textPaint);
+
+                // LANGUAGE
+                this.canvas.drawText("C/E",this.keys[LANGUAGE].curr_x,this.keys[LANGUAGE].curr_y-fonttop/2-fontbottom/2,this.textPaint);
+
+                // COMMA
+                this.canvas.drawText(",",this.keys[COMMA].curr_x,this.keys[COMMA].curr_y-fonttop/2-fontbottom/2,this.textPaint);
+
+                // PERIOD
+                this.canvas.drawText(".",this.keys[PERIOD].curr_x,this.keys[PERIOD].curr_y-fonttop/2-fontbottom/2,this.textPaint);
+
+                // BACKSPACE
+                float backspaceX=keys[BACKSPACE].curr_x;
+                float backspaceY=keys[BACKSPACE].curr_y;
+                float backspaceH=keys[BACKSPACE].curr_height;
+                float backspaceW=keys[BACKSPACE].curr_width;
+                float[] backspaceA={backspaceX,backspaceY+backspaceH/4};
+                float[] backspaceB={backspaceX-backspaceW*3/8,backspaceY};
+                float[] backspaceC={backspaceX,backspaceY-backspaceH/4};
+                float[] backspaceD={backspaceX,backspaceY+backspaceH/8};
+                float[] backspaceE={backspaceX,backspaceY-backspaceH/8};
+                float[] backspaceF={backspaceX+backspaceW*3/8,backspaceY+backspaceH/8};
+                float[] backspaceG={backspaceX+backspaceW*3/8,backspaceY-backspaceH/8};
+                this.canvas.drawLine(backspaceA[0],backspaceA[1],backspaceB[0],backspaceB[1],textPaint);
+                this.canvas.drawLine(backspaceB[0],backspaceB[1],backspaceC[0],backspaceC[1],textPaint);
+                this.canvas.drawLine(backspaceA[0],backspaceA[1],backspaceD[0],backspaceD[1],textPaint);
+                this.canvas.drawLine(backspaceE[0],backspaceE[1],backspaceC[0],backspaceC[1],textPaint);
+                this.canvas.drawLine(backspaceD[0],backspaceD[1],backspaceF[0],backspaceF[1],textPaint);
+                this.canvas.drawLine(backspaceE[0],backspaceE[1],backspaceG[0],backspaceG[1],textPaint);
+                this.canvas.drawLine(backspaceF[0],backspaceF[1],backspaceG[0],backspaceG[1],textPaint);
+
+                */
+                // ranking
+                int num = rank.length();
+                for(int i=0;i<num;i++){
+                    int ranking=i+1;
+                    char key=rank.charAt(i);
+                    key=Character.toUpperCase(key);
+                    int pos=keyPos[key-'A'];
+                    this.canvas.drawText(String.valueOf(ranking),keys[pos].getLeft_tap(CURR_LAYOUT),keys[pos].getTop_tap(CURR_LAYOUT)-fonttop/2-fontbottom/2,rankingPaint);
+                }
+                this.keyboard.setImageBitmap(this.baseBitmap);
+
+            }else{
+                this.baseBitmap = Bitmap.createBitmap(this.keyboard.getWidth(),this.keyboard.getHeight(), Bitmap.Config.ARGB_8888);
+                this.keyboard.setImageBitmap(this.baseBitmap);
+            }
+
+        }
         public AutoKeyboard(ImageView keyBoard){
             this.keyboard=keyBoard;
             getScreenSizeRatio();
             defaultPara();
             this.location=new int[2];
             this.keyboard.getLocationOnScreen(this.location);
-            this.keyPos=new int[]{10,24,22,12,2,13,14,15,7,16,17,18,26,25,8,9,0,3,11,4,6,23,1,21,5,20};// A-Z to the position in the keyboard
             this.keys=new KEY[KEYNUM];
             for (int i=0;i<KEYNUM;i++){
                 this.keys[i]=new KEY();
@@ -3059,6 +3178,16 @@ public class MainActivity extends AppCompatActivity {
             this.movePaint.setStrokeJoin(Paint.Join.ROUND);
             this.movePaint.setStrokeCap(Paint.Cap.ROUND);
             this.movePaint.setStrokeWidth(3);
+
+            this.rankingPaint=new Paint();
+            this.rankingPaint.setColor(Color.BLUE);
+            this.rankingPaint.setStrokeJoin(Paint.Join.ROUND);
+            this.rankingPaint.setStrokeCap(Paint.Cap.ROUND);
+            this.rankingPaint.setStrokeWidth(3);
+            this.rankingPaint.setTextSize(Math.round(30*screen_height_ratio));
+            this.rankingPaint.setTextAlign(Paint.Align.CENTER);
+            this.rankingPaint.setStrokeJoin(Paint.Join.ROUND);
+            this.rankingPaint.setStrokeCap(Paint.Cap.ROUND);
 
             baseImageHeight=keyboard.getHeight();
             baseImageWidth=keyboard.getWidth();
