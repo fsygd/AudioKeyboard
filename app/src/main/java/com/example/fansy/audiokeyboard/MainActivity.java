@@ -62,7 +62,8 @@ public class MainActivity extends AppCompatActivity {
     Parameters mpara = new Parameters();
 
     class TouchInfo{
-        long lastNowchChangedTime = 0;
+        long lastReadTime = 0;
+        int voiceLength = 0;
         boolean TwoFingersFlag = false;
         boolean inKeyboard = true;
         char upKey = KEY_NOT_FOUND;
@@ -734,7 +735,14 @@ public class MainActivity extends AppCompatActivity {
         refresh();
     }
 
+    public void printCallStatck() {
+        RuntimeException here = new RuntimeException("here");
+        here.fillInStackTrace();
+        Log.i("fsy", "Called: ", here);
+    }
     public void stopVoice(){
+        Log.i("fsy", "stopVoice!");
+        //printCallStatck();
         textToSpeech.stop();
         if (current != null) {
             current.stop();
@@ -1311,7 +1319,6 @@ public class MainActivity extends AppCompatActivity {
 
     //if write=false, just return the most possible key
     public void addToSeq(char ch, int x, int y){
-        Log.i("fsy", "here");
         if (ch == KEY_NOT_FOUND){
             if (mtouchinfo.inKeyboard && System.currentTimeMillis() > downTime + STAY_TIME){
                 textToSpeech.speak("出界", textToSpeech.QUEUE_ADD, null);
@@ -1320,12 +1327,6 @@ public class MainActivity extends AppCompatActivity {
         }
         else{
             mtouchinfo.inKeyboard = true;
-        }
-        if (ch != KEY_NOT_FOUND){
-            if (seq.size() == 0 || System.currentTimeMillis() - mtouchinfo.lastNowchChangedTime >= mpara.TIME_TOUCH_BY_MISTAKE){
-                nowCh = ch;
-                mtouchinfo.lastNowchChangedTime = System.currentTimeMillis();
-            }
         }
         if (ch != KEY_NOT_FOUND && (seq.size() == 0 || seq.get(seq.size() - 1) != ch)) {
             if (seq.size() == 0){
@@ -1341,9 +1342,17 @@ public class MainActivity extends AppCompatActivity {
             seq.add(ch);
             stopVoice();
             readList = "";
+            mtouchinfo.lastReadTime = System.currentTimeMillis();
             playMedia("ios11_" + voiceSpeed, ch - 'a', true);
+            Log.i("fsy", "play " + ch);
+            mtouchinfo.voiceLength = current.getDuration();
             readList += ch;
             refresh();
+        }
+        if (ch != KEY_NOT_FOUND){
+            if (seq.size() == 1 || System.currentTimeMillis() - mtouchinfo.lastReadTime >= mtouchinfo.voiceLength * 0.3){
+                nowCh = ch;
+            }
         }
     }
 
