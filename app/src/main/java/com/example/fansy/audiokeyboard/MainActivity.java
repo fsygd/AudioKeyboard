@@ -751,9 +751,10 @@ public class MainActivity extends AppCompatActivity {
         myPlayList.clear();
     }
 
-    public void stopInput(){
+    public void stopInput(boolean stopvoice){
         seq.clear();
-        stopVoice();
+        if (stopvoice)
+            stopVoice();
     }
 
     public void finishWord(){
@@ -1159,7 +1160,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 switch(activity_mode) {
                     case KEYBOARD_MODE:{
-                        stopInput();
+                        stopInput(true);
                         finishWord();
                         autoKeyboard.resetLayout();
                         autoKeyboard.drawLayout();
@@ -1335,16 +1336,18 @@ public class MainActivity extends AppCompatActivity {
             readList = "";
             mtouchinfo.lastReadTime = System.currentTimeMillis();
             playMedia("ios11_" + voiceSpeed, ch - 'a', true);
+            //added
+            nowCh = ch;
             Log.i("fsy", "play " + ch);
             mtouchinfo.voiceLength = current.getDuration();
             readList += ch;
             refresh();
         }
-        if (ch != KEY_NOT_FOUND){
+        /*if (ch != KEY_NOT_FOUND){
             if (seq.size() == 1 || System.currentTimeMillis() - mtouchinfo.lastReadTime >= mtouchinfo.voiceLength * 0.3){
                 nowCh = ch;
             }
-        }
+        }*/
     }
 
     @Override
@@ -1525,6 +1528,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionRightwipe(){
+        stopInput(true);
         write("rightwipe");
         mtouchinfo.upKey = KEY_NOT_FOUND;
         if (currentCandidate >= 0 && currentCandidate < candidates.size()) {
@@ -1551,7 +1555,15 @@ public class MainActivity extends AppCompatActivity {
                             predict(currentWord);
                         }
                         else {
-                            int len = mIPinyinDecoderService.imGetPredictsNum(currentInput);
+                            String predictString = "";
+                            if (currentInput.length() > 5){
+                                predictString = currentInput.substring(currentInput.length() - 5);
+                            }
+                            else{
+                                predictString = new String(currentInput);
+                            }
+                            //int len = mIPinyinDecoderService.imGetPredictsNum(currentInput);
+                            int len = mIPinyinDecoderService.imGetPredictsNum(predictString);
                             List<String> templist = mIPinyinDecoderService.imGetPredictList(0, len);
                             candidates.clear();
                             for (int i = 0; i < len; ++i)
@@ -1564,7 +1576,7 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                 }catch (RemoteException e){
-
+                    e.printStackTrace();
                 }
                 predict(currentWord);
                 currentCandidate = autoreadMode;
@@ -1590,6 +1602,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionLeftwipe(){
+        stopInput(true);
         write("leftwipe");
         mtouchinfo.upKey = KEY_NOT_FOUND;
         if (languageMode == LANG_MODE_CHN){
@@ -1637,7 +1650,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionPointerUp(MotionEvent event){
-        stopInput();
+        stopInput(true);
         if (checkUpwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
             write("up2wipe");
             if (currentInput.length() == 0){
@@ -1690,6 +1703,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionUpwipe(){
+        stopInput(true);
         write("upwipe");
         currentCandidate = Math.max(currentCandidate - 1, 0);
         if (currentWord.length() > 0 && candidates.size() == 0){
@@ -1702,6 +1716,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionDownwipe(){
+        stopInput(true);
         write("downwipe");
         if (currentCandidate + 1 < candidates.size())
             ++currentCandidate;
@@ -1767,7 +1782,7 @@ public class MainActivity extends AppCompatActivity {
                             write("up " + x + " " + y);
                             long tempTime = System.currentTimeMillis();
                             elapsedTimeText.setText(String.valueOf(tempTime - wordDownTime));
-                            stopInput();
+                            stopInput(false);
                             if (confirmMode == CONFIRM_MODE_UP) {
                                 if (checkLeftwipe(x, y, tempTime)) {
                                     actionLeftwipe();

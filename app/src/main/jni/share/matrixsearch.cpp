@@ -907,7 +907,10 @@ size_t MatrixSearch::cancel_last_choice() {
 
     while (pys_[step_start] != '\0') {
       bool b = add_char(pys_[step_start]);
-      assert(b);
+      //assert(b);
+      if (!b){
+        break;
+      }
       step_start++;
     }
 
