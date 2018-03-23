@@ -58,6 +58,7 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
     class Parameters{
         final long TIME_TOUCH_BY_MISTAKE = 100;
+        final int MAX_PREDICT_LENGTH = 7;
     };
     Parameters mpara = new Parameters();
 
@@ -1556,8 +1557,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                         else {
                             String predictString = "";
-                            if (currentInput.length() > 5){
-                                predictString = currentInput.substring(currentInput.length() - 5);
+                            if (currentInput.length() > mpara.MAX_PREDICT_LENGTH){
+                                predictString = currentInput.substring(currentInput.length() - mpara.MAX_PREDICT_LENGTH);
                             }
                             else{
                                 predictString = new String(currentInput);
