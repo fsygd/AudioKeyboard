@@ -151,8 +151,8 @@ public class MainActivity extends AppCompatActivity {
     char nowBaseLineDown = KEY_NOT_FOUND;
     char nowPredictDown = KEY_NOT_FOUND;
 
-    final int TESTCASE_ALL = 3;
-    final int TESTCASE_TURN = 1;
+    final int TESTCASE_ALL = 6;
+    final int TESTCASE_TURN = 3;
     int currentTestcase;
     ArrayList<String> testcases = new ArrayList<>();
 
@@ -1253,8 +1253,9 @@ public class MainActivity extends AppCompatActivity {
             current.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
-                    mp.release();
-                    current = null;
+                    //current.reset();
+                    //current.release();
+                    //current = null;
                     playFirstVoice();
                 }
             });
