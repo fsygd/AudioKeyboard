@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
     class Parameters{
         final long TIME_TOUCH_BY_MISTAKE = 100;
         final int MAX_PREDICT_LENGTH = 7;
+        final int SHOW_RANK = 5;
     };
     Parameters mpara = new Parameters();
 
@@ -68,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
         boolean TwoFingersFlag = false;
         boolean inKeyboard = true;
         char upKey = KEY_NOT_FOUND;
+        String ranking = "";
     };
     TouchInfo mtouchinfo = new TouchInfo();
 
@@ -789,12 +791,12 @@ public class MainActivity extends AppCompatActivity {
                     char best = getMostPossibleKey(x, y);
                     if (autoKeyboard.tryLayout(best, x, y)){
                         write("try " + best + " " + x + " " + y);
-                        autoKeyboard.drawLayout();
+                        autoKeyboard.drawLayout(mtouchinfo.ranking);
                         addToSeq(best, x, y);
                     }else{
                         if (ch != KEY_NOT_FOUND && autoKeyboard.tryLayout(ch, x, y)){
                             write("try " + ch + " " + x + " " + y);
-                            autoKeyboard.drawLayout();
+                            autoKeyboard.drawLayout(mtouchinfo.ranking);
                         }
                         addToSeq(ch, x, y);
                     }
@@ -1307,6 +1309,9 @@ public class MainActivity extends AppCompatActivity {
             letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient_Y / 10);
         }
         Collections.sort(letters);
+        mtouchinfo.ranking = "";
+        for (int i = 0; i < mpara.SHOW_RANK; ++i)
+            mtouchinfo.ranking += letters.get(i).text.charAt(0);
         return letters.get(0).text.charAt(0);
     }
 
@@ -1529,6 +1534,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionRightwipe(){
+        autoKeyboard.resetLayout();
+        autoKeyboard.drawLayout();
         stopInput(true);
         write("rightwipe");
         mtouchinfo.upKey = KEY_NOT_FOUND;
@@ -1603,6 +1610,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionLeftwipe(){
+        autoKeyboard.resetLayout();
+        autoKeyboard.drawLayout();
         stopInput(true);
         write("leftwipe");
         mtouchinfo.upKey = KEY_NOT_FOUND;
@@ -1639,8 +1648,6 @@ public class MainActivity extends AppCompatActivity {
         nowChSaved = '*';
         currentCandidate = autoreadMode;
         textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
-        autoKeyboard.resetLayout();
-        autoKeyboard.drawLayout();
     }
 
     public void actionPointerDown(MotionEvent event){
