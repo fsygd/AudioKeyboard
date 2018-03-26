@@ -98,7 +98,14 @@
         android:orderInCategory="100"
         android:title="tap range:80%"/>
 
-
+    <item
+        android:id="@+id/Outline"
+        android:orderInCategory="100"
+        android:title="Outline:false"/>
+    <item
+        android:id="@+id/FunctionKeys"
+        android:orderInCategory="100"
+        android:title="Function keys:false"/>
     <item
         android:id="@+id/default_keyboard"
         android:orderInCategory="100"
