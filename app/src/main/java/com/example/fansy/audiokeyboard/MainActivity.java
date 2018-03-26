@@ -634,13 +634,13 @@ public class MainActivity extends AppCompatActivity {
             try {
                 String composingWord = mIPinyinDecoderService.imGetChoice(0).substring(0, mIPinyinDecoderService.imGetFixedLen());
                 composingWord += currentWord.substring(mIPinyinDecoderService.imGetSplStart()[mIPinyinDecoderService.imGetFixedLen() + 1]);
-                textContent += testcase + currentInput + "\n" + composingWord + "\n";
+                textContent += testcase + currentInput + "|\n" + composingWord + "\n";
             }catch (RemoteException e){
                 e.printStackTrace();
             }
         }
         else {
-            textContent += testcase + currentInput + "\n" + currentWord + "\n";
+            textContent += testcase + currentInput + "|\n" + currentWord + "\n";
         }
         int diff = 0;
         for (int i = 0; i < currentWord.length(); ++i)
@@ -714,7 +714,12 @@ public class MainActivity extends AppCompatActivity {
             if (candidates.get(i).text.length() > currentWord.length())
                 candidates.get(i).freq -= delta;
         Collections.sort(candidates);
-
+        if (candidates.size() == 0){
+            candidates.add(new Word(currentWord, 0));
+        }
+        else if (!candidates.get(0).text.equals(currentWord)){
+            candidates.add(0, new Word(currentWord, 0));
+        }
         refresh();
     }
 
@@ -1253,9 +1258,11 @@ public class MainActivity extends AppCompatActivity {
             current.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
-                    //current.reset();
-                    //current.release();
-                    //current = null;
+                    if (activity_mode == FUZZY_INPUT_TEST_MODE) {
+                        //current.reset();
+                        current.release();
+                        current = null;
+                    }
                     playFirstVoice();
                 }
             });
@@ -1594,7 +1601,7 @@ public class MainActivity extends AppCompatActivity {
             }
             String delta = candidates.get(currentCandidate).alias;
             char lastCh = delta.charAt(delta.length() - 1);
-            currentInput += delta;
+            currentInput += delta + " ";
             currentWord = "";
             currentBaseline = "";
             currentBaselineDown = "";
@@ -1604,10 +1611,11 @@ public class MainActivity extends AppCompatActivity {
             refresh();
             textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
         }
-        else if (currentWord.length() == 0 && languageMode == LANG_MODE_ENG){
+        else if (currentWord.length() == 0){
             currentInput += " ";
             textToSpeech.speak("空格", TextToSpeech.QUEUE_ADD, null);
         }
+        refresh();
     }
 
     public void actionLeftwipe(){
@@ -1649,6 +1657,7 @@ public class MainActivity extends AppCompatActivity {
         nowChSaved = '*';
         currentCandidate = autoreadMode;
         textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
+        refresh();
     }
 
     public void actionPointerDown(MotionEvent event){
