@@ -23,6 +23,7 @@ import android.support.annotation.RequiresApi;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.Menu;
@@ -169,6 +170,8 @@ public class MainActivity extends AppCompatActivity {
     int voiceSpeed = 60;
     float ttsVoiceSpeed=1.5f;
     AutoKeyboard autoKeyboard;
+    // Screen
+    Screen screen;
 
     //Fuzzy Input Test Var
     TextView fuzzyInputTestCharShow;
@@ -190,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
     final int BORDER=2;
     final int CANCEL_BORDER=3;
     int testmode=NORMAL;
+
     int fuzzyInputTestTurn=0;
     ArrayList<Integer> fuzzyInputTestList=new ArrayList<>();
     //int fuzzyInputTestData[]=new int[MAX_FUZZY_INPUT_TURN+30];//用来记录第一次手指落下的地方
@@ -1403,7 +1407,7 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setVisibility(View.GONE);
         listView=(ListView)findViewById(R.id.list_view);
         listView.setVisibility(View.GONE);
-
+        screen=new Screen(this);
         ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
         vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -1431,23 +1435,31 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("fsy", "true");
         }
     }
+
+    // Font
+    float fontRatio = 1.0f;
     public void fitOnScreen(){
-        float ratio = Math.max(autoKeyboard.screen_height_ratio,autoKeyboard.screen_width_ratio);
+        /*
+        DisplayMetrics dm = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+        int pixelSize = (int)20 * dm.scaledDensity;
+        */
+
         // fit text size
         int textSize=18;
-        text.setTextSize((int)(textSize*ratio));
-        candidatesView.setTextSize((int)(textSize*ratio));
-        readListView.setTextSize((int)(textSize*ratio));
-        voiceSpeedText.setTextSize((int)(textSize*ratio));
-        fuzzyInputTestCharShow.setTextSize((int)(40*ratio));
-        elapsedTimeText.setTextSize((int)(textSize*ratio));
-        seekBarText.setTextSize((int)(textSize*ratio));
+        text.setTextSize((int)(textSize*fontRatio));
+        candidatesView.setTextSize((int)(textSize*fontRatio));
+        readListView.setTextSize((int)(textSize*fontRatio));
+        voiceSpeedText.setTextSize((int)(textSize*fontRatio));
+        fuzzyInputTestCharShow.setTextSize((int)(40*fontRatio));
+        elapsedTimeText.setTextSize((int)(textSize*fontRatio));
+        seekBarText.setTextSize((int)(textSize*fontRatio));
 
         // fit button text size
         int buttonTextSize=12;
-        confirmButton.setTextSize((int)(buttonTextSize*ratio));
-        initModeButton.setTextSize((int)(buttonTextSize*ratio));
-        speedButton.setTextSize((int)(buttonTextSize*ratio));
+        confirmButton.setTextSize((int)(buttonTextSize*fontRatio));
+        initModeButton.setTextSize((int)(buttonTextSize*fontRatio));
+        speedButton.setTextSize((int)(buttonTextSize*fontRatio));
     }
     @Override
     public void onDestroy(){
@@ -1989,6 +2001,7 @@ public class MainActivity extends AppCompatActivity {
         Paint backgroundPaint,textPaint,boundPaint,movePaint,originPaint,rankingPaint;
         boolean Visibility=true;
         boolean Outline = false;
+        boolean Ranking = true;
         boolean FunctionKeys = false;
         float screen_width_ratio = 1F;
         float screen_height_ratio = 1F;
@@ -2241,6 +2254,7 @@ public class MainActivity extends AppCompatActivity {
             exponent=1F/10F;
             FunctionKeys = false;
             Outline = false;
+            Ranking = true;
             calExpRatio();
         }
         void calExpRatio(){
@@ -3048,13 +3062,15 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // ranking
-                int num = rank.length();
-                for(int i=0;i<num;i++){
-                    int ranking=i+1;
-                    char key=rank.charAt(i);
-                    key=Character.toUpperCase(key);
-                    int pos=keyPos[key-'A'];
-                    this.canvas.drawText(String.valueOf(ranking),keys[pos].getLeft_tap(CURR_LAYOUT),keys[pos].getTop_tap(CURR_LAYOUT)-fonttop/2-fontbottom/2,rankingPaint);
+                if(Ranking){
+                    int num = rank.length();
+                    for(int i=0;i<num;i++){
+                        int ranking=i+1;
+                        char key=rank.charAt(i);
+                        key=Character.toUpperCase(key);
+                        int pos=keyPos[key-'A'];
+                        this.canvas.drawText(String.valueOf(ranking),keys[pos].getLeft_tap(CURR_LAYOUT),keys[pos].getTop_tap(CURR_LAYOUT)-fonttop/2-fontbottom/2,rankingPaint);
+                    }
                 }
                 this.keyboard.setImageBitmap(this.baseBitmap);
 
@@ -3135,7 +3151,7 @@ public class MainActivity extends AppCompatActivity {
     SeekBar seekBar;
     TextView seekBarText;
     enum MENUVAR{
-        SD,TESTTURN,EXPONENT,SCALINGNUM,KEYBOARDHEIGHT,TOPTHRESHOLD,BOTTOMTHRESHOLD,MINWIDTH,MINHEIGHT,TAPRANGE,SPEED
+        SD,TESTTURN,EXPONENT,SCALINGNUM,KEYBOARDHEIGHT,TOPTHRESHOLD,BOTTOMTHRESHOLD,MINWIDTH,MINHEIGHT,TAPRANGE,SPEED,FONTRATIO
     }
     MENUVAR currentMenuVar=MENUVAR.SD;
 
@@ -3237,6 +3253,13 @@ public class MainActivity extends AppCompatActivity {
                         ttsVoiceSpeed=ttsSpeedArray[voiceSpeedIndex];
                         textToSpeech.setSpeechRate(ttsVoiceSpeed);
                         break;
+                    }case FONTRATIO:{
+                        float fontRatioMax = 3.0f;
+                        float fontRatioMin = 0.5f;
+                        fontRatio=ratio*(fontRatioMax-fontRatioMin)+fontRatioMin;
+                        seekBarText.setText("Font ratio:"+String.valueOf(fontRatio));
+                        fitOnScreen();
+                        break;
                     }
                 }
                 // seekBarText.setText("Value:" + Integer.toString(progress));
@@ -3285,6 +3308,18 @@ public class MainActivity extends AppCompatActivity {
          *
          * 将会执行此case
          */
+            case R.id.fontRatio:{
+                currentMenuVar=MENUVAR.FONTRATIO;
+                float fontRatioMax=3.0f;
+                float fontRatioMin=0.5f;
+                seekBar.setVisibility(View.VISIBLE);
+                seekBarText.setVisibility(View.VISIBLE);
+                seekBarText.setText("Font ratio:"+String.valueOf(fontRatio));
+                seekBar.setProgress(Math.round((fontRatio-fontRatioMin)/(fontRatioMax-fontRatioMin)*100));
+
+                fitOnScreen();
+                break;
+            }
             case R.id.recordModeItem:{
                 switch (recordMode){
                     case RECORD_MODE_STOPED:{
@@ -3604,6 +3639,11 @@ public class MainActivity extends AppCompatActivity {
                 autoKeyboard.resetLayout();
                 autoKeyboard.drawLayout();
                 break;
+            }case R.id.Ranking:{
+                autoKeyboard.Ranking = !autoKeyboard.Ranking;
+                autoKeyboard.resetLayout();
+                autoKeyboard.drawLayout();
+                break;
             }
             case R.id.default_keyboard:{
                 autoKeyboard.defaultPara();
@@ -3752,6 +3792,70 @@ public class MainActivity extends AppCompatActivity {
         menu.findItem(R.id.exponent).setTitle("exponent:"+String.valueOf(autoKeyboard.exponent));
         menu.findItem(R.id.Outline).setTitle("Outline:"+String.valueOf(autoKeyboard.Outline));
         menu.findItem(R.id.FunctionKeys).setTitle("Function keys:"+String.valueOf(autoKeyboard.FunctionKeys));
+        menu.findItem(R.id.Ranking).setTitle("Ranking:"+String.valueOf(autoKeyboard.Ranking));
+        menu.findItem(R.id.fontRatio).setTitle("Font ratio:"+String.valueOf(fontRatio));
+        menu.findItem(R.id.dmDensityDpi).setTitle("DensityDpi:"+String.valueOf(screen.dmDensityDpi));
+        menu.findItem(R.id.dmDensity).setTitle("Density:"+String.valueOf(screen.dmDensity));
+        menu.findItem(R.id.dmWidthPixels).setTitle("Width pixels:"+String.valueOf(screen.dmWidthPixels));
+        menu.findItem(R.id.dmHeightPixels).setTitle("Height pixels:"+String.valueOf(screen.dmHeightPixels));
+    }
 
+
+
+    // Screen
+    public class Screen {
+
+        final String TAG = Screen.class.getSimpleName();
+        DisplayMetrics dm;
+        // 当前屏幕的参数
+        int dmDensityDpi = 0;
+        int dmWidthPixels = 1024;
+        int dmHeightPixels = 1980;
+        float dmDensity = 0.0f;
+        float scale = 0.0f;
+        /**
+         *
+         * 根据构造函数获得当前手机的屏幕系数
+         *
+         * */
+        public Screen(Context context) {
+            // 获取当前屏幕
+            dm = new DisplayMetrics();
+            dm = context.getApplicationContext().getResources().getDisplayMetrics();
+            // 设置DensityDpi
+            dmDensityDpi = dm.densityDpi;
+            // 密度因子
+            scale = (float)(dmDensityDpi)/ 160f;
+            // 宽度
+            dmWidthPixels = dm.widthPixels;
+            // 高度
+            dmHeightPixels = dm.heightPixels;
+            // Density
+            dmDensity = dm.density;
+            Log.i(TAG, toString());
+
+        }
+
+
+        /**
+         * 密度转换像素
+         * */
+        public int dip2px(float dipValue) {
+
+            return (int) (dipValue * scale + 0.5f);
+
+        }
+
+        /**
+         * 像素转换密度
+         * */
+        public int px2dip(float pxValue) {
+            return (int) (pxValue / scale + 0.5f);
+        }
+
+        @Override
+        public String toString() {
+            return " dmDensityDpi:" + dmDensityDpi;
+        }
     }
 }

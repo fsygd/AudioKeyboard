@@ -2,6 +2,26 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/AudioKeyboardMenu">
     <item
+        android:id="@+id/fontRatio"
+        android:orderInCategory="100"
+        android:title="Font ratio:1.0"/>
+    <item
+        android:id="@+id/dmDensityDpi"
+        android:orderInCategory="100"
+        android:title="DensityDpi:"/>
+    <item
+        android:id="@+id/dmDensity"
+        android:orderInCategory="100"
+        android:title="Density:"/>
+    <item
+        android:id="@+id/dmWidthPixels"
+        android:orderInCategory="100"
+        android:title="Width pixels:"/>
+    <item
+        android:id="@+id/dmHeightPixels"
+        android:orderInCategory="100"
+        android:title="Height pixels:"/>
+    <item
         android:id="@+id/recordModeItem"
         android:orderInCategory="100"
         android:title="recordMode:stoped"/>
@@ -106,6 +126,10 @@
         android:id="@+id/FunctionKeys"
         android:orderInCategory="100"
         android:title="Function keys:false"/>
+    <item
+        android:id="@+id/Ranking"
+        android:orderInCategory="100"
+        android:title="Ranking:true"/>
     <item
         android:id="@+id/default_keyboard"
         android:orderInCategory="100"
