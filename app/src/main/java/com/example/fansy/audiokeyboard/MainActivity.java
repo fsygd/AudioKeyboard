@@ -172,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
     AutoKeyboard autoKeyboard;
     // Screen
     Screen screen;
-
+    float fontRatio = 1.0f;
     //Fuzzy Input Test Var
     TextView fuzzyInputTestCharShow;
     ProgressBar progressBar;
@@ -1408,6 +1408,7 @@ public class MainActivity extends AppCompatActivity {
         listView=(ListView)findViewById(R.id.list_view);
         listView.setVisibility(View.GONE);
         screen=new Screen(this);
+        fontRatio = 4.0f/screen.dmDensity;
         ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
         vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
@@ -1435,9 +1436,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("fsy", "true");
         }
     }
-
-    // Font
-    float fontRatio = 1.0f;
     public void fitOnScreen(){
         /*
         DisplayMetrics dm = new DisplayMetrics();
