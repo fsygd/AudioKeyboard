@@ -71,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
         boolean inKeyboard = true;
         char upKey = KEY_NOT_FOUND;
         String ranking = "";
+        boolean lastReadFlag = false;
+        long lastChChangeTime = 0;
     };
     TouchInfo mtouchinfo = new TouchInfo();
 
@@ -765,6 +767,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void stopInput(boolean stopvoice){
         seq.clear();
+        mtouchinfo.lastReadFlag = false;
         if (stopvoice)
             stopVoice();
     }
@@ -1350,13 +1353,17 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             seq.add(ch);
+            mtouchinfo.lastReadFlag = false;
+            mtouchinfo.lastChChangeTime = System.currentTimeMillis();
+        }
+        if (ch != KEY_NOT_FOUND && !mtouchinfo.lastReadFlag && (seq.size() == 1 || System.currentTimeMillis() - mtouchinfo.lastChChangeTime >= mpara.TIME_TOUCH_BY_MISTAKE)){
             stopVoice();
             readList = "";
             mtouchinfo.lastReadTime = System.currentTimeMillis();
             playMedia("ios11_" + voiceSpeed, ch - 'a', true);
+            mtouchinfo.lastReadFlag = true;
             //added
             nowCh = ch;
-            Log.i("fsy", "play " + ch);
             mtouchinfo.voiceLength = current.getDuration();
             readList += ch;
             refresh();
