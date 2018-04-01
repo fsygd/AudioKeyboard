@@ -18,11 +18,14 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.Vibrator;
+import android.provider.ContactsContract;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.text.method.MovementMethod;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
@@ -48,11 +51,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
@@ -63,7 +68,6 @@ public class MainActivity extends AppCompatActivity {
         final int SHOW_RANK = 5;
     };
     Parameters mpara = new Parameters();
-
     class TouchInfo{
         long lastReadTime = 0;
         int voiceLength = 0;
@@ -87,14 +91,14 @@ public class MainActivity extends AppCompatActivity {
     public IPinyinDecoderService mIPinyinDecoderService = null;
     public PinyinDecoderServiceConnection mPinyinDecoderServiceConnection = null;
 
-    final char KEY_NOT_FOUND = 0;
+    final char KEY_NOT_FOUND = '*';
 
     //voice manager
     HashMap<String, int[]> voice = new HashMap<>();
     ArrayList<Integer> myPlayList = new ArrayList<>();
     MediaPlayer current;
 
-    TextToSpeech textToSpeech;
+    TextToSpeech ttsENG,ttsCHN;
 
     final int INIT_MODE_ABSOLUTE = 0;
     final int INIT_MODE_RELATIVE = 1;
@@ -175,404 +179,31 @@ public class MainActivity extends AppCompatActivity {
     // Screen
     Screen screen;
     float fontRatio = 1.0f;
-    //Fuzzy Input Test Var
-    TextView fuzzyInputTestCharShow;
-    ProgressBar progressBar;
-    ListView listView;
-    //String fuzzyInputTestStoragePath="/storage/emulated/0/FuzzyInputTestData";
-    boolean ifCalDone=false;
-    boolean ifSave=false;
-    final int KEYBOARD_MODE=0;
-    final int FUZZY_INPUT_TEST_MODE=1;
-    int MAX_TURN=8;//eight turn
-    int MAX_FUZZY_INPUT_TURN=26*MAX_TURN;
-    final int FUZZY_INPUT_SOUND_BEGIN=0;//for sound
-    final int FUZZY_INPUT_SOUND_NEXT=1;//for sound
-    final int FUZZY_INPUT_SOUND_END=2;//
-    int activity_mode=KEYBOARD_MODE;
-    final int NORMAL=0;
-    final int CANCEL=1;
-    final int BORDER=2;
-    final int CANCEL_BORDER=3;
-    int testmode=NORMAL;
-
-    int fuzzyInputTestTurn=0;
-    ArrayList<Integer> fuzzyInputTestList=new ArrayList<>();
-    //int fuzzyInputTestData[]=new int[MAX_FUZZY_INPUT_TURN+30];//用来记录第一次手指落下的地方
-    //in case of the user type too fast,add a redundancy 30
-    //double fuzzyInputKeysNearbyProb[][] = new double[26][26];
-    ArrayList<Turn> fuzzyInputTestFigerRecord=new ArrayList<>();//用来记录手指的所有移动
-    String DataToSave;//记录每一次触摸事件的准确数据
-    String DataToShowAndSave;//计算出概率
-    String DataTouchModel;
-
-
-    //Fuzzy Input test Var
-
-    class Data{
-        char target;
-        char actual;
-        double positionX;
-        double positionY;
-        int actionType;//ActionMove ActionDown ActionUp
-        //ACTION_DOWN==0
-        //ACTION_MOVE==2;
-        //ACTION_UP==1;
-        double timeAfterLastAction;
-        int currentSoundNum;//此时正在播放的音频的数量加上等待播放的音频的数量
-        Data(char target,char actual,double positionX,double positionY,int actionType,double timeAfterLastAction){
-            this.target=target;
-            this.actual=actual;
-            this.positionX=positionX;
-            this.positionY=positionY;
-            this.actionType=actionType;
-            this.timeAfterLastAction=timeAfterLastAction;
-            if(current==null){
-                this.currentSoundNum=myPlayList.size();
-            }else{
-                this.currentSoundNum=1+myPlayList.size();
+    enum ActivityMode{KEYBOARD_MODE,FUZZY_INPUT_TEST_MODE};
+    ActivityMode activity_mode=ActivityMode.KEYBOARD_MODE;
+    public void tts(String text){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            switch(languageMode){
+                case LANG_MODE_CHN:{
+                    ttsCHN.speak(text,TextToSpeech.QUEUE_FLUSH,null,null);
+                    break;
+                }case LANG_MODE_ENG:{
+                    ttsENG.speak(text,TextToSpeech.QUEUE_FLUSH,null,null);
+                    break;
+                }
             }
-        }
-        Data(){
-            this.target='?';
-            this.actual='?';
-            this.positionX=-1;
-            this.positionY=-1;
-            this.actionType=-1;
-            this.timeAfterLastAction=-1;
-            this.currentSoundNum=-1;
-        }
-        String getData(){
-            String data=String.valueOf(target)+" "+String.valueOf(actual)+" "+
-                    String.valueOf(positionX)+" "+String.valueOf(positionY)+" "+
-                    String.valueOf(actionType)+" "+String.valueOf(timeAfterLastAction)+" "+
-                    String.valueOf(currentSoundNum)+"\n";
-            return data;
-        }
-    }
-    class Turn {
-        Long lastTime;
-        int turnIndex;
-        char target;
-        int upTimes;//用户抬起了多少次手指
-        ArrayList<Character> actualTypeIn;//用户实际上键入的值
-        ArrayList<Data> data;
-        char firstTouch;//除去一开始输到边界外的键入的值
-        Turn(int turnIndex,Long lastTime){
-            this.lastTime=lastTime;
-            this.turnIndex=turnIndex;
-            this.target=(char)(fuzzyInputTestList.get(turnIndex%26)+'A');
-            this.upTimes=0;
-            this.data=new ArrayList<>();
-            this.actualTypeIn=new ArrayList<>();
-            this.firstTouch=KEY_NOT_FOUND;
-        }
-        boolean addData(char actual,double positionX,double positionY,int actionType,Long eventTime){
-            char upperActual=actual;
-            if (upperActual!=KEY_NOT_FOUND)
-                upperActual=Character.toUpperCase(upperActual);
-            if (this.firstTouch==KEY_NOT_FOUND && upperActual!=KEY_NOT_FOUND)
-                this.firstTouch=upperActual;
-            this.data.add(new Data(this.target,upperActual,positionX,positionY,actionType,eventTime-this.lastTime));
-            this.lastTime=eventTime;
-            if (actionType== MotionEvent.ACTION_UP){
-                this.upTimes++;
-                this.actualTypeIn.add(upperActual);
-                if(upperActual==this.target){
-                    return true;
-                }else
-                    return false;
-            }
-            return false;
-        }
-        String getTurn(){
-            String turnToReturn="turnIndex="+String.valueOf(this.turnIndex)+"\n"+
-                    "target="+String.valueOf(this.target)+"\n"+
-                    "firstTouch"+String.valueOf(this.firstTouch)+"\n"+
-                    "upTimes="+String.valueOf(this.upTimes)+"\n";
-            for(int typeIndex=0;typeIndex<this.actualTypeIn.size();typeIndex++){
-                turnToReturn+="actualTypeIn "+String.valueOf(typeIndex+1)+"="+this.actualTypeIn.get(typeIndex)+"\n";
-            }
-            return turnToReturn;
-        }
-        String getData(){
-            String dataToReturn="";
-            for (int i=0;i<data.size();i++){
-                dataToReturn+=data.get(i).getData();
-            }
-            return dataToReturn;
-        }
-    }
-    String getTestData(){
-        String explain="Data的记录格式为:目标键入字母 实际键入字母 横坐标(相对于键盘) 纵坐标(相对于键盘) 触摸事件类型(按下:0;抬起:1;移动:2) 距离上次触摸事件时间(单位:ms) 目前在播音频数量加上待播音频数量\n";
-        String data="MAX_TURN="+String.valueOf(MAX_TURN)+'\n'+
-                "screen_width_ratio="+String.valueOf(autoKeyboard.screen_width_ratio)+'\n'+
-                "screen_height_ratio="+String.valueOf(autoKeyboard.screen_height_ratio)+'\n'+
-                "voiceSpeed="+String.valueOf(voiceSpeed)+'\n';
-
-        return explain+data;
-    }
-    //Fuzzy Input Test Function
-    public void WidgetSet(int activity_mode){
-        switch(activity_mode){
-            case KEYBOARD_MODE:{
-                fuzzyInputTestCharShow.setVisibility(View.GONE);
-                text.setVisibility(View.VISIBLE);
-                progressBar.setVisibility(View.GONE);
-                listView.setVisibility(View.GONE);
-                //keyboard.setVisibility(View.VISIBLE);
-                candidatesView.setVisibility(View.VISIBLE);
-                readListView.setVisibility(View.VISIBLE);
-                voiceSpeedText.setVisibility(View.VISIBLE);
-                confirmButton.setText("CONFIRM");
-                speedButton.setText("SPEED+");
-                refresh();
-                break;
-            }
-            case FUZZY_INPUT_TEST_MODE:{
-                fuzzyInputTestCharShow.setVisibility(View.VISIBLE);
-                text.setVisibility(View.GONE);
-                progressBar.setVisibility(View.VISIBLE);
-                listView.setVisibility(View.VISIBLE);
-                //keyboard.setVisibility(View.GONE);
-                candidatesView.setVisibility(View.GONE);
-                readListView.setVisibility(View.GONE);
-                voiceSpeedText.setVisibility(View.GONE);
-                initModeButton.setText("Back");
-                confirmButton.setText("Save");
-                speedButton.setText("BackSpace");
-                break;
-            }
-        }
-    }
-    public void testListInit() {
-        fuzzyInputTestList.clear();
-        for (int i = 0; i < 26; i++) {
-            fuzzyInputTestList.add(i);
-        }
-        Collections.shuffle(fuzzyInputTestList);
-    }
-    public void beginFuzzyInputTest(){
-        activity_mode=FUZZY_INPUT_TEST_MODE;
-        WidgetSet(activity_mode);
-        testListInit();
-        fuzzyInputTestTurn=0;
-        playMedia("fuzzyInput",FUZZY_INPUT_SOUND_BEGIN,false);
-        playMedia("google",fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
-        String nextChar=String.valueOf((char)('A'+fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
-        fuzzyInputTestCharShow.setText(String.valueOf(fuzzyInputTestTurn)+" "+nextChar);
-        progressBar.setProgress((fuzzyInputTestTurn*100)/MAX_FUZZY_INPUT_TURN);
-        ifSave=false;
-        ifCalDone=false;
-        listView.setVisibility(View.GONE);
-        fuzzyInputTestFigerRecord.clear();
-    }
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    public void saveFuzzyInputTestData(){
-        if(ifSave){
-            toast("已经存储过一次了");
-        }else {
-            if (fuzzyInputTestTurn != MAX_FUZZY_INPUT_TURN) {
-                toast("请先完成测试");
-            } else if (!ifCalDone) {
-                toast("还没算完");
-            } else {
-                if (isExternalStorageWritable()) {
-                    //String directory="/storage/emulated/0/Android/data/FuzzyInput/";
-                    //File sdCard = Environment.getExternalStorageDirectory();
-                    File DirectoryFolder = this.getExternalFilesDir(null);
-                    //File DirectoryFolder = new File(fuzzyInputTestStoragePath);
-                    //File DirectoryFolder = this.getExternalStoragePublicDirectory();
-                    if (!DirectoryFolder.exists()) { //如果该文件夹不存在，则进行创建
-                        DirectoryFolder.mkdirs();//创建文件夹
-                    }
-                    String time=getTime();
-                    File fileInDetail = new File(DirectoryFolder, time+ "_详细数据.txt");
-                    File fileInRatio = new File(DirectoryFolder,time+"_概率数据.txt");
-                    File fileInTouchModel = new File(DirectoryFolder,time+"_TouchModel.txt");
-                    if (!fileInDetail.exists()) {
-                        try {
-                            fileInDetail.createNewFile();
-                            //file is create
-                        } catch (IOException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-                    }
-                    if (!fileInRatio.exists()) {
-                        try {
-                            fileInRatio.createNewFile();
-                            //file is create
-                        } catch (IOException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-                    }
-                    if (!fileInTouchModel.exists()) {
-                        try {
-                            fileInTouchModel.createNewFile();
-                            //file is create
-                        } catch (IOException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-                    }
-                    try {
-                        FileOutputStream fosInDetail = new FileOutputStream(fileInDetail);
-                        fosInDetail.write(DataToSave.getBytes());
-                        fosInDetail.close();
-
-                        FileOutputStream fosInRatio = new FileOutputStream(fileInRatio);
-                        fosInRatio.write(DataToShowAndSave.getBytes());
-                        fosInRatio.close();
-
-                        FileOutputStream fosInTouchModel = new FileOutputStream(fileInTouchModel);
-                        fosInTouchModel.write(DataTouchModel.getBytes());
-                        fosInTouchModel.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    toast("存储完毕！");
-                    ifSave = true;
-
-                } else {
-                    toast("不能存储文件!");
+        } else {
+            switch(languageMode){
+                case LANG_MODE_CHN:{
+                    ttsCHN.speak(text,TextToSpeech.QUEUE_FLUSH,null,null);
+                    break;
+                }case LANG_MODE_ENG:{
+                    ttsENG.speak(text,TextToSpeech.QUEUE_FLUSH,null,null);
+                    break;
                 }
             }
         }
     }
-
-    public void restartFuzzyInputTest(){
-        stopVoice();
-        if(!ifSave){
-            AlertDialog.Builder dialog=new AlertDialog.Builder(MainActivity.this);
-            dialog.setTitle("警告");
-            dialog.setMessage("测试还未完成，你确定要重新开始吗？");
-            dialog.setCancelable(false);
-            dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    fuzzyInputTestTurn=0;
-                    playMedia("fuzzyInput",FUZZY_INPUT_SOUND_BEGIN,false);
-                    playMedia("google",fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
-                    String nextChar=String.valueOf((char)('A'+fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
-                    fuzzyInputTestCharShow.setText(nextChar);
-                    progressBar.setProgress((fuzzyInputTestTurn*100)/MAX_FUZZY_INPUT_TURN);
-                    ifSave=false;
-                    ifCalDone=false;
-                    listView.setVisibility(View.GONE);
-                    fuzzyInputTestFigerRecord.clear();
-                }
-            });
-            dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-
-                }
-            });
-            dialog.show();
-        }else{
-            fuzzyInputTestTurn=0;
-            playMedia("fuzzyInput",FUZZY_INPUT_SOUND_BEGIN,false);
-            playMedia("google",fuzzyInputTestList.get(fuzzyInputTestTurn%26),false);
-            String nextChar=String.valueOf((char)('A'+fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
-            fuzzyInputTestCharShow.setText(nextChar);
-            progressBar.setProgress((fuzzyInputTestTurn*100)/MAX_FUZZY_INPUT_TURN);
-            ifSave=false;
-            ifCalDone=false;
-            listView.setVisibility(View.GONE);
-            fuzzyInputTestFigerRecord.clear();
-        }
-
-    }
-
-    public void stopFuzzyInputTest(){
-        stopVoice();
-        if(!ifSave){
-            AlertDialog.Builder dialog=new AlertDialog.Builder(MainActivity.this);
-            dialog.setTitle("警告");
-            dialog.setMessage("测试还未完成，你确定要返回吗？");
-            dialog.setCancelable(false);
-            dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                    activity_mode = KEYBOARD_MODE;
-                    WidgetSet(activity_mode);
-                    ifSave=false;
-                    ifCalDone=false;
-                    fuzzyInputTestFigerRecord.clear();
-                }
-            });
-            dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialogInterface, int i) {
-                }
-            });
-            dialog.show();
-        }else {
-            activity_mode = KEYBOARD_MODE;
-            WidgetSet(activity_mode);
-            refresh();
-            fuzzyInputTestFigerRecord.clear();
-        }
-    }
-    int sum(int x[],int length){
-        int ans=0;
-        for (int i=0;i<length;i++){
-            ans+=x[i];
-        }
-        return ans;
-    }
-    public void calculateFuzzyInputData(){
-        if(fuzzyInputTestTurn!=MAX_FUZZY_INPUT_TURN){
-            toast("不应该在这时计算!");
-        }
-        else{
-            int keyNearByData[][]=new int[26][26];
-            for (int i=0;i<26;i++){
-                for(int j=0;j<26;j++){
-                    keyNearByData[i][j]=0;
-                }
-            }
-            DataToSave =getTestData();
-            DataToShowAndSave="";
-            DataTouchModel="a,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z\n";
-            ArrayList<String> listViewData=new ArrayList<String>();
-            for(int i=0;i<MAX_FUZZY_INPUT_TURN;i++) {
-                Turn turn = fuzzyInputTestFigerRecord.get(i);
-                String eachTurn = turn.getTurn();
-                keyNearByData[turn.target - 'A'][turn.firstTouch - 'A']++;
-                //listViewData.add(eachTurn);
-                DataToSave += eachTurn;
-                DataToSave += turn.getData();
-            }
-            float keyNearByRatio[][]=new float[26][26];
-            for (int i=0;i<26;i++){
-                int totalTimes=sum(keyNearByData[i],26);
-                if (totalTimes!=MAX_TURN){
-                    String temp="计算"+String.valueOf((char)(i+'A'))+"的键入概率时总次数为"+String.valueOf(totalTimes);
-                    listViewData.add(temp);
-                    toast(temp);
-                }
-                DataTouchModel+=String.valueOf((char)(i+'a'));
-                for (int j=0;j<26;j++){
-                    keyNearByRatio[i][j]=(float)keyNearByData[i][j]/(float)totalTimes;
-                    String temp=String.valueOf((char)(i+'A'))+" "+String.valueOf((char)(j+'A'))+" "+String.valueOf(keyNearByRatio[i][j]);
-                    DataToShowAndSave+=temp+'\n';
-                    DataTouchModel+=","+String.valueOf(keyNearByRatio[i][j]);
-                    if (keyNearByRatio[i][j]!=0)
-                        listViewData.add(temp);
-                }
-                DataTouchModel+="\n";
-            }
-            ifCalDone=true;
-            ArrayAdapter<String> adapter=new ArrayAdapter<String>(MainActivity.this,android.R.layout.simple_list_item_1,listViewData);
-            listView.setVisibility(View.VISIBLE);
-            listView.setAdapter(adapter);
-
-        }
-    }
-
     @RequiresApi(api = Build.VERSION_CODES.N)
     public String getTime()
     {
@@ -628,6 +259,11 @@ public class MainActivity extends AppCompatActivity {
             Log.i("write", Log.getStackTraceString(e));
         }
     }
+
+
+
+
+
 
     //redraw the views
     public void refresh(){
@@ -755,7 +391,8 @@ public class MainActivity extends AppCompatActivity {
     public void stopVoice(){
         Log.i("fsy", "stopVoice!");
         //printCallStatck();
-        textToSpeech.stop();
+        ttsENG.stop();
+        ttsCHN.stop();
         if (current != null) {
             current.stop();
             current.reset();
@@ -1167,97 +804,6 @@ public class MainActivity extends AppCompatActivity {
 
         voice.get("blank")[0] = R.raw.blank;
     }
-
-    public void initButtons(){
-        confirmButton.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.N)
-            @Override
-            public void onClick(View v) {
-                switch(activity_mode) {
-                    case KEYBOARD_MODE:{
-                        stopInput(true);
-                        finishWord();
-                        autoKeyboard.resetLayout();
-                        autoKeyboard.drawLayout();
-                        break;
-                    }
-                    case FUZZY_INPUT_TEST_MODE:{
-                        saveFuzzyInputTestData();
-                        break;
-                    }
-                    default:
-                }
-
-            }
-        });
-
-        initModeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                switch(activity_mode){
-                    case KEYBOARD_MODE:{
-                        if (initMode == INIT_MODE_ABSOLUTE)
-                            initMode = INIT_MODE_RELATIVE;
-                        else if(initMode == INIT_MODE_RELATIVE)
-                            initMode = INIT_MODE_NOTHING;
-                        else
-                            initMode = INIT_MODE_ABSOLUTE;
-                        autoKeyboard.resetLayout();
-                        autoKeyboard.drawLayout();
-                        refresh();
-                        break;
-                    }
-                    case FUZZY_INPUT_TEST_MODE:{
-                        stopFuzzyInputTest();
-                        break;
-                    }
-                    default:
-                }
-
-            }
-        });
-
-        speedButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                switch(activity_mode){
-                    case KEYBOARD_MODE:{
-                        currentMenuVar=MENUVAR.SPEED;
-                        seekBar.setVisibility(View.VISIBLE);
-                        float voiceSpeedMax=100f;
-                        float voiceSpeedMin=50f;
-                        int progress=Math.round(100f*(voiceSpeed-voiceSpeedMin)/(voiceSpeedMax-voiceSpeedMin));
-                        seekBar.setProgress(progress);
-                        autoKeyboard.resetLayout();
-                        autoKeyboard.drawLayout();
-                        voiceSpeedText.setText(voiceSpeed+"");
-                        seekBarText.setVisibility(View.VISIBLE);
-                        seekBarText.setText("voiceSpeed:"+String.valueOf(voiceSpeed));
-                        break;
-                    }
-                    case FUZZY_INPUT_TEST_MODE:{// 回退一轮
-                        if(fuzzyInputTestFigerRecord.size()>fuzzyInputTestTurn)
-                            fuzzyInputTestFigerRecord.remove(fuzzyInputTestTurn);//将本轮清空
-                        if(fuzzyInputTestTurn>0)
-                            fuzzyInputTestTurn--;
-                        if(fuzzyInputTestFigerRecord.size()>fuzzyInputTestTurn)
-                            fuzzyInputTestFigerRecord.remove(fuzzyInputTestTurn);//将上一轮清空
-                        stopVoice();
-                        if (fuzzyInputTestTurn < 10) {//10轮熟悉之后加快测试速度
-                            playMedia("fuzzyInput", FUZZY_INPUT_SOUND_NEXT,false );
-                        }
-                        playMedia("google", fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
-                        String nextChar = String.valueOf((char) ('A' + fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
-                        fuzzyInputTestCharShow.setText(String.valueOf(fuzzyInputTestTurn)+" "+nextChar);
-                        progressBar.setProgress((fuzzyInputTestTurn * 100) / MAX_FUZZY_INPUT_TURN);
-                        break;
-                    }
-                    default:
-                }
-            }
-        });
-    }
-
     public void playFirstVoice(){
         if (current == null && !myPlayList.isEmpty()){
             current = MediaPlayer.create(this, myPlayList.get(0));
@@ -1265,7 +811,7 @@ public class MainActivity extends AppCompatActivity {
             current.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
                 public void onCompletion(MediaPlayer mp) {
-                    if (activity_mode == FUZZY_INPUT_TEST_MODE) {
+                    if (activity_mode == ActivityMode.FUZZY_INPUT_TEST_MODE) {
                         //current.reset();
                         current.release();
                         current = null;
@@ -1334,7 +880,7 @@ public class MainActivity extends AppCompatActivity {
     public void addToSeq(char ch, int x, int y){
         if (ch == KEY_NOT_FOUND){
             if (mtouchinfo.inKeyboard && System.currentTimeMillis() > downTime + STAY_TIME){
-                textToSpeech.speak("出界", textToSpeech.QUEUE_ADD, null);
+                tts("出界");
                 mtouchinfo.inKeyboard = false;
             }
         }
@@ -1379,57 +925,40 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        setContentView(R.layout.activity_main_relative);
+        layoutInit();
+        initDict();
+        initVoice();
+        initKeyboard();
 
-        textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+        ttsENG = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status){
-                if (status == textToSpeech.SUCCESS){
-                    int result = textToSpeech.setLanguage(Locale.ENGLISH);
+                if (status == ttsENG.SUCCESS){
+                    int result = ttsENG.setLanguage(Locale.ENGLISH);
                     if (result != TextToSpeech.LANG_COUNTRY_AVAILABLE && result != TextToSpeech.LANG_AVAILABLE){
-                        Toast.makeText(MainActivity.this, "TTS暂时不支持这种语音的朗读！", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "TTS暂时不支持英文的朗读！", Toast.LENGTH_SHORT).show();
                     }
                 }
             }
         });
-        textToSpeech.setSpeechRate(ttsVoiceSpeed);
-        textToSpeech.setPitch(1.0f);
-        keyboard = (ImageView)findViewById(R.id.keyboard);
-        text = (TextView)findViewById(R.id.text);
-        seekBar=(SeekBar)findViewById(R.id.seekBar);
-        seekBar.setVisibility(View.GONE);
-        seekBarText=(TextView)findViewById(R.id.seekBarText);
-        seekBarText.setVisibility(View.GONE);
-        elapsedTimeText = (TextView)findViewById(R.id.elapsedtime);
-        candidatesView = (TextView)findViewById(R.id.candidates);
-        confirmButton = (Button)findViewById(R.id.confirm_button);
-        readListView = (TextView)findViewById(R.id.readList);
-        initModeButton = (Button)findViewById(R.id.init_mode_button);
-        speedButton = (Button)findViewById(R.id.speedButton);
-        voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
-        voiceSpeedText.setText(String.valueOf(voiceSpeed));
-        fuzzyInputTestCharShow=(TextView)findViewById(R.id.fuzzyInputTestCharShow);
-        fuzzyInputTestCharShow.setVisibility(View.GONE);
-        progressBar=(ProgressBar)findViewById(R.id.progress_bar);
-        progressBar.setVisibility(View.GONE);
-        listView=(ListView)findViewById(R.id.list_view);
-        listView.setVisibility(View.GONE);
-        screen=new Screen(this);
-        fontRatio = 4.0f/screen.dmDensity;
-        ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
-        vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+        ttsENG.setSpeechRate(ttsVoiceSpeed);
+        ttsENG.setPitch(1.0f);
+
+        ttsCHN = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override
-            public void onGlobalLayout() {
-                keyboard.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                autoKeyboard=new AutoKeyboard(keyboard);
-                fitOnScreen();
+            public void onInit(int status){
+                if (status == ttsCHN.SUCCESS){
+                    int result = ttsCHN.setLanguage(Locale.CHINA);
+                    if (result != TextToSpeech.LANG_COUNTRY_AVAILABLE && result != TextToSpeech.LANG_AVAILABLE){
+                        Toast.makeText(MainActivity.this, "TTS暂时不支持中文的朗读！", Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
         });
-        initDict();
-        initVoice();
-        initButtons();
-        initKeyboard();
-        seekBarInit();
+        ttsCHN.setSpeechRate(ttsVoiceSpeed);
+        ttsCHN.setPitch(1.0f);
+
+
         //startPinyinDecoderService
         if (mIPinyinDecoderService == null) {
             Intent serviceIntent = new Intent();
@@ -1443,28 +972,215 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("fsy", "true");
         }
     }
+
+    void layoutInit(){
+        switch(activity_mode){
+            case KEYBOARD_MODE:{
+                setContentView(R.layout.activity_main_relative);
+                text = (TextView)findViewById(R.id.text);
+                elapsedTimeText = (TextView)findViewById(R.id.elapsedtime);
+                candidatesView = (TextView)findViewById(R.id.candidates);
+                confirmButton = (Button)findViewById(R.id.confirm_button);
+                readListView = (TextView)findViewById(R.id.readList);
+                initModeButton = (Button)findViewById(R.id.init_mode_button);
+                speedButton = (Button)findViewById(R.id.speedButton);
+                voiceSpeedText = (TextView)findViewById(R.id.voice_speed_text);
+                voiceSpeedText.setText(String.valueOf(voiceSpeed));
+                languageMode=LANG_MODE_ENG;
+                break;
+            }
+            case FUZZY_INPUT_TEST_MODE:{
+                setContentView(R.layout.fuzzy_input_test_relative);
+                fuzzyInputTestCharShow=(TextView)findViewById(R.id.fuzzyInputTestCharShow);
+                fuzzyInputTestCharShow.setVisibility(View.VISIBLE);
+                listView=(ListView)findViewById(R.id.list_view);
+                listView.setVisibility(View.VISIBLE);
+                progressBar=(ProgressBar)findViewById(R.id.progress_bar);
+                progressBar.setVisibility(View.VISIBLE);
+                BackButton=(Button)findViewById(R.id.back_button);
+                BackSpaceButton=(Button)findViewById(R.id.backspace_button);
+                SaveButton=(Button)findViewById(R.id.save_button);
+                RestartButton=(Button)findViewById(R.id.restart_button);
+                languageMode=LANG_MODE_CHN;
+                break;
+            }
+        }
+        keyboard = (ImageView)findViewById(R.id.keyboard);
+        ViewTreeObserver vto2 = keyboard.getViewTreeObserver();
+        vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                keyboard.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                autoKeyboard=new AutoKeyboard(keyboard);
+                fitOnScreen();
+            }
+        });
+        screen=new Screen(this);
+        seekBar=(SeekBar)findViewById(R.id.seekBar);
+        seekBar.setVisibility(View.GONE);
+        seekBarInit();
+        seekBarText=(TextView)findViewById(R.id.seekBarText);
+        seekBarText.setVisibility(View.GONE);
+        fontRatio = 4.0f/screen.dmDensity;
+        initButtons();
+    }
+    void initButtons(){
+        switch(activity_mode){
+            case KEYBOARD_MODE:{
+                confirmButton.setOnClickListener(new View.OnClickListener() {
+                    @RequiresApi(api = Build.VERSION_CODES.N)
+                    @Override
+                    public void onClick(View v) {
+                        stopInput(true);
+                        finishWord();
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                    }
+                });
+
+                initModeButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (initMode == INIT_MODE_ABSOLUTE)
+                            initMode = INIT_MODE_RELATIVE;
+                        else if(initMode == INIT_MODE_RELATIVE)
+                            initMode = INIT_MODE_NOTHING;
+                        else
+                            initMode = INIT_MODE_ABSOLUTE;
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        refresh();
+                    }
+                });
+
+                speedButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        currentMenuVar=MENUVAR.SPEED;
+                        seekBar.setVisibility(View.VISIBLE);
+                        float voiceSpeedMax=100f;
+                        float voiceSpeedMin=50f;
+                        int progress=Math.round(100f*(voiceSpeed-voiceSpeedMin)/(voiceSpeedMax-voiceSpeedMin));
+                        seekBar.setProgress(progress);
+                        autoKeyboard.resetLayout();
+                        autoKeyboard.drawLayout();
+                        voiceSpeedText.setText(voiceSpeed+"");
+                        seekBarText.setVisibility(View.VISIBLE);
+                        seekBarText.setText("voiceSpeed:"+String.valueOf(voiceSpeed));
+                    }
+                });
+                break;
+            }
+            case FUZZY_INPUT_TEST_MODE:{
+                BackButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        stopVoice();
+                        if(!fu.ifSave){
+                            AlertDialog.Builder dialog=new AlertDialog.Builder(MainActivity.this);
+                            dialog.setTitle("警告");
+                            dialog.setMessage("测试还未完成，你确定要返回吗？");
+                            dialog.setCancelable(false);
+                            dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    activity_mode = ActivityMode.KEYBOARD_MODE;
+                                    fu.sentence.clear();
+                                    fu=null;
+                                    layoutInit();
+                                    setMenuTitle();
+                                }
+                            });
+                            dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                }
+                            });
+                            dialog.show();
+                        }else {
+                            activity_mode = ActivityMode.KEYBOARD_MODE;
+                            fu.sentence.clear();
+                            fu=null;
+                            layoutInit();
+                            setMenuTitle();
+                            refresh();
+                        }
+                    }
+                });
+                SaveButton.setOnClickListener(new View.OnClickListener() {
+                    @RequiresApi(api = Build.VERSION_CODES.N)
+                    @Override
+                    public void onClick(View v) {
+                        stopVoice();
+                        fu.saveFuzzyInputTestData();
+                    }
+                });
+                BackSpaceButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        stopVoice();
+                        fu.backSpace();
+                    }
+                });
+                RestartButton.setOnClickListener(new View.OnClickListener(){
+                    @Override
+                    public void onClick(View v){
+                        if(!fu.ifSave){
+                            AlertDialog.Builder dialog=new AlertDialog.Builder(MainActivity.this);
+                            dialog.setTitle("警告");
+                            dialog.setMessage("测试还未完成，你确定要重新开始吗？");
+                            dialog.setCancelable(false);
+                            dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    if(fu.sentence!=null){
+                                        fu.sentence.clear();
+                                    }
+                                    fu=new FuzzyInputTest();
+                                    listView.setVisibility(View.GONE);
+                                }
+                            });
+                            dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+
+                                }
+                            });
+                            dialog.show();
+                        }else{
+                            if(fu!=null){
+                                fu.sentence.clear();
+                            }
+                            fu=new FuzzyInputTest();
+                            listView.setVisibility(View.GONE);
+                        }
+                    }
+                });
+            }
+        }
+    }
     public void fitOnScreen(){
-        /*
-        DisplayMetrics dm = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(dm);
-        int pixelSize = (int)20 * dm.scaledDensity;
-        */
 
         // fit text size
         int textSize=18;
-        text.setTextSize((int)(textSize*fontRatio));
-        candidatesView.setTextSize((int)(textSize*fontRatio));
-        readListView.setTextSize((int)(textSize*fontRatio));
-        voiceSpeedText.setTextSize((int)(textSize*fontRatio));
-        fuzzyInputTestCharShow.setTextSize((int)(40*fontRatio));
-        elapsedTimeText.setTextSize((int)(textSize*fontRatio));
-        seekBarText.setTextSize((int)(textSize*fontRatio));
-
-        // fit button text size
         int buttonTextSize=12;
-        confirmButton.setTextSize((int)(buttonTextSize*fontRatio));
-        initModeButton.setTextSize((int)(buttonTextSize*fontRatio));
-        speedButton.setTextSize((int)(buttonTextSize*fontRatio));
+        switch (activity_mode){
+            case KEYBOARD_MODE:{
+                text.setTextSize((int)(textSize*fontRatio));
+                candidatesView.setTextSize((int)(textSize*fontRatio));
+                readListView.setTextSize((int)(textSize*fontRatio));
+                voiceSpeedText.setTextSize((int)(textSize*fontRatio));
+                elapsedTimeText.setTextSize((int)(textSize*fontRatio));
+                seekBarText.setTextSize((int)(textSize*fontRatio));
+                confirmButton.setTextSize((int)(buttonTextSize*fontRatio));
+                initModeButton.setTextSize((int)(buttonTextSize*fontRatio));
+                speedButton.setTextSize((int)(buttonTextSize*fontRatio));
+                break;
+            }
+            case FUZZY_INPUT_TEST_MODE:{
+                fuzzyInputTestCharShow.setTextSize((int)(textSize*fontRatio));
+            }
+        }
     }
     @Override
     public void onDestroy(){
@@ -1472,8 +1188,11 @@ public class MainActivity extends AppCompatActivity {
             current.release();
             current = null;
         }
-        if (textToSpeech != null)
-            textToSpeech.shutdown();
+        if (ttsCHN != null)
+            ttsCHN.shutdown();
+
+        if (ttsENG != null)
+            ttsENG.shutdown();
         unbindService(mPinyinDecoderServiceConnection);
         super.onDestroy();
     }
@@ -1555,7 +1274,7 @@ public class MainActivity extends AppCompatActivity {
     public void nextTestcase(){
         ++currentTestcase;
         write("sentence " + testcases.get(currentTestcase));
-        textToSpeech.speak("请输入:" + testcases.get(currentTestcase), textToSpeech.QUEUE_ADD, null);
+        tts("请输入:" + testcases.get(currentTestcase));
     }
 
     public void actionRightwipe(){
@@ -1567,7 +1286,7 @@ public class MainActivity extends AppCompatActivity {
         if (currentCandidate >= 0 && currentCandidate < candidates.size()) {
             if (languageMode == LANG_MODE_CHN){
                 String delta = candidates.get(currentCandidate).alias;
-                textToSpeech.speak("确认输入 " + delta, textToSpeech.QUEUE_ADD, null);
+                tts("确认输入");
                 try {
                     int temp;
                     if (currentWord.length() == 0)
@@ -1602,7 +1321,7 @@ public class MainActivity extends AppCompatActivity {
                             for (int i = 0; i < len; ++i)
                                 candidates.add(new Word(templist.get(i), 0));
                             if (autoreadMode == AUTOREAD_ON)
-                                textToSpeech.speak("推荐候选", textToSpeech.QUEUE_ADD, null);
+                                tts("推荐候选");
                         }
                         currentCandidate = autoreadMode;
                         refresh();
@@ -1626,11 +1345,11 @@ public class MainActivity extends AppCompatActivity {
             predict(currentWord);
             currentCandidate = autoreadMode;
             refresh();
-            textToSpeech.speak("确认输入 " + delta, TextToSpeech.QUEUE_ADD, null);
+            tts("确认输入");
         }
         else if (currentWord.length() == 0){
             currentInput += " ";
-            textToSpeech.speak("空格", TextToSpeech.QUEUE_ADD, null);
+            tts("空格");
         }
         refresh();
     }
@@ -1646,7 +1365,7 @@ public class MainActivity extends AppCompatActivity {
                 if (mIPinyinDecoderService.imGetFixedLen() > 0){
                     nowChSaved = '*';
                     currentCandidate = autoreadMode;
-                    textToSpeech.speak("删除", TextToSpeech.QUEUE_ADD, null);
+                    tts("删除");
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
                     mIPinyinDecoderService.imCancelLastChoice();
@@ -1657,9 +1376,9 @@ public class MainActivity extends AppCompatActivity {
                     String deleted = deleteLastChar();
                     nowChSaved = '*';
                     currentCandidate = autoreadMode;
-                    textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
+                    tts("删除");
                     if (deleted.length() > 0 && deleted.charAt(0) >= 'a' && deleted.charAt(0) <= 'z' && currentWord.length() == 0){
-                        textToSpeech.speak("拼音已清空", TextToSpeech.QUEUE_ADD, null);
+                        tts("拼音已清空");
                     }
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
@@ -1673,7 +1392,7 @@ public class MainActivity extends AppCompatActivity {
         String deleted = deleteLastChar();
         nowChSaved = '*';
         currentCandidate = autoreadMode;
-        textToSpeech.speak("删除" + deleted, TextToSpeech.QUEUE_ADD, null);
+        tts("删除");
         refresh();
     }
 
@@ -1689,10 +1408,10 @@ public class MainActivity extends AppCompatActivity {
         if (checkUpwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
             write("up2wipe");
             if (currentInput.length() == 0){
-                textToSpeech.speak("当前还没有输入", TextToSpeech.QUEUE_ADD, null);
+                tts("当前还没有输入");
             }
             else{
-                textToSpeech.speak("当前输入" + currentInput, textToSpeech.QUEUE_ADD, null);
+                tts("当前输入" + currentInput);
             }
         }
         else if (checkRightwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())) {
@@ -1703,7 +1422,7 @@ public class MainActivity extends AppCompatActivity {
                 else{
                     recordMode = RECORD_MODE_STOPED;
                     setMenuTitle();
-                    textToSpeech.speak("实验结束，谢谢您的配合", textToSpeech.QUEUE_ADD, null);
+                    tts("实验结束，谢谢您的配合");
                 }
                 deleteAllChar();
                 currentCandidate = autoreadMode;
@@ -1716,7 +1435,7 @@ public class MainActivity extends AppCompatActivity {
                 autoKeyboard.drawLayout();
             }
             else{
-                textToSpeech.speak("当前输入 " + currentInput, textToSpeech.QUEUE_ADD, null);
+                tts("当前输入 " + currentInput);
             }
         }
         else if (checkLeftwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
@@ -1726,7 +1445,7 @@ public class MainActivity extends AppCompatActivity {
             elapsedTimeText.setText("0");
             mtouchinfo.upKey = KEY_NOT_FOUND;
             nowChSaved = '*';
-            textToSpeech.speak("清空", TextToSpeech.QUEUE_ADD, null);
+            tts("清空");
             currentInput = "";
             refresh();
             autoKeyboard.resetLayout();
@@ -1742,7 +1461,7 @@ public class MainActivity extends AppCompatActivity {
         write("upwipe");
         currentCandidate = Math.max(currentCandidate - 1, 0);
         if (currentWord.length() > 0 && candidates.size() == 0){
-            textToSpeech.speak("无候选词", textToSpeech.QUEUE_ADD, null);
+            tts("无候选词");
         }
         autoKeyboard.resetLayout();
         autoKeyboard.drawLayout();
@@ -1756,7 +1475,7 @@ public class MainActivity extends AppCompatActivity {
         if (currentCandidate + 1 < candidates.size())
             ++currentCandidate;
         if (currentWord.length() > 0 && candidates.size() == 0){
-            textToSpeech.speak("无候选词", textToSpeech.QUEUE_ADD, null);
+            tts("无候选词");
         }
         autoKeyboard.resetLayout();
         autoKeyboard.drawLayout();
@@ -1886,7 +1605,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                             if (currentCandidate >= 0 && currentCandidate < candidates.size())
-                                textToSpeech.speak(candidates.get(currentCandidate).alias + getChnHint(candidates.get(currentCandidate).alias), TextToSpeech.QUEUE_ADD, null);
+                                tts(candidates.get(currentCandidate).alias + getChnHint(candidates.get(currentCandidate).alias));
                             write("word " + currentWord);
                             nowCh = KEY_NOT_FOUND;
                             break;
@@ -1900,60 +1619,49 @@ public class MainActivity extends AppCompatActivity {
             }
             case FUZZY_INPUT_TEST_MODE: {
                 y=y-location[1];
-                if (fuzzyInputTestTurn < MAX_FUZZY_INPUT_TURN && autoKeyboard.inKeyboard(x,y,autoKeyboard.CURR_LAYOUT)&& isOverScreen==false) {
+                if (autoKeyboard.inKeyboard(x,y,autoKeyboard.CURR_LAYOUT)&& isOverScreen==false) {
                     switch (event.getActionMasked()) {
                         case MotionEvent.ACTION_DOWN: {
+                            if(!fu.ifBegin){
+                                fu.ifBegin=true;
+                            }
                             char ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
                             if(ch==KEY_NOT_FOUND){
                                 isOverScreen=true;
+                                tts("出界");
                                 break;
                             }
-                            if(fuzzyInputTestTurn>=fuzzyInputTestFigerRecord.size()){
-                                fuzzyInputTestFigerRecord.add(new Turn(fuzzyInputTestTurn,event.getDownTime()));
-                            }
-                            fuzzyInputTestFigerRecord.get(fuzzyInputTestTurn).addData(ch,x,y,MotionEvent.ACTION_DOWN,event.getEventTime());
                             stopVoice();
+                            if(fu.index<fu.chineseNum)
+                                fu.addSentence(event);
                             playMedia("ios11_"+voiceSpeed, ch - 'a',true);
                             lastChar=ch;
                             break;
                         }
                         case MotionEvent.ACTION_MOVE: {
                             char ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
-                            if(ch==KEY_NOT_FOUND){
-                                break;
-                            }
-                            fuzzyInputTestFigerRecord.get(fuzzyInputTestTurn).addData(ch,x,y,MotionEvent.ACTION_MOVE,event.getEventTime());
-                            if(ch!=lastChar){
+                            if(fu.index<fu.chineseNum)
+                                fu.addSentence(event);
+                            if(ch!=lastChar ){
                                 stopVoice();
-                                playMedia("ios11da", 0,false);
-                                Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
-                                long[] pattern = {0, 30};
-                                vibrator.vibrate(pattern, -1);
-                                playMedia("ios11_"+voiceSpeed, ch - 'a',true);
+                                if(ch==KEY_NOT_FOUND){
+                                    tts("出界");
+                                }else{
+                                    playMedia("ios11da", 0,false);
+                                    Vibrator vibrator =  (Vibrator)getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+                                    long[] pattern = {0, 30};
+                                    vibrator.vibrate(pattern, -1);
+                                    playMedia("ios11_"+voiceSpeed, ch - 'a',true);
+                                }
                             }
                             lastChar=ch;
                             break;
                         }
                         case MotionEvent.ACTION_UP: {
-                            char ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
-                            boolean isDone=fuzzyInputTestFigerRecord.get(fuzzyInputTestTurn).addData(ch,x,y,MotionEvent.ACTION_UP,event.getEventTime());
-                            stopVoice();
-                            if(isDone){
-                                fuzzyInputTestTurn++;
-                                if (fuzzyInputTestTurn >= MAX_FUZZY_INPUT_TURN) {
-                                    fuzzyInputTestCharShow.setText("DONE!");
-                                    playMedia("fuzzyInput", FUZZY_INPUT_SOUND_END,false);
-                                    calculateFuzzyInputData();
-                                    break;
-                                }
+                            if(fu.ifBegin){
+                                if(fu.index<fu.chineseNum)
+                                    fu.addSentence(event);
                             }
-                            if (fuzzyInputTestTurn < 10) {//10轮熟悉之后加快测试速度
-                                playMedia("fuzzyInput", FUZZY_INPUT_SOUND_NEXT,false);
-                            }
-                            playMedia("google", fuzzyInputTestList.get(fuzzyInputTestTurn%26),true);
-                            String nextChar = String.valueOf((char) ('A' + fuzzyInputTestList.get(fuzzyInputTestTurn%26)));
-                            fuzzyInputTestCharShow.setText(String.valueOf(fuzzyInputTestTurn)+" "+nextChar);
-                            progressBar.setProgress((fuzzyInputTestTurn * 100 )/ MAX_FUZZY_INPUT_TURN);
                             break;
                         }
                         default:
@@ -1963,6 +1671,20 @@ public class MainActivity extends AppCompatActivity {
                     switch (event.getActionMasked()) {
                         case MotionEvent.ACTION_DOWN: {
                             isOverScreen=true;
+                            tts("出界");
+                            break;
+                        }
+                        case MotionEvent.ACTION_UP:{
+                            isOverScreen=false;
+                            break;
+                        }
+                        default:
+                    }
+                }else{
+                    switch (event.getActionMasked()) {
+                        case MotionEvent.ACTION_DOWN: {
+                            isOverScreen=true;
+                            tts("出界");
                             break;
                         }
                         case MotionEvent.ACTION_UP:{
@@ -1998,7 +1720,7 @@ public class MainActivity extends AppCompatActivity {
             return 0;
         }
     }
-
+    // AutoKeyboard
     class AutoKeyboard{
         ImageView keyboard;
         Canvas canvas;
@@ -2021,7 +1743,7 @@ public class MainActivity extends AppCompatActivity {
         float minHeightRatio;// the minimum height of a key
         int[] keyPos={10,24,22,12,2,13,14,15,7,16,17,18,26,25,8,9,0,3,11,4,6,23,1,21,5,20};// A-Z to the position in the keyboard
         int[] location;// the coordinate of the left top corner of the keyboard
-        int[] allLetter={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,21,22,23,24,25,26};
+        int[] allChar={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,20,21,22,23,24,25,26};
         final int KEYNUM=33;
         final int Q=0;
         final int W=1;
@@ -2397,6 +2119,12 @@ public class MainActivity extends AppCompatActivity {
             }
 
         };
+        public char getKeyByPosition(MotionEvent event,int mode){
+            return getKeyByPosition(event.getX()-location[0],event.getY()-location[1],mode);
+        }
+        public String toString(){
+            return "AutoKeyboard,keyboardHeight:"+keyboardHeight+",keyboardWidth:"+keyboardWidth+"\n";
+        }
         boolean shift_y(int pos,float dY){
             // mode==0 bodily movement
             // mode==1 respectively movement
@@ -2506,7 +2234,6 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         }
-
         boolean shift_x(int pos,float dX){
             // mode==0 bodily movement
             // mode==1 respectively movement
@@ -2793,7 +2520,6 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         }
-
         public  boolean tryLayout(char ch,float x,float y){
             // mode==0 bodily movement
             // mode==1 respectively movement
@@ -2852,7 +2578,6 @@ public class MainActivity extends AppCompatActivity {
             }
             return shift_x(pos,dX)&&shift_y(pos,dY);
         }
-
         public void drawLayout(){
             this.drawLayout("");
         }
@@ -2910,7 +2635,7 @@ public class MainActivity extends AppCompatActivity {
                 this.keys[i].init_x=this.keys[i-(Z-S)].init_x;
                 this.keys[i].init_y=this.keyboardHeight*5F/8F+(this.bottomThreshold-this.keyboardHeight);
             }
-            for (int i:allLetter) {
+            for (int i:allChar) {
                 this.keys[i].init_height=this.keyboardHeight/4F;
                 this.keys[i].init_width=this.keyboardWidth/10F;
             }
@@ -3008,7 +2733,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // 画A-Z
-                for (int i:allLetter){
+                for (int i:allChar){
                     this.canvas.drawText(String.valueOf(this.keys[i].ch).toUpperCase(),this.keys[i].curr_x,this.keys[i].curr_y-fonttop/2F-fontbottom/2F,this.textPaint);
                 }
                 if(FunctionKeys){
@@ -3148,6 +2873,7 @@ public class MainActivity extends AppCompatActivity {
             this.resetLayout();
             this.drawLayout();
         }
+
     }
 
     // Menu var
@@ -3177,13 +2903,6 @@ public class MainActivity extends AppCompatActivity {
                         SD_coefficient_X =Math.round (ratio*(SDMax-SDMin)+SDMin);
                         seekBarText.setText("SD:"+String.valueOf(SD_coefficient_X));
                         refresh();
-                        break;
-                    }case TESTTURN:{// fuzzyInputTestTurn
-                        float TestTurnMax=8F;
-                        float TestTurnMin=1F;
-                        MAX_TURN = Math.round(ratio*(TestTurnMax-TestTurnMin)+TestTurnMin);
-                        seekBarText.setText("TestTurn:"+String.valueOf(MAX_TURN));
-                        MAX_FUZZY_INPUT_TURN=MAX_TURN*26;
                         break;
                     }case EXPONENT:{
                         float expMax=1F/2F;
@@ -3256,7 +2975,7 @@ public class MainActivity extends AppCompatActivity {
                         voiceSpeedText.setText(String.valueOf(voiceSpeed));
                         seekBarText.setText("voiceSpeed:"+String.valueOf(voiceSpeed));
                         ttsVoiceSpeed=ttsSpeedArray[voiceSpeedIndex];
-                        textToSpeech.setSpeechRate(ttsVoiceSpeed);
+                        ttsENG.setSpeechRate(ttsVoiceSpeed);
                         break;
                     }case FONTRATIO:{
                         float fontRatioMax = 3.0f;
@@ -3271,13 +2990,11 @@ public class MainActivity extends AppCompatActivity {
             }
 
             public void onStartTrackingTouch(SeekBar seekBar) {
-                Log.e("------------", "开始滑动！");
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 setMenuTitle();
-                Log.e("------------", "停止滑动！");
             }
         });
     }
@@ -3349,18 +3066,10 @@ public class MainActivity extends AppCompatActivity {
                 switch (languageMode){
                     case LANG_MODE_ENG:{
                         languageMode = LANG_MODE_CHN;
-                        int result = textToSpeech.setLanguage(Locale.CHINA);
-                        if (result != TextToSpeech.LANG_COUNTRY_AVAILABLE && result != TextToSpeech.LANG_AVAILABLE){
-                            Toast.makeText(MainActivity.this, "TTS暂时不支持这种语音的朗读！", Toast.LENGTH_SHORT).show();
-                        }
                         break;
                     }
                     case LANG_MODE_CHN:{
                         languageMode = LANG_MODE_ENG;
-                        int result = textToSpeech.setLanguage(Locale.ENGLISH);
-                        if (result != TextToSpeech.LANG_COUNTRY_AVAILABLE && result != TextToSpeech.LANG_AVAILABLE){
-                            Toast.makeText(MainActivity.this, "TTS暂时不支持这种语音的朗读！", Toast.LENGTH_SHORT).show();
-                        }
                         break;
                     }
                 }
@@ -3470,34 +3179,25 @@ public class MainActivity extends AppCompatActivity {
             case R.id.fuzzyInputTestBegin:{
                 switch (activity_mode){
                     case KEYBOARD_MODE:{
-                        beginFuzzyInputTest();
+                        activity_mode=ActivityMode.FUZZY_INPUT_TEST_MODE;
+                        languageMode=LANG_MODE_CHN;
+                        layoutInit();
+                        setMenuTitle();
+                        if(fu!=null){
+                            fu.sentence.clear();
+                        }
+                        fu=new FuzzyInputTest();
                         break;
                     }
                     case FUZZY_INPUT_TEST_MODE:{
-                        restartFuzzyInputTest();
+                        activity_mode=ActivityMode.KEYBOARD_MODE;
+                        fu.sentence.clear();
+                        fu=null;
+                        layoutInit();
+                        setMenuTitle();
                         break;
                     }
                 }
-                break;
-            }
-            case R.id.testTurnChange:{
-                // MAX=8
-                if(activity_mode==KEYBOARD_MODE){
-                    currentMenuVar=MENUVAR.TESTTURN;
-                    float TestTurnMax=8F;
-                    float TestTurnMin=1F;
-                    seekBar.setVisibility(View.VISIBLE);
-                    seekBarText.setVisibility(View.VISIBLE);
-                    seekBarText.setText("TestTurn:"+String.valueOf(MAX_TURN));
-                    seekBar.setProgress(Math.round((MAX_TURN-TestTurnMin)/(TestTurnMax-TestTurnMin)*100));
-                    MAX_FUZZY_INPUT_TURN=MAX_TURN*26;
-                }
-                break;
-            }
-            case R.id.testMode:{
-                /*
-                testmode=(testmode+1)%4;
-                */
                 break;
             }
             case R.id.keyBoardVisibility:{
@@ -3663,16 +3363,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
     void setMenuTitle(){
-        switch (activity_mode){
-            case KEYBOARD_MODE:{
-                menu.findItem(R.id.fuzzyInputTestBegin).setTitle("Start Test");
-                break;
-            }
-            case FUZZY_INPUT_TEST_MODE:{
-                menu.findItem(R.id.fuzzyInputTestBegin).setTitle("Restart Test");
-                break;
-            }
-        }
+        menu.findItem(R.id.fuzzyInputTestBegin).setTitle("Start Test");
         switch (recordMode){
             case RECORD_MODE_STOPED:{
                 menu.findItem(R.id.recordModeItem).setTitle("recordMode:stoped");
@@ -3744,69 +3435,59 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         menu.findItem(R.id.SDItem).setTitle("SD:" + String.valueOf(SD_coefficient_X));
-        menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
-        if(activity_mode==KEYBOARD_MODE){
-            menu.findItem(R.id.testTurnChange).setTitle("TestTurn:"+String.valueOf(MAX_TURN));
-        }
-        switch(testmode){
-            case NORMAL:{
-                menu.findItem(R.id.testMode).setTitle("TestMode:NORMAL");
-                break;
-            }
-            case CANCEL:{
-                menu.findItem(R.id.testMode).setTitle("TestMode:CANCEL");
-                break;
-            }
-            case BORDER:{
-                menu.findItem(R.id.testMode).setTitle("TestMode:BORDER");
-                break;
-            }
-            case CANCEL_BORDER:{
-                menu.findItem(R.id.testMode).setTitle("TestMode:CANBOR");
-                break;
-            }
-        }
-        if(autoKeyboard.Visibility){
-            menu.findItem(R.id.keyBoardVisibility).setTitle("KeyboardVisibility:True");
-        }else{
-            menu.findItem(R.id.keyBoardVisibility).setTitle("KeyboardVisibility:False");
-        }
+
         menu.findItem(R.id.reset_keyboard).setTitle("Reset Keyboard");
-        if(autoKeyboard.try_layout_mode==autoKeyboard.BODILY_MOVEMENT){
-            menu.findItem(R.id.try_layout_mode).setTitle("try layout mode:Bodily");
-        }else if(autoKeyboard.try_layout_mode==autoKeyboard.RESPECTIVELY_MOVEMENT){
-            menu.findItem(R.id.try_layout_mode).setTitle("try layout mode:Respectively");
+
+        try {
+            if(autoKeyboard.Visibility){
+                menu.findItem(R.id.keyBoardVisibility).setTitle("KeyboardVisibility:True");
+            }else{
+                menu.findItem(R.id.keyBoardVisibility).setTitle("KeyboardVisibility:False");
+            }
+            menu.findItem(R.id.scalingNum).setTitle("scalingNum:"+String.valueOf(autoKeyboard.scalingNum));
+            if(autoKeyboard.try_layout_mode==autoKeyboard.BODILY_MOVEMENT){
+                menu.findItem(R.id.try_layout_mode).setTitle("try layout mode:Bodily");
+            }else if(autoKeyboard.try_layout_mode==autoKeyboard.RESPECTIVELY_MOVEMENT){
+                menu.findItem(R.id.try_layout_mode).setTitle("try layout mode:Respectively");
+            }
+
+            if (autoKeyboard.getKey_mode == autoKeyboard.LOOSE_MODE) {
+                menu.findItem(R.id.getKey_mode).setTitle("getKey mode:LOOSE MODE");
+            } else if (autoKeyboard.getKey_mode == autoKeyboard.STRICT_MODE) {
+                menu.findItem(R.id.getKey_mode).setTitle("getKey mode:STRICT MODE");
+            }
+            if(autoKeyboard.scalingMode==autoKeyboard.LINEAR_MODE){
+                menu.findItem(R.id.scalingMode).setTitle("scalingMode:LINEAR_MODE");
+            }else if(autoKeyboard.scalingMode==autoKeyboard.EXPONENT_MODE){
+                menu.findItem(R.id.scalingMode).setTitle("scalingMode:EXPONENT_MODE");
+            }
+            menu.findItem(R.id.topThreshold).setTitle("topThreshold:"+String.valueOf(autoKeyboard.topThreshold));
+            menu.findItem(R.id.bottomThreshold).setTitle("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
+            menu.findItem(R.id.minWidthRatio).setTitle("minWidthRatio:"+String.valueOf(Math.round(autoKeyboard.minWidthRatio*100))+"%");
+            menu.findItem(R.id.minHeightRatio).setTitle("minHeightRatio:"+String.valueOf(Math.round(autoKeyboard.minHeightRatio*100))+"%");
+            menu.findItem(R.id.tapRange).setTitle("tap range:"+String.valueOf(Math.round(autoKeyboard.tapRange*100))+"%");
+            menu.findItem(R.id.keyboardHeight).setTitle("keyboardHeight:"+String.valueOf(autoKeyboard.keyboardHeight));
+            menu.findItem(R.id.exponent).setTitle("exponent:"+String.valueOf(autoKeyboard.exponent));
+            menu.findItem(R.id.Outline).setTitle("Outline:"+String.valueOf(autoKeyboard.Outline));
+            menu.findItem(R.id.FunctionKeys).setTitle("Function keys:"+String.valueOf(autoKeyboard.FunctionKeys));
+            menu.findItem(R.id.Ranking).setTitle("Ranking:"+String.valueOf(autoKeyboard.Ranking));
+
+        }catch (Exception e){
+            Log.i("Error:","AutoKeyboard is not set up");
         }
-        menu.findItem(R.id.scalingNum).setTitle("scalingNum:"+String.valueOf(autoKeyboard.scalingNum));
-        if(autoKeyboard.getKey_mode==autoKeyboard.LOOSE_MODE){
-            menu.findItem(R.id.getKey_mode).setTitle("getKey mode:LOOSE MODE");
-        }else if(autoKeyboard.getKey_mode==autoKeyboard.STRICT_MODE){
-            menu.findItem(R.id.getKey_mode).setTitle("getKey mode:STRICT MODE");
+
+        try{
+            menu.findItem(R.id.dmDensityDpi).setTitle("DensityDpi:"+String.valueOf(screen.dmDensityDpi));
+            menu.findItem(R.id.dmDensity).setTitle("Density:"+String.valueOf(screen.dmDensity));
+            menu.findItem(R.id.dmWidthPixels).setTitle("Width pixels:"+String.valueOf(screen.dmWidthPixels));
+            menu.findItem(R.id.dmHeightPixels).setTitle("Height pixels:"+String.valueOf(screen.dmHeightPixels));
+        }catch (Exception e){
+            Log.i("Error:","Screen is not set up");
         }
-        menu.findItem(R.id.topThreshold).setTitle("topThreshold:"+String.valueOf(autoKeyboard.topThreshold));
-        menu.findItem(R.id.bottomThreshold).setTitle("bottomThreshold:"+String.valueOf(autoKeyboard.bottomThreshold));
-        menu.findItem(R.id.minWidthRatio).setTitle("minWidthRatio:"+String.valueOf(Math.round(autoKeyboard.minWidthRatio*100))+"%");
-        menu.findItem(R.id.minHeightRatio).setTitle("minHeightRatio:"+String.valueOf(Math.round(autoKeyboard.minHeightRatio*100))+"%");
-        menu.findItem(R.id.tapRange).setTitle("tap range:"+String.valueOf(Math.round(autoKeyboard.tapRange*100))+"%");
-        menu.findItem(R.id.keyboardHeight).setTitle("keyboardHeight:"+String.valueOf(autoKeyboard.keyboardHeight));
-        if(autoKeyboard.scalingMode==autoKeyboard.LINEAR_MODE){
-            menu.findItem(R.id.scalingMode).setTitle("scalingMode:LINEAR_MODE");
-        }else if(autoKeyboard.scalingMode==autoKeyboard.EXPONENT_MODE){
-            menu.findItem(R.id.scalingMode).setTitle("scalingMode:EXPONENT_MODE");
-        }
-        menu.findItem(R.id.exponent).setTitle("exponent:"+String.valueOf(autoKeyboard.exponent));
-        menu.findItem(R.id.Outline).setTitle("Outline:"+String.valueOf(autoKeyboard.Outline));
-        menu.findItem(R.id.FunctionKeys).setTitle("Function keys:"+String.valueOf(autoKeyboard.FunctionKeys));
-        menu.findItem(R.id.Ranking).setTitle("Ranking:"+String.valueOf(autoKeyboard.Ranking));
         menu.findItem(R.id.fontRatio).setTitle("Font ratio:"+String.valueOf(fontRatio));
-        menu.findItem(R.id.dmDensityDpi).setTitle("DensityDpi:"+String.valueOf(screen.dmDensityDpi));
-        menu.findItem(R.id.dmDensity).setTitle("Density:"+String.valueOf(screen.dmDensity));
-        menu.findItem(R.id.dmWidthPixels).setTitle("Width pixels:"+String.valueOf(screen.dmWidthPixels));
-        menu.findItem(R.id.dmHeightPixels).setTitle("Height pixels:"+String.valueOf(screen.dmHeightPixels));
+
+
     }
-
-
-
     // Screen
     public class Screen {
 
@@ -3837,7 +3518,6 @@ public class MainActivity extends AppCompatActivity {
             dmHeightPixels = dm.heightPixels;
             // Density
             dmDensity = dm.density;
-            Log.i(TAG, toString());
 
         }
 
@@ -3860,7 +3540,310 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public String toString() {
-            return " dmDensityDpi:" + dmDensityDpi;
+            return "Screen,dmDensityDpi:"+dmDensityDpi+",dmDensity:"+dmDensity+",dmWidthPixels:"+dmWidthPixels+",dmHeightPixels:"+dmHeightPixels+"\n";
         }
     }
+    // FuzzyinputTest
+    FuzzyInputTest fu;
+    Button BackButton,BackSpaceButton,SaveButton,RestartButton;
+    TextView fuzzyInputTestCharShow;
+    ProgressBar progressBar;
+    ListView listView;
+    class FuzzyInputTest{
+        class Sentence{
+            class Letter{// 每输入一个字母视为1轮
+                class Char{
+                    char actual;
+                    double positionX;
+                    double positionY;
+                    Char(char actual_in,double positionX_in,double positionY_in) {
+                        this.actual = actual;
+                        this.positionX = positionX;
+                        this.positionY = positionY;
+                    }
+                    Char(MotionEvent event){
+                        this.actual = autoKeyboard.getKeyByPosition(event,autoKeyboard.CURR_LAYOUT);
+                        this.positionX = event.getX();
+                        this.positionY = event.getY();
+                    }
+                    Char(){
+                        this.actual='?';
+                        this.positionX=-1;
+                        this.positionY=-1;
+                    }
+                    public String toString(){
+                        return "Char,actual:"+actual+",X:"+ String.valueOf(positionX) +",Y:"+ String.valueOf(positionY)+'\n';
+                    }
+                }
+                char target;
+                ArrayList<Char> letter=new ArrayList<>();
+                Long downTime;
+                Long upTime;
+                Letter(char target_in,MotionEvent event){
+                    this.target = target_in;
+                    letter.add(new Char(event));
+                    this.downTime = event.getDownTime();
+                    this.upTime = event.getEventTime();
+                }
+                void addChar(MotionEvent event){
+                    this.letter.add(new Char(event));
+                    this.upTime = event.getEventTime();
+                }
+                public String toString(){
+                    String data = "Letter,target:"+target+",downTime:"+downTime+",upTime:"+upTime+"\n";
+                    for(Char perChar:letter){
+                        data+=perChar;
+                    }
+                    return data;
+                }
+            }
+            String pinyin;
+            String chinese;
+            String typeIn;
+            ArrayList<Letter> turn=new ArrayList<>();
+            int index=0;
+            boolean isRecord=false;
+            Sentence(String chinese_in, String pinyin_in){
+                this.pinyin = pinyin_in;
+                this.chinese = chinese_in;
+                index = 0;
+                typeIn="";
+            }
+            public void clear(){
+                turn.clear();
+                typeIn="";
+                index=0;
+                isRecord=false;
+            }
+            public boolean addLetter(MotionEvent event){
+                try {
+                    switch (event.getActionMasked()) {
+                        case MotionEvent.ACTION_UP: {
+                            if (isRecord) {
+                                turn.get(index).addChar(event);
+                                typeIn+=autoKeyboard.getKeyByPosition(event,autoKeyboard.CURR_LAYOUT);
+                                fuzzyInputTestCharShow.setText(chinese+" "+pinyin+" "+typeIn);
+                                index++;
+                                isRecord = false;
+                            }
+                            break;
+                        }
+                        case MotionEvent.ACTION_DOWN: {
+                            isRecord = true;
+                            turn.add(new Letter(pinyin.charAt(index), event));
+                            break;
+                        }
+                        case MotionEvent.ACTION_MOVE: {
+                            if (isRecord) {
+                                turn.get(index).addChar(event);
+                            }
+                            break;
+                        }
+                    }
+                }catch (Exception e){
+                    Log.i("addLetter", "index out of range");
+                    return true; // 单词输入结束
+                }
+                return index>=pinyin.length(); // 单词输入结束：true  单词还没输完：false
+            };
+            public String getPinYin(){
+                return this.pinyin;
+            }
+            public String getChinese(){
+                return this.chinese;
+            }
+            public int getIndex(){
+                return this.index;
+            }
+            public String getTypeIn(){
+                return this.typeIn;
+            }
+            public String toString(){
+                return "Sentence,Chinese:"+chinese+",PinYin:"+pinyin+",TypeIn:"+typeIn+"\n";
+            }
+        }
+        ArrayList<Sentence> sentence=new ArrayList<>();
+        int chineseNum;
+        boolean ifBegin;
+        FuzzyInputTest(){
+            BufferedReader reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.pilotdict)));
+            String line;
+            chineseNum=0;
+            try{
+                while ((line = reader.readLine()) != null){
+                    String[] lineArray = line.split(" ");
+                    sentence.add(new Sentence(lineArray[0],lineArray[1]));
+                    chineseNum++;
+                }
+                reader.close();
+                Log.i("init", "read touch model finished ");
+            } catch (Exception e){
+                Log.i("init", "read touch model failed");
+            }
+            activity_mode=ActivityMode.FUZZY_INPUT_TEST_MODE;
+            index=0;
+            ifBegin=false;
+            progressBar.setMax(chineseNum);
+            showAndSpeak();
+            ifSave=false;
+            ifCalDone=false;
+        }
+        public String toString(){
+            return "FuzzyInputTest,chineseNum:"+String.valueOf(chineseNum)+"\n";
+        }
+        int index = 0;
+        String DataToSave;
+        String DataToShowAndSave;
+        public boolean ifSave;
+        boolean ifCalDone;
+        boolean ifTypeIn=false;
+        public boolean addSentence(MotionEvent event) {
+            if(index<sentence.size())
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN: {
+                        ifTypeIn=true;
+                        sentence.get(index).addLetter(event);
+                        Log.i("addSentence","ACTION_DOWN");
+                        break;
+                    }
+                    case MotionEvent.ACTION_MOVE: {
+                        sentence.get(index).addLetter(event);
+                        break;
+                    }
+                    case MotionEvent.ACTION_UP: {
+                        if(ifTypeIn){
+                            if (sentence.get(index).addLetter(event)) {
+                                index++;
+                                showAndSpeak();
+                            }
+                            ifTypeIn = false;
+                        }
+                        break;
+                    }
+                }
+            if(index>=chineseNum){
+                fuzzyInputTestCharShow.setText("测试结束，非常感谢\n");
+                tts("测试结束，非常感谢\n");
+                calculateFuzzyInputData();
+                return true;
+            }else{
+                return false;
+            }
+        };
+        public void backSpace(){
+            sentence.get(index).clear();
+            if(index>0){
+                index--;
+                sentence.get(index).clear();
+            }
+            stopVoice();
+            showAndSpeak();
+        }
+        @RequiresApi(api = Build.VERSION_CODES.N)
+        public void saveFuzzyInputTestData(){
+            if(ifSave){
+                String text = "已经存储过一次了";
+                toast(text);
+                tts(text);
+            }else if (index < chineseNum) {
+                String text = "请先完成测试";
+                toast(text);
+                tts(text);
+            }else if(!ifCalDone){
+                String text = "请等待计算完成";
+                toast(text);
+                tts(text);
+            }
+            else {
+                if (isExternalStorageWritable()) {
+                    //String directory="/storage/emulated/0/Android/data/FuzzyInput/";
+                    //File sdCard = Environment.getExternalStorageDirectory();
+                    File DirectoryFolder = getExternalFilesDir(null);
+                    //File DirectoryFolder = new File(fuzzyInputTestStoragePath);
+                    //File DirectoryFolder = this.getExternalStoragePublicDirectory();
+                    if (!DirectoryFolder.exists()) { //如果该文件夹不存在，则进行创建
+                        DirectoryFolder.mkdirs();//创建文件夹
+                    }
+                    String time=getTime();
+                    File fileInDetail = new File(DirectoryFolder, time+ "_详细数据.txt");
+                    File fileInBrief= new File(DirectoryFolder,time+"_键入数据.txt");
+                    if (!fileInDetail.exists()) {
+                        try {
+                            fileInDetail.createNewFile();
+                            //file is create
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                    if (!fileInBrief.exists()) {
+                        try {
+                            fileInBrief.createNewFile();
+                            //file is create
+                        } catch (IOException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                    try {
+                        FileOutputStream fosInDetail = new FileOutputStream(fileInDetail);
+                        fosInDetail.write(DataToSave.getBytes());
+                        fosInDetail.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        FileOutputStream fosInBrief = new FileOutputStream(fileInBrief);
+                        fosInBrief.write(DataToShowAndSave.getBytes());
+                        fosInBrief.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    String text = "存储完毕";
+                    toast(text);
+                    tts(text);
+                    ifSave = true;
+                } else {
+                    String text = "不能存储文件";
+                    toast(text);
+                    tts(text);
+                }
+            }
+        }
+        private void showAndSpeak(){
+            if(index==0){
+                tts("模糊输入测试现在开始，接下来请输入："+sentence.get(index).getChinese());
+            }else if(index<sentence.size() && index>=0){
+                tts(sentence.get(index).getChinese());
+            }
+            fuzzyInputTestCharShow.setText(sentence.get(index).getChinese()+" "+sentence.get(index).getPinYin()+" "+sentence.get(index).getTypeIn());
+            progressBar.setProgress(index);
+        }
+        private void calculateFuzzyInputData(){
+            if(index < chineseNum){
+                toast("不应该在这时计算!");
+            }
+            else{
+                DataToSave = screen.toString()+autoKeyboard.toString()+this.toString();
+                DataToShowAndSave = "";
+                ArrayList<String> listViewData=new ArrayList<String>();
+                for (Sentence s:sentence){
+                    DataToShowAndSave+=s.getChinese()+","+s.getPinYin()+","+s.getTypeIn()+"\n";
+                    listViewData.add(s.getPinYin()+" "+s.getTypeIn());
+                    DataToSave+=s.toString();
+                    for (Sentence.Letter t:s.turn){
+                        DataToSave+=t.toString();
+                        for(Sentence.Letter.Char l:t.letter){
+                            DataToSave+=l.toString();
+                        }
+                    }
+                }
+                ifCalDone=true;
+                ArrayAdapter<String> adapter=new ArrayAdapter<String>(MainActivity.this,android.R.layout.simple_list_item_1,listViewData);
+                listView.setVisibility(View.VISIBLE);
+                listView.setAdapter(adapter);
+            }
+        }
+    }
+
 }
