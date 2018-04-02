@@ -1335,6 +1335,8 @@ public class MainActivity extends AppCompatActivity {
         if (ch == KEY_NOT_FOUND){
             if (mtouchinfo.inKeyboard && System.currentTimeMillis() > downTime + STAY_TIME){
                 textToSpeech.speak("出界", textToSpeech.QUEUE_ADD, null);
+                nowCh = KEY_NOT_FOUND;
+                mtouchinfo.lastReadFlag = false;
                 mtouchinfo.inKeyboard = false;
             }
         }
@@ -1515,7 +1517,7 @@ public class MainActivity extends AppCompatActivity {
     long downTime = 0, downTime2 = 0;
     long wordDownTime = 0;
     long firstDownTime = 0, lastDownTime = 0; // used for check double-click
-    final long STAY_TIME = 400;
+    final long STAY_TIME = 200;
     final int SLIP_DIST = 70;
     boolean isOverScreen=false;
     char lastChar='A';
@@ -1559,9 +1561,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void actionRightwipe(){
+        stopInput(true);
         autoKeyboard.resetLayout();
         autoKeyboard.drawLayout();
-        stopInput(true);
         write("rightwipe");
         mtouchinfo.upKey = KEY_NOT_FOUND;
         if (currentCandidate >= 0 && currentCandidate < candidates.size()) {
@@ -1876,7 +1878,7 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                 }
                                 else{
-                                    if (tempTime - downTime > 300) {
+                                    if (tempTime - downTime > 300 && nowCh != KEY_NOT_FOUND) {
                                         mtouchinfo.upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
                                         nowChSaved = nowCh;
                                         nowPredictDownSaved = nowPredictDown;
