@@ -3699,13 +3699,13 @@ public class MainActivity extends AppCompatActivity {
                 while ((line = reader.readLine()) != null){
                     String[] lineArray = line.split(" ");
                     sentence.add(new Sentence(lineArray[0],lineArray[1]));
-                    chineseNum++;
                 }
                 reader.close();
                 Log.i("init", "read touch model finished ");
             } catch (Exception e){
                 Log.i("init", "read touch model failed");
             }
+            chineseNum=sentence.size();
             activity_mode=ActivityMode.FUZZY_INPUT_TEST_MODE;
             index=0;
             ifBegin=false;
@@ -3731,20 +3731,23 @@ public class MainActivity extends AppCompatActivity {
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN: {
                         ifTypeIn=true;
-                        sentence.get(index).addLetter(event);
+                        if(this.isInRange())
+                            sentence.get(index).addLetter(event);
                         Log.i("addSentence","ACTION_DOWN");
                         break;
                     }
                     case MotionEvent.ACTION_MOVE: {
-                        sentence.get(index).addLetter(event);
+                        if(this.isInRange())
+                            sentence.get(index).addLetter(event);
                         break;
                     }
                     case MotionEvent.ACTION_UP: {
                         if(ifTypeIn){
-                            if (sentence.get(index).addLetter(event)) {
-                                index++;
-                                showAndSpeak();
-                            }
+                            if(this.isInRange())
+                                if (sentence.get(index).addLetter(event)) {
+                                    index++;
+                                    showAndSpeak();
+                                }
                             ifTypeIn = false;
                         }
                         break;
@@ -3760,8 +3763,9 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         public void backSpace(){
-            sentence.get(index).clear();
-            if(index>0){
+            if(this.isInRange())
+                sentence.get(index).clear();
+            if(index>0&&index<this.chineseNum){
                 index--;
                 sentence.get(index).clear();
             }
@@ -3842,10 +3846,10 @@ public class MainActivity extends AppCompatActivity {
         private void showAndSpeak(){
             if(index==0){
                 tts("模糊输入测试现在开始，接下来请输入："+sentence.get(index).getChinese());
-            }else if(index<sentence.size() && index>=0){
+            }else if(this.isInRange()){
                 tts(sentence.get(index).getChinese());
+                fuzzyInputTestCharShow.setText(sentence.get(index).getChinese()+" "+sentence.get(index).getPinYin()+" "+sentence.get(index).getTypeIn());
             }
-            fuzzyInputTestCharShow.setText(sentence.get(index).getChinese()+" "+sentence.get(index).getPinYin()+" "+sentence.get(index).getTypeIn());
             progressBar.setProgress(index);
         }
         private void calculateFuzzyInputData(){
@@ -3872,6 +3876,9 @@ public class MainActivity extends AppCompatActivity {
                 listView.setVisibility(View.VISIBLE);
                 listView.setAdapter(adapter);
             }
+        }
+        public boolean isInRange(){
+            return this.index>=0 && index<this.chineseNum;
         }
     }
 
