@@ -3724,7 +3724,10 @@ public class MainActivity extends AppCompatActivity {
         boolean ifCalDone;
         boolean ifTypeIn=false;
         public char getTarget(){
-            return this.sentence.get(this.index).getTarget();
+            if (this.index < this.sentence.size())
+                return this.sentence.get(this.index).getTarget();
+            else
+                return KEY_NOT_FOUND;
         }
         public boolean addSentence(MotionEvent event) {
             if(index<sentence.size())
