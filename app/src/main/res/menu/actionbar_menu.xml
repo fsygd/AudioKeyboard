@@ -26,6 +26,10 @@
         android:orderInCategory="100"
         android:title="Start Test"/>
     <item
+        android:id="@+id/fuzzyInputTestMode"
+        android:orderInCategory="100"
+        android:title="Test Mode:Target"/>
+    <item
         android:id="@+id/recordModeItem"
         android:orderInCategory="100"
         android:title="recordMode:stoped"/>

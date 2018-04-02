@@ -1081,6 +1081,7 @@ public class MainActivity extends AppCompatActivity {
                         if(!fu.ifSave){
                             AlertDialog.Builder dialog=new AlertDialog.Builder(MainActivity.this);
                             dialog.setTitle("警告");
+                            tts("测试还未完成，你确定要返回吗？");
                             dialog.setMessage("测试还未完成，你确定要返回吗？");
                             dialog.setCancelable(false);
                             dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
@@ -1130,6 +1131,7 @@ public class MainActivity extends AppCompatActivity {
                         if(!fu.ifSave){
                             AlertDialog.Builder dialog=new AlertDialog.Builder(MainActivity.this);
                             dialog.setTitle("警告");
+                            tts("测试还未完成，你确定要返回吗？");
                             dialog.setMessage("测试还未完成，你确定要重新开始吗？");
                             dialog.setCancelable(false);
                             dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
@@ -1621,27 +1623,46 @@ public class MainActivity extends AppCompatActivity {
             }
             case FUZZY_INPUT_TEST_MODE: {
                 y=y-location[1];
-                if (autoKeyboard.inKeyboard(x,y,autoKeyboard.CURR_LAYOUT)&& isOverScreen==false) {
                     switch (event.getActionMasked()) {
                         case MotionEvent.ACTION_DOWN: {
                             if(!fu.ifBegin){
                                 fu.ifBegin=true;
                             }
-                            char ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
-                            if(ch==KEY_NOT_FOUND){
-                                isOverScreen=true;
-                                tts("出界");
-                                break;
+                            char ch = KEY_NOT_FOUND;
+                            switch (fuMode) {
+                                case Target:{
+                                    ch = fu.getTarget();
+                                    break;
+                                }
+                                case Current:{
+                                    ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
+                                    break;
+                                }
                             }
                             stopVoice();
-                            if(fu.index<fu.chineseNum)
+                            if(ch==KEY_NOT_FOUND){
+                                tts("出界");
+                            }else {
+                                playMedia("ios11_"+voiceSpeed, ch - 'a',true);
+                            }
+                            if(fu.index<fu.chineseNum) {
                                 fu.addSentence(event);
-                            playMedia("ios11_"+voiceSpeed, ch - 'a',true);
+                            }
                             lastChar=ch;
                             break;
                         }
                         case MotionEvent.ACTION_MOVE: {
-                            char ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
+                            char ch = KEY_NOT_FOUND;
+                            switch (fuMode) {
+                                case Target:{
+                                    ch = fu.getTarget();
+                                    break;
+                                }
+                                case Current:{
+                                    ch = autoKeyboard.getKeyByPosition(x,y,autoKeyboard.CURR_LAYOUT);
+                                    break;
+                                }
+                            }
                             if(fu.index<fu.chineseNum)
                                 fu.addSentence(event);
                             if(ch!=lastChar ){
@@ -1668,34 +1689,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                         default:
                     }
-                }
-                else if(isOverScreen||autoKeyboard.inKeyboard(x,y,autoKeyboard.CURR_LAYOUT)==false){
-                    switch (event.getActionMasked()) {
-                        case MotionEvent.ACTION_DOWN: {
-                            isOverScreen=true;
-                            tts("出界");
-                            break;
-                        }
-                        case MotionEvent.ACTION_UP:{
-                            isOverScreen=false;
-                            break;
-                        }
-                        default:
-                    }
-                }else{
-                    switch (event.getActionMasked()) {
-                        case MotionEvent.ACTION_DOWN: {
-                            isOverScreen=true;
-                            tts("出界");
-                            break;
-                        }
-                        case MotionEvent.ACTION_UP:{
-                            isOverScreen=false;
-                            break;
-                        }
-                        default:
-                    }
-                }
             }
         }
         return super.onTouchEvent(event);
@@ -3359,6 +3352,19 @@ public class MainActivity extends AppCompatActivity {
                 autoKeyboard.drawLayout();
                 break;
             }
+            case R.id.fuzzyInputTestMode:{
+                switch (fuMode){
+                    case Current:{
+                        fuMode=FuzzyInputTestMode.Target;
+                        break;
+                    }
+                    case Target:{
+                        fuMode=FuzzyInputTestMode.Current;
+                        break;
+                    }
+                }
+                break;
+            }
             default:
                 break;
         }
@@ -3488,7 +3494,16 @@ public class MainActivity extends AppCompatActivity {
             Log.i("Error:","Screen is not set up");
         }
         menu.findItem(R.id.fontRatio).setTitle("Font ratio:"+String.valueOf(fontRatio));
-
+        switch (fuMode){
+            case Current:{
+                menu.findItem(R.id.fuzzyInputTestMode).setTitle("Test Mode:Current");
+                break;
+            }
+            case Target:{
+                menu.findItem(R.id.fuzzyInputTestMode).setTitle("Test Mode:Target");
+                break;
+            }
+        }
 
     }
     // Screen
@@ -3552,6 +3567,8 @@ public class MainActivity extends AppCompatActivity {
     TextView fuzzyInputTestCharShow;
     ProgressBar progressBar;
     ListView listView;
+    enum FuzzyInputTestMode{Target,Current};
+    FuzzyInputTestMode fuMode=FuzzyInputTestMode.Target;
     class FuzzyInputTest{
         class Sentence{
             class Letter{// 每输入一个字母视为1轮
@@ -3560,9 +3577,9 @@ public class MainActivity extends AppCompatActivity {
                     double positionX;
                     double positionY;
                     Char(char actual_in,double positionX_in,double positionY_in) {
-                        this.actual = actual;
-                        this.positionX = positionX;
-                        this.positionY = positionY;
+                        this.actual = actual_in;
+                        this.positionX = positionX_in;
+                        this.positionY = positionY_in;
                     }
                     Char(MotionEvent event){
                         this.actual = autoKeyboard.getKeyByPosition(event,autoKeyboard.CURR_LAYOUT);
@@ -3579,31 +3596,34 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 char target;
-                ArrayList<Char> letter=new ArrayList<>();
+                ArrayList<Char> ch=new ArrayList<>();
                 Long downTime;
                 Long upTime;
                 Letter(char target_in,MotionEvent event){
                     this.target = target_in;
-                    letter.add(new Char(event));
+                    this.ch.add(new Char(event));
                     this.downTime = event.getDownTime();
                     this.upTime = event.getEventTime();
                 }
-                void addChar(MotionEvent event){
-                    this.letter.add(new Char(event));
+                public void addChar(MotionEvent event){
+                    this.ch.add(new Char(event));
                     this.upTime = event.getEventTime();
                 }
                 public String toString(){
                     String data = "Letter,target:"+target+",downTime:"+downTime+",upTime:"+upTime+"\n";
-                    for(Char perChar:letter){
+                    for(Char perChar:this.ch){
                         data+=perChar;
                     }
                     return data;
+                }
+                public char getTarget(){
+                    return this.target;
                 }
             }
             String pinyin;
             String chinese;
             String typeIn;
-            ArrayList<Letter> turn=new ArrayList<>();
+            ArrayList<Letter> letter=new ArrayList<>();
             int index=0;
             boolean isRecord=false;
             Sentence(String chinese_in, String pinyin_in){
@@ -3613,17 +3633,20 @@ public class MainActivity extends AppCompatActivity {
                 typeIn="";
             }
             public void clear(){
-                turn.clear();
+                this.letter.clear();
                 typeIn="";
                 index=0;
                 isRecord=false;
+            }
+            public char getTarget(){
+                return Character.toLowerCase(this.pinyin.charAt(this.index));
             }
             public boolean addLetter(MotionEvent event){
                 try {
                     switch (event.getActionMasked()) {
                         case MotionEvent.ACTION_UP: {
                             if (isRecord) {
-                                turn.get(index).addChar(event);
+                                this.letter.get(index).addChar(event);
                                 typeIn+=autoKeyboard.getKeyByPosition(event,autoKeyboard.CURR_LAYOUT);
                                 fuzzyInputTestCharShow.setText(chinese+" "+pinyin+" "+typeIn);
                                 index++;
@@ -3633,12 +3656,12 @@ public class MainActivity extends AppCompatActivity {
                         }
                         case MotionEvent.ACTION_DOWN: {
                             isRecord = true;
-                            turn.add(new Letter(pinyin.charAt(index), event));
+                            this.letter.add(new Letter(pinyin.charAt(index), event));
                             break;
                         }
                         case MotionEvent.ACTION_MOVE: {
                             if (isRecord) {
-                                turn.get(index).addChar(event);
+                                this.letter.get(index).addChar(event);
                             }
                             break;
                         }
@@ -3700,6 +3723,9 @@ public class MainActivity extends AppCompatActivity {
         public boolean ifSave;
         boolean ifCalDone;
         boolean ifTypeIn=false;
+        public char getTarget(){
+            return this.sentence.get(this.index).getTarget();
+        }
         public boolean addSentence(MotionEvent event) {
             if(index<sentence.size())
                 switch (event.getActionMasked()) {
@@ -3834,10 +3860,10 @@ public class MainActivity extends AppCompatActivity {
                     DataToShowAndSave+=s.getChinese()+","+s.getPinYin()+","+s.getTypeIn()+"\n";
                     listViewData.add(s.getPinYin()+" "+s.getTypeIn());
                     DataToSave+=s.toString();
-                    for (Sentence.Letter t:s.turn){
-                        DataToSave+=t.toString();
-                        for(Sentence.Letter.Char l:t.letter){
-                            DataToSave+=l.toString();
+                    for (Sentence.Letter l:s.letter){
+                        DataToSave+=l.toString();
+                        for(Sentence.Letter.Char c:l.ch){
+                            DataToSave+=c.toString();
                         }
                     }
                 }
