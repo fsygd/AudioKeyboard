@@ -1014,7 +1014,6 @@ public class MainActivity extends AppCompatActivity {
             public void onGlobalLayout() {
                 keyboard.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 autoKeyboard=new AutoKeyboard(keyboard);
-                fitOnScreen();
             }
         });
         screen=new Screen(this);
@@ -1024,6 +1023,7 @@ public class MainActivity extends AppCompatActivity {
         seekBarText=(TextView)findViewById(R.id.seekBarText);
         seekBarText.setVisibility(View.GONE);
         fontRatio = 4.0f/screen.dmDensity;
+        fitOnScreen();
         initButtons();
     }
     void initButtons(){
@@ -1088,25 +1088,28 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
                                     activity_mode = ActivityMode.KEYBOARD_MODE;
-                                    fu.sentence.clear();
+                                    fu.clear();
                                     fu=null;
                                     layoutInit();
                                     setMenuTitle();
+                                    stopVoice();
                                 }
                             });
                             dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
+                                    stopVoice();
                                 }
                             });
                             dialog.show();
                         }else {
                             activity_mode = ActivityMode.KEYBOARD_MODE;
-                            fu.sentence.clear();
+                            fu.clear();
                             fu=null;
                             layoutInit();
                             setMenuTitle();
                             refresh();
+                            stopVoice();
                         }
                     }
                 });
@@ -1137,23 +1140,24 @@ public class MainActivity extends AppCompatActivity {
                             dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
-                                    if(fu.sentence!=null){
-                                        fu.sentence.clear();
+                                    if(fu!=null){
+                                        fu.clear();
                                     }
                                     fu=new FuzzyInputTest();
                                     listView.setVisibility(View.GONE);
+                                    stopVoice();
                                 }
                             });
                             dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
-
+                                    stopVoice();
                                 }
                             });
                             dialog.show();
                         }else{
                             if(fu!=null){
-                                fu.sentence.clear();
+                                fu.clear();
                             }
                             fu=new FuzzyInputTest();
                             listView.setVisibility(View.GONE);
@@ -1183,6 +1187,11 @@ public class MainActivity extends AppCompatActivity {
             }
             case FUZZY_INPUT_TEST_MODE:{
                 fuzzyInputTestCharShow.setTextSize((int)(textSize*fontRatio));
+                BackButton.setTextSize((int)(buttonTextSize*fontRatio));
+                BackSpaceButton.setTextSize((int)(buttonTextSize*fontRatio));
+                SaveButton.setTextSize((int)(buttonTextSize*fontRatio));
+                RestartButton.setTextSize((int)(buttonTextSize*fontRatio));
+
             }
         }
     }
@@ -3180,14 +3189,16 @@ public class MainActivity extends AppCompatActivity {
                         layoutInit();
                         setMenuTitle();
                         if(fu!=null){
-                            fu.sentence.clear();
+                            fu.clear();
                         }
                         fu=new FuzzyInputTest();
                         break;
                     }
                     case FUZZY_INPUT_TEST_MODE:{
                         activity_mode=ActivityMode.KEYBOARD_MODE;
-                        fu.sentence.clear();
+                        if(fu!=null){
+                            fu.clear();
+                        }
                         fu=null;
                         layoutInit();
                         setMenuTitle();
@@ -3849,6 +3860,7 @@ public class MainActivity extends AppCompatActivity {
         private void showAndSpeak(){
             if(index==0){
                 tts("模糊输入测试现在开始，接下来请输入："+sentence.get(index).getChinese());
+                fuzzyInputTestCharShow.setText(sentence.get(index).getChinese()+" "+sentence.get(index).getPinYin()+" "+sentence.get(index).getTypeIn());
             }else if(this.isInRange()){
                 tts(sentence.get(index).getChinese());
                 fuzzyInputTestCharShow.setText(sentence.get(index).getChinese()+" "+sentence.get(index).getPinYin()+" "+sentence.get(index).getTypeIn());
@@ -3882,6 +3894,11 @@ public class MainActivity extends AppCompatActivity {
         }
         public boolean isInRange(){
             return this.index>=0 && index<this.chineseNum;
+        }
+        public void clear(){
+            if(this.sentence!=null){
+                this.sentence.clear();
+            }
         }
     }
 
