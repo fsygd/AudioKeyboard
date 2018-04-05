@@ -1014,7 +1014,6 @@ public class MainActivity extends AppCompatActivity {
             public void onGlobalLayout() {
                 keyboard.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                 autoKeyboard=new AutoKeyboard(keyboard);
-                fitOnScreen();
             }
         });
         screen=new Screen(this);
@@ -1024,6 +1023,7 @@ public class MainActivity extends AppCompatActivity {
         seekBarText=(TextView)findViewById(R.id.seekBarText);
         seekBarText.setVisibility(View.GONE);
         fontRatio = 4.0f/screen.dmDensity;
+        fitOnScreen();
         initButtons();
     }
     void initButtons(){
@@ -1088,25 +1088,28 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
                                     activity_mode = ActivityMode.KEYBOARD_MODE;
-                                    fu.sentence.clear();
+                                    fu.clear();
                                     fu=null;
                                     layoutInit();
                                     setMenuTitle();
+                                    stopVoice();
                                 }
                             });
                             dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
+                                    stopVoice();
                                 }
                             });
                             dialog.show();
                         }else {
                             activity_mode = ActivityMode.KEYBOARD_MODE;
-                            fu.sentence.clear();
+                            fu.clear();
                             fu=null;
                             layoutInit();
                             setMenuTitle();
                             refresh();
+                            stopVoice();
                         }
                     }
                 });
@@ -1137,23 +1140,24 @@ public class MainActivity extends AppCompatActivity {
                             dialog.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
-                                    if(fu.sentence!=null){
-                                        fu.sentence.clear();
+                                    if(fu!=null){
+                                        fu.clear();
                                     }
                                     fu=new FuzzyInputTest();
                                     listView.setVisibility(View.GONE);
+                                    stopVoice();
                                 }
                             });
                             dialog.setNegativeButton("No", new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialogInterface, int i) {
-
+                                    stopVoice();
                                 }
                             });
                             dialog.show();
                         }else{
                             if(fu!=null){
-                                fu.sentence.clear();
+                                fu.clear();
                             }
                             fu=new FuzzyInputTest();
                             listView.setVisibility(View.GONE);
@@ -1183,6 +1187,11 @@ public class MainActivity extends AppCompatActivity {
             }
             case FUZZY_INPUT_TEST_MODE:{
                 fuzzyInputTestCharShow.setTextSize((int)(textSize*fontRatio));
+                BackButton.setTextSize((int)(buttonTextSize*fontRatio));
+                BackSpaceButton.setTextSize((int)(buttonTextSize*fontRatio));
+                SaveButton.setTextSize((int)(buttonTextSize*fontRatio));
+                RestartButton.setTextSize((int)(buttonTextSize*fontRatio));
+
             }
         }
     }
@@ -1238,11 +1247,12 @@ public class MainActivity extends AppCompatActivity {
     long downTime = 0, downTime2 = 0;
     long wordDownTime = 0;
     long firstDownTime = 0, lastDownTime = 0; // used for check double-click
-    final long STAY_TIME = 200;
-    final int SLIP_DIST = 70;
+    final long STAY_TIME = 400;
+    final int SLIP_DIST = 40;
     boolean isOverScreen=false;
     char lastChar='A';
     public boolean checkLeftwipe(int x, int y, long tempTime) {
+        Log.i("fsy", "dist: " + (downX - x) + " time: " + (tempTime - downTime));
         return x < downX - SLIP_DIST && Math.abs(downX - x) > Math.abs(downY - y) && tempTime < downTime + STAY_TIME;
     }
     public boolean checkRightwipe(int x, int y, long tempTime) {
@@ -1290,7 +1300,7 @@ public class MainActivity extends AppCompatActivity {
         if (currentCandidate >= 0 && currentCandidate < candidates.size()) {
             if (languageMode == LANG_MODE_CHN){
                 String delta = candidates.get(currentCandidate).alias;
-                tts("确认输入");
+                tts("确认输入" + delta);
                 try {
                     int temp;
                     if (currentWord.length() == 0)
@@ -1349,7 +1359,7 @@ public class MainActivity extends AppCompatActivity {
             predict(currentWord);
             currentCandidate = autoreadMode;
             refresh();
-            tts("确认输入");
+            tts("确认输入" + delta);
         }
         else if (currentWord.length() == 0){
             currentInput += " ";
@@ -1380,7 +1390,7 @@ public class MainActivity extends AppCompatActivity {
                     String deleted = deleteLastChar();
                     nowChSaved = '*';
                     currentCandidate = autoreadMode;
-                    tts("删除");
+                    tts("删除" + deleted);
                     if (deleted.length() > 0 && deleted.charAt(0) >= 'a' && deleted.charAt(0) <= 'z' && currentWord.length() == 0){
                         tts("拼音已清空");
                     }
@@ -1396,7 +1406,7 @@ public class MainActivity extends AppCompatActivity {
         String deleted = deleteLastChar();
         nowChSaved = '*';
         currentCandidate = autoreadMode;
-        tts("删除");
+        tts("删除" + deleted);
         refresh();
     }
 
@@ -3180,14 +3190,16 @@ public class MainActivity extends AppCompatActivity {
                         layoutInit();
                         setMenuTitle();
                         if(fu!=null){
-                            fu.sentence.clear();
+                            fu.clear();
                         }
                         fu=new FuzzyInputTest();
                         break;
                     }
                     case FUZZY_INPUT_TEST_MODE:{
                         activity_mode=ActivityMode.KEYBOARD_MODE;
-                        fu.sentence.clear();
+                        if(fu!=null){
+                            fu.clear();
+                        }
                         fu=null;
                         layoutInit();
                         setMenuTitle();
@@ -3850,6 +3862,7 @@ public class MainActivity extends AppCompatActivity {
         private void showAndSpeak(){
             if(index==0){
                 tts("模糊输入测试现在开始，接下来请输入："+sentence.get(index).getChinese());
+                fuzzyInputTestCharShow.setText(sentence.get(index).getChinese()+" "+sentence.get(index).getPinYin()+" "+sentence.get(index).getTypeIn());
             }else if(this.isInRange()){
                 tts(sentence.get(index).getChinese());
                 fuzzyInputTestCharShow.setText(sentence.get(index).getChinese()+" "+sentence.get(index).getPinYin()+" "+sentence.get(index).getTypeIn());
@@ -3883,6 +3896,11 @@ public class MainActivity extends AppCompatActivity {
         }
         public boolean isInRange(){
             return this.index>=0 && index<this.chineseNum;
+        }
+        public void clear(){
+            if(this.sentence!=null){
+                this.sentence.clear();
+            }
         }
     }
 

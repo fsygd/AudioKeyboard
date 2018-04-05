@@ -56,7 +56,7 @@
         android:textSize="40sp"
         android:layout_centerHorizontal="true"
         android:layout_below="@id/back_button"
-        android:text="Ok"
+        android:text=""
         />
     <ListView
         android:id="@+id/list_view"
