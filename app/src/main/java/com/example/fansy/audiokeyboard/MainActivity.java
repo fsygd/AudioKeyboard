@@ -3733,6 +3733,7 @@ public class MainActivity extends AppCompatActivity {
             if(index<sentence.size())
                 switch (event.getActionMasked()) {
                     case MotionEvent.ACTION_DOWN: {
+
                         ifTypeIn=true;
                         if(this.isInRange())
                             sentence.get(index).addLetter(event);
