@@ -11,7 +11,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.icu.text.SimpleDateFormat;
+import java.text.SimpleDateFormat;
+//import android.icu.text.SimpleDateFormat;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Environment;
@@ -195,10 +196,10 @@ public class MainActivity extends AppCompatActivity {
         } else {
             switch(languageMode){
                 case LANG_MODE_CHN:{
-                    ttsCHN.speak(text,TextToSpeech.QUEUE_FLUSH,null,null);
+                    ttsCHN.speak(text,TextToSpeech.QUEUE_FLUSH,null);
                     break;
                 }case LANG_MODE_ENG:{
-                    ttsENG.speak(text,TextToSpeech.QUEUE_FLUSH,null,null);
+                    ttsENG.speak(text,TextToSpeech.QUEUE_FLUSH,null);
                     break;
                 }
             }
@@ -859,7 +860,8 @@ public class MainActivity extends AppCompatActivity {
                 if (flag){
                     for (int j = 0; j < letters.size(); ++j)
                         if (letters.get(j).text.charAt(0) == word.text.charAt(currentWord.length())) {
-                            letters.get(j).freq = Math.max(letters.get(j).freq, word.freq);
+                            //letters.get(j).freq = Math.max(letters.get(j).freq, word.freq);
+                            letters.get(j).freq += word.freq;
                         }
                 }
             }
