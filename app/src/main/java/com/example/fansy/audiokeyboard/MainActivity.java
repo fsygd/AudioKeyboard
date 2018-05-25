@@ -158,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
     char nowPredictDown = KEY_NOT_FOUND;
 
     final int TESTCASE_ALL = 100;
-    final int TESTCASE_TURN = 5;
+    final int TESTCASE_TURN = 20;
     int currentTestcase;
     ArrayList<TestCase> testCases_cn = new ArrayList<>();
     ArrayList<TestCase> testCases_en = new ArrayList<>();
@@ -643,14 +643,14 @@ public class MainActivity extends AppCompatActivity {
             Log.i("init", "read testcases failed");
         }
 
-        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.t_40)));
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.t_20)));
         try {
             int lineNo = 0;
             while ((line = reader.readLine()) != null) {
                 lineNo ++;
                 testCases_en.add(new TestCase(line));
                 //eng_testcases.add(line);
-                if (lineNo == 40)
+                if (lineNo == 20)
                     break;
                 //testcases.shuffle();
             }
