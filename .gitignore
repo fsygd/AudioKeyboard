@@ -11,3 +11,5 @@ build.gradle
 .idea/misc.xml
 .idea/misc.xml
 build.gradle
+app/src/main/obj
+app/src/main/libs

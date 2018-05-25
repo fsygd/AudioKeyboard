@@ -19,14 +19,11 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.Vibrator;
-import android.provider.ContactsContract;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.text.method.MovementMethod;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
@@ -52,22 +49,21 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     class Parameters{
-        final long TIME_TOUCH_BY_MISTAKE = 100;
+        final long TIME_TOUCH_BY_MISTAKE = 20;
         final int MAX_PREDICT_LENGTH = 7;
         final int SHOW_RANK = 5;
     };
+    RecordResult recordResult = new RecordResult();
     Parameters mpara = new Parameters();
     class TouchInfo{
         long lastReadTime = 0;
@@ -139,7 +135,9 @@ public class MainActivity extends AppCompatActivity {
     float SD_coefficient_Y = 6;
 
     final int MAX_CANDIDATE = 5;
-    int currentCandidate = autoreadMode;
+    //swn
+    //int currentCandidate = autoreadMode;
+    int currentCandidate = -1;
     public ArrayList<Word> candidates = new ArrayList<Word>();
 
     ImageView keyboard;
@@ -159,10 +157,36 @@ public class MainActivity extends AppCompatActivity {
     char nowBaseLineDown = KEY_NOT_FOUND;
     char nowPredictDown = KEY_NOT_FOUND;
 
-    final int TESTCASE_ALL = 6;
-    final int TESTCASE_TURN = 3;
+    final int TESTCASE_ALL = 100;
+    final int TESTCASE_TURN = 5;
     int currentTestcase;
-    ArrayList<String> testcases = new ArrayList<>();
+    ArrayList<TestCase> testCases_cn = new ArrayList<>();
+    ArrayList<TestCase> testCases_en = new ArrayList<>();
+    int currentTestWordNo;
+    String getCurrentTestCaseWhole() {
+        if (languageMode == LANG_MODE_ENG) {
+            return testCases_en.get(currentTestcase).whole;
+        } else {
+            return testCases_cn.get(currentTestcase).whole;
+        }
+    }
+    String getCurrentTestCaseSplit() {
+        if (languageMode == LANG_MODE_ENG) {
+            return testCases_en.get(currentTestcase).getSplit(currentTestWordNo);
+        } else {
+            return testCases_cn.get(currentTestcase).getSplit(currentTestWordNo);
+        }
+    }
+    int getCurrentTestCaseLen() {
+        if (languageMode == LANG_MODE_ENG) {
+            return testCases_en.get(currentTestcase).split.size();
+        } else {
+            return testCases_cn.get(currentTestcase).split.size();
+        }
+    }
+    //ArrayList<String> testcases = new ArrayList<>();
+    //ArrayList<String> eng_testcases = new ArrayList<>();
+    //ArrayList<String> testcase_split_words = new ArrayList<>();
 
     ArrayList<Word> dict_eng = new ArrayList<>();
     ArrayList<Word> dict_chn_jianpin = new ArrayList<>();
@@ -174,32 +198,41 @@ public class MainActivity extends AppCompatActivity {
     double keysNearbyProb[][] = new double[26][26]; //keysNearbyProb[x][y] the possibility when want y but touch x
     String filename = "";
     // 50-1.0f 60-1.5f 70-2.0f 80-2.5f 90-3.0f 100-3.5f
-    int voiceSpeed = 60;
-    float ttsVoiceSpeed=1.5f;
+    int voiceSpeed = 80;
+    float ttsVoiceSpeed=2.0f;
     AutoKeyboard autoKeyboard;
     // Screen
     Screen screen;
     float fontRatio = 1.0f;
     enum ActivityMode{KEYBOARD_MODE,FUZZY_INPUT_TEST_MODE};
     ActivityMode activity_mode=ActivityMode.KEYBOARD_MODE;
-    public void tts(String text){
+    public void tts(String text) {
+        tts(text, true);
+    }
+    public void tts(String text, boolean flush){ // default queue_flush
+        int mode;
+        if (flush) {
+            mode = TextToSpeech.QUEUE_FLUSH;
+        } else {
+            mode = TextToSpeech.QUEUE_ADD;
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             switch(languageMode){
                 case LANG_MODE_CHN:{
-                    ttsCHN.speak(text,TextToSpeech.QUEUE_FLUSH,null,null);
+                    ttsCHN.speak(text,mode,null,null);
                     break;
                 }case LANG_MODE_ENG:{
-                    ttsENG.speak(text,TextToSpeech.QUEUE_FLUSH,null,null);
+                    ttsENG.speak(text,mode,null,null);
                     break;
                 }
             }
         } else {
             switch(languageMode){
                 case LANG_MODE_CHN:{
-                    ttsCHN.speak(text,TextToSpeech.QUEUE_FLUSH,null);
+                    ttsCHN.speak(text,mode,null);
                     break;
                 }case LANG_MODE_ENG:{
-                    ttsENG.speak(text,TextToSpeech.QUEUE_FLUSH,null);
+                    ttsENG.speak(text,mode,null);
                     break;
                 }
             }
@@ -233,7 +266,15 @@ public class MainActivity extends AppCompatActivity {
         int mm = starttime.get(Calendar.MINUTE);
         int SS = starttime.get(Calendar.SECOND);
         int MI = starttime.get(Calendar.MILLISECOND);
-        return "" + YY + MM + DD + HH + mm + SS + MI + "_" + initMode + "_" + languageMode + "_" + confirmMode + "_" + SD_coefficient_X + ".txt";
+        String lang = (languageMode == LANG_MODE_CHN)?"CN":"EN";
+        String alg = "";
+        if (initMode == INIT_MODE_NOTHING) {
+            alg = "No";
+        } else if (initMode == INIT_MODE_RELATIVE) {
+            alg = "Re";
+        }
+        return String.format("%d-%d-%d-%d-%d-%d-%s-%s.txt", YY, MM, DD, HH, mm, SS, lang, alg);
+        //return "" + YY + MM + DD + HH + mm + SS + MI + "_" + initMode + "_" + languageMode + "_" + confirmMode + "_" + SD_coefficient_X + ".txt";
     }
 
     public void write(String content){
@@ -270,7 +311,12 @@ public class MainActivity extends AppCompatActivity {
     public void refresh(){
         String testcase = "";
         if (recordMode == RECORD_MODE_STARTED)
-            testcase = currentTestcase + ":" + testcases.get(currentTestcase) + "\n";
+            testcase = currentTestcase + ":" + getCurrentTestCaseWhole() + "\n";
+//            if (languageMode == LANG_MODE_ENG) {
+//                testcase = currentTestcase + ":" + eng_testcases.get(currentTestcase) + "\n";
+//            } else {
+//                testcase = currentTestcase + ":" + testcases.get(currentTestcase) + "\n";
+//            }
 
         String textContent = "";
         if (languageMode == LANG_MODE_CHN){
@@ -290,11 +336,14 @@ public class MainActivity extends AppCompatActivity {
             if (currentWord.charAt(i) != currentPredictDown.charAt(i))
                 diff += 1;
         textContent += currentPredictDown + " diff = " + diff + "\n";
+        int diffR = diff;
         diff = 0;
         for (int i = 0; i < currentWord.length(); ++i)
             if (currentWord.charAt(i) != currentBaselineDown.charAt(i))
                 diff += 1;
         textContent += currentBaselineDown + " diff = " + diff + "\n";
+        int diffN = diff;
+        recordResult.setTempDiff(diffR, diffN, currentWord.length());
         text.setText(textContent);
         String str = "";
         int temp = Math.max(currentCandidate, 0);
@@ -560,7 +609,8 @@ public class MainActivity extends AppCompatActivity {
             Log.i("init", "read dict_chn_pinyin failed");
         }
 
-        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_chn_hint)));
+        //reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.dict_chn_hint)));
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.explain)));
         try{
             while((line = reader.readLine()) != null){
                 String[] ss = line.split(" ");
@@ -576,19 +626,38 @@ public class MainActivity extends AppCompatActivity {
             Log.i("init", "read dict_chn_hint failed");
         }
 
-        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.testcases)));
+        //reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.testcases)));
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.chn_test_phrases)));
         try{
             int lineNo = 0;
             while ((line = reader.readLine()) != null){
                 lineNo++;
-                testcases.add(line);
-                if (lineNo == TESTCASE_ALL)
+                testCases_cn.add(new TestCase(line));
+                //testcases.add(line);
+                if (lineNo == 100)
                     break;
             }
             reader.close();
-            Log.i("init", "read testcases finished" + testcases.size());
+            Log.i("init", "read testcases finished" + testCases_cn.size());
         } catch (Exception e){
             Log.i("init", "read testcases failed");
+        }
+
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.t_40)));
+        try {
+            int lineNo = 0;
+            while ((line = reader.readLine()) != null) {
+                lineNo ++;
+                testCases_en.add(new TestCase(line));
+                //eng_testcases.add(line);
+                if (lineNo == 40)
+                    break;
+                //testcases.shuffle();
+            }
+            reader.close();
+            Log.i("init", "read English test cases finished" + testCases_en.size());
+        } catch (Exception e) {
+            Log.i("init", "read English test cases failed");
         }
     }
 
@@ -825,6 +894,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void playMedia(String tag, int index, boolean isChar){
+        System.out.println("aaaa," + "time to read");
         myPlayList.add(voice.get(tag)[index]);
         playFirstVoice();
     }
@@ -832,6 +902,39 @@ public class MainActivity extends AppCompatActivity {
     public double Normal(double x, double miu, double sigma){
         return 1.0 / Math.sqrt(2.0 * Math.PI) / sigma  * Math.pow(Math.E, -(x - miu) * (x - miu) / 2.0 / sigma / sigma);
     }
+    public double BivariateNormal(double x, double y, double mux, double muy, double sigmax, double sigmay, double rho) {
+        return 1.0 / (2.0 * Math.PI*sigmax*sigmay*Math.sqrt(1-rho*rho))*
+                Math.pow(Math.E, -1.0/(2.0*(1-rho*rho))*((x-mux)*(x-mux)/sigmax/sigmax+
+                        (y-muy)*(y-muy)/sigmay/sigmay-2*rho*(x-mux)*(y-muy)/sigmax/sigmay));
+    }
+    public double[][] touchmodelBivariate = new double[][] {
+            {106.5370705244123,310.4864376130199,30.84643738543627,108.36748192235623,-0.02330831833564358},
+            {589.7261904761905,478.5,48.845798968580134,94.48548049354666,0.214730908005056},
+            {400.4183673469388,474.8469387755101,50.113669446052356,97.35738732536404,-0.2366447308709764},
+            {338.765306122449,330.204081632653,43.8208162699546,109.4846370792012,-0.014730635130942407},
+            {286.26050420168065,137.04481792717093,48.88236203092681,126.57314893236622,0.11530058891156747},
+            {420.64285714285717,315.44047619047615,60.80219615111465,103.05342528233166,-0.029111188633954798},
+            {487.0922619047619,304.60416666666674,74.50397444834644,107.21701182358194,-0.1891351222320456},
+            {634.6490683229814,310.47515527950304,42.9105185283909,112.78831247368309,0.18517499885998054},
+            {790.6239892183288,136.08490566037744,56.09568763620872,114.92904371390392,-0.1430138856465102},
+            {727.3877551020408,294.98979591836724,46.43621779111141,109.78061486418231,-0.005532231006964178},
+            {819.9047619047619,289.22619047619037,52.52414683883449,111.03807565674778,0.1879121406310597},
+            {934.1875,287.6517857142858,48.160866183360234,101.4181167799763,0.11981797653836067},
+            {825.2755102040817,452.3367346938776,51.550351846618895,107.16765397885197,0.12248260287722319},
+            {703.5204081632653,468.6020408163265,48.02057366699831,104.75335199865003,0.2749304318160406},
+            {866.6933797909408,156.67247386759573,55.934246406423995,115.12637040547965,-0.16734430162925548},
+            {964.2857142857143,143.3571428571429,54.78161934039498,106.24666037072011,-0.14146958166927429},
+            {97.38095238095238,143.67857142857133,33.69276664780214,121.11024159674253,0.14333767990303925},
+            {393.9761904761905,146.20238095238096,56.931998369324134,107.55875724143993,-0.060714979920368464},
+            {226.05882352941177,331.47058823529414,39.78742116988672,115.94657036094083,0.22385525418373883},
+            /*t*/{455.7032967032967,133.7472527472528,65.98391967500609,117.74903570320824,-0.2213498212701198},
+            /*u*/{702.2722371967654,152.93800539083554,47.7343862697426,117.09182783730488,0.05875227778760281},
+            /*v*/{535.3571428571429,487.6428571428571,59.1595031743402,108.62998353060202,0.2562240917454625},
+            /*w*/{186.06593406593407,136.91208791208783,41.40365045575416,101.33921565729938,0.08239569633014367},
+            {323.83035714285717,494.17857142857133,40.90306898172254,93.52392518347689,0.030522251525525085},
+            /*y*/{596.1339285714286,180.6428571428571,43.95769783373213,124.10376776611244,-0.05291746091888336},
+            {230.16964285714286,509.75892857142867,36.81213283953571,105.07022495366927,0.1516670690845691},
+    };
 
     public char getMostPossibleKey(int x, int y){
         ArrayList<Word> letters = new ArrayList<Word>();
@@ -868,8 +971,22 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < letters.size(); ++i){
             letters.get(i).freq += 0.01;
             int tmp = letters.get(i).text.charAt(0) - 'a';
-            letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width * SD_coefficient_X / 10);
-            letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient_Y / 10);
+            //letters.get(i).freq *= BivariateNormal(x, y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y,
+            //        touchmodelBivariate[tmp][2], touchmodelBivariate[tmp][3], touchmodelBivariate[tmp][4]);
+            System.out.println("ssss"+BivariateNormal(x, y, touchmodelBivariate[tmp][0], touchmodelBivariate[tmp][1],
+                    touchmodelBivariate[tmp][2], touchmodelBivariate[tmp][3], touchmodelBivariate[tmp][4]));
+            System.out.println("ssssori"+(Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width * SD_coefficient_X / 10)*
+            Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient_Y / 10)));
+            System.out.println("ssssparax"+tmp+"," + x + ","+ autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x
+                    +","+autoKeyboard.keys[0].init_width * SD_coefficient_X / 10);
+            System.out.println("ssssparay"+tmp+"," + y + ","+ autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y
+                    +","+autoKeyboard.keys[0].init_width * SD_coefficient_Y / 10);
+
+            //letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, autoKeyboard.keys[0].init_width * SD_coefficient_X / 10);
+            //letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, autoKeyboard.keys[0].init_width * SD_coefficient_Y / 10);
+
+            letters.get(i).freq *= Normal(x, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_x, 52.7);
+            letters.get(i).freq *= Normal(y, autoKeyboard.keys[autoKeyboard.keyPos[tmp]].init_y, 45.8);
         }
         Collections.sort(letters);
         mtouchinfo.ranking = "";
@@ -1024,7 +1141,7 @@ public class MainActivity extends AppCompatActivity {
         seekBarInit();
         seekBarText=(TextView)findViewById(R.id.seekBarText);
         seekBarText.setVisibility(View.GONE);
-        fontRatio = 4.0f/screen.dmDensity;
+        fontRatio = 3.0f/screen.dmDensity;
         fitOnScreen();
         initButtons();
     }
@@ -1272,6 +1389,9 @@ public class MainActivity extends AppCompatActivity {
     public boolean checkUpwipe2(int x, int y, long tempTime){
         return y < downY2 - SLIP_DIST && Math.abs(downY2 - y) > Math.abs(downX2 - x) && tempTime < downTime2 + STAY_TIME;
     }
+    public boolean checkDownwipe2(int x, int y, long tempTime) {
+        return y > downY2 + SLIP_DIST && Math.abs(downY2 - y) > Math.abs(downX2 - x) && tempTime < downTime2 + STAY_TIME;
+    }
     public boolean checkRightwipe2(int x, int y, long tempTime){
         return x > downX2 + SLIP_DIST && Math.abs(downX2 - x) > Math.abs(downY2 - y) && tempTime < downTime2 + STAY_TIME;
     }
@@ -1281,16 +1401,61 @@ public class MainActivity extends AppCompatActivity {
         if (languageMode == LANG_MODE_CHN) {
             for (int i = 0; i < sentence.length(); ++i)
                 if (dict_chn_hint.get(sentence.charAt(i) + "").length() > 0) {
-                    ans += "，" + dict_chn_hint.get(sentence.charAt(i) + "") + "的" + sentence.charAt(i);
+                    ans += "，" + dict_chn_hint.get(sentence.charAt(i) + "");// + "的" + sentence.charAt(i);
                 }
         }
         return ans + "，";
     }
+    String getCurrentTaskDescription() {
+        if (languageMode == LANG_MODE_ENG) {
+            String word = getCurrentTestCaseSplit();
+            String readContent = "当前任务:" + getCurrentTestCaseSplit() + ",";
+            for (int i=0; i<word.length();i++) {
+                readContent += (word.charAt(i) + ",");
+            }
+            return readContent;
+        } else {
+            String word = getCurrentTestCaseSplit();
+            String readContent = "当前任务:" + word + ",";
+            readContent += getChnHint(word);
+            return readContent;
+        }
 
+    }
+    public void nextTestWord() {
+        if (currentTestcase == -1) {
+            nextTestcase();
+        }
+        ++ currentTestWordNo;
+        String senDescription = "";
+        if (currentTestWordNo == 0) {
+            senDescription = "目标句子:" + getCurrentTestCaseWhole();
+        }
+        if (currentTestWordNo == getCurrentTestCaseLen()) {
+            tts("当前句子输入完毕", false);
+        } else {
+            tts(senDescription + "," + getCurrentTaskDescription(), false);
+        }
+    }
     public void nextTestcase(){
         ++currentTestcase;
-        write("sentence " + testcases.get(currentTestcase));
-        tts("请输入:" + testcases.get(currentTestcase));
+        currentTestWordNo = -1;
+        write("sentence " + getCurrentTestCaseWhole());
+        nextTestWord();
+
+        /*if (languageMode == LANG_MODE_ENG) {
+            write("sentence " + eng_testcases.get(currentTestcase));
+            List
+            testcase_split_words = Arrays.asList(eng_testcases.get(currentTestcase).split(" "));
+            tts("请输入:" + eng_testcases.get(currentTestcase));
+
+        } else {
+            assert(languageMode == LANG_MODE_CHN);
+            write("sentence " + testcases.get(currentTestcase));
+            tts("请输入:" + testcases.get(currentTestcase));
+        }*/
+        //write("sentence " + testcases.get(currentTestcase));
+        //tts("请输入:" + testcases.get(currentTestcase));
     }
 
     public void actionRightwipe(){
@@ -1299,10 +1464,19 @@ public class MainActivity extends AppCompatActivity {
         autoKeyboard.drawLayout();
         write("rightwipe");
         mtouchinfo.upKey = KEY_NOT_FOUND;
+        if (languageMode == LANG_MODE_ENG && autoreadMode == AUTOREAD_ON && currentCandidate == -1) {
+            currentCandidate = 0;
+        }
         if (currentCandidate >= 0 && currentCandidate < candidates.size()) {
             if (languageMode == LANG_MODE_CHN){
                 String delta = candidates.get(currentCandidate).alias;
-                tts("确认输入" + delta);
+                //tts("确认输入" + delta);
+                tts(delta + "已输入");
+                recordResult.confirmTemp();
+                ((TextView)findViewById(R.id.recordResult)).setText(recordResult.getResult());
+                if (recordMode == RECORD_MODE_STARTED) {
+                    nextTestWord();
+                }
                 try {
                     int temp;
                     if (currentWord.length() == 0)
@@ -1339,7 +1513,8 @@ public class MainActivity extends AppCompatActivity {
                             if (autoreadMode == AUTOREAD_ON)
                                 tts("推荐候选");
                         }
-                        currentCandidate = autoreadMode;
+                        //swn
+                        currentCandidate = languageMode == LANG_MODE_CHN?autoreadMode:-1;
                         refresh();
                         return;
                     }
@@ -1347,7 +1522,9 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
                 predict(currentWord);
-                currentCandidate = autoreadMode;
+                //swn
+                //currentCandidate = autoreadMode;
+                currentCandidate = (languageMode == LANG_MODE_CHN)?autoreadMode:-1;
                 refresh();
                 return;
             }
@@ -1359,9 +1536,18 @@ public class MainActivity extends AppCompatActivity {
             currentBaselineDown = "";
             currentPredictDown = "";
             predict(currentWord);
-            currentCandidate = autoreadMode;
+            //swn
+            //currentCandidate = autoreadMode;
+            currentCandidate = (languageMode == LANG_MODE_CHN)?autoreadMode:-1;
+            recordResult.confirmTemp();
+            ((TextView)findViewById(R.id.recordResult)).setText(recordResult.getResult());
             refresh();
-            tts("确认输入" + delta);
+            tts(delta + "已输入");
+            //swn
+            if (recordMode == RECORD_MODE_STARTED) {
+                nextTestWord();
+            }
+
         }
         else if (currentWord.length() == 0){
             currentInput += " ";
@@ -1392,9 +1578,10 @@ public class MainActivity extends AppCompatActivity {
                     String deleted = deleteLastChar();
                     nowChSaved = '*';
                     currentCandidate = autoreadMode;
-                    tts("删除" + deleted);
+                    //tts("删除" + deleted);
+                    tts(deleted + "已删除");
                     if (deleted.length() > 0 && deleted.charAt(0) >= 'a' && deleted.charAt(0) <= 'z' && currentWord.length() == 0){
-                        tts("拼音已清空");
+                        tts("已清空拼音");
                     }
                     autoKeyboard.resetLayout();
                     autoKeyboard.drawLayout();
@@ -1408,7 +1595,12 @@ public class MainActivity extends AppCompatActivity {
         String deleted = deleteLastChar();
         nowChSaved = '*';
         currentCandidate = autoreadMode;
-        tts("删除" + deleted);
+        //swn
+        if (autoreadMode == AUTOREAD_ON && languageMode == LANG_MODE_ENG) {
+            currentCandidate = -1;
+        }
+        //tts("删除" + deleted);
+        tts( deleted + "已删除");
         refresh();
     }
 
@@ -1430,9 +1622,15 @@ public class MainActivity extends AppCompatActivity {
                 tts("当前输入" + currentInput);
             }
         }
+        else if (checkDownwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())) {
+            write("down2wipe");
+            if (recordMode == RECORD_MODE_STARTED) {
+                tts(getCurrentTaskDescription());
+            }
+        }
         else if (checkRightwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())) {
             write("right2wipe");
-            if (recordMode == RECORD_MODE_STARTED && currentInput.equals(testcases.get(currentTestcase))){
+            if (recordMode == RECORD_MODE_STARTED /*&& currentInput.equals(testcases.get(currentTestcase))*/){
                 if (currentTestcase + 1 < TESTCASE_TURN)
                     nextTestcase();
                 else{
@@ -1457,6 +1655,8 @@ public class MainActivity extends AppCompatActivity {
         else if (checkLeftwipe2((int)event.getX(0), (int)event.getY(0), event.getEventTime())){
             write("left2wipe");
             deleteAllChar();
+            currentTestWordNo = -1;
+            nextTestWord();
             currentCandidate = autoreadMode;
             elapsedTimeText.setText("0");
             mtouchinfo.upKey = KEY_NOT_FOUND;
@@ -1538,6 +1738,7 @@ public class MainActivity extends AppCompatActivity {
                                 lastDownTime = downTime;
                             }
                             newPoint(x, y - location[1]);
+                            //System.out.println("swnhieian" + location[1]);
                             //action down
                             break;
 
@@ -1565,9 +1766,23 @@ public class MainActivity extends AppCompatActivity {
                                 } else {
                                     currentCandidate = autoreadMode;
                                     mtouchinfo.upKey = autoKeyboard.getKeyByPosition(x, y - location[1], autoKeyboard.CURR_LAYOUT);
-                                    //if (upvoiceMode == UPVOICE_MODE_YES && nowCh >= 'a' && nowCh <= 'z') {
-                                    //    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
-                                    //}
+
+
+//                                    if (languageMode == LANG_MODE_ENG) {
+//                                        System.out.println("aaaa,"+nowCh);
+//                                        if (nowCh >= 'a' && nowCh <= 'z') {
+//                                            playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
+//                                        } else {//maybe play 出界？
+//                                            ///playMedia()
+//                                        }
+//                                    } else {//Cn: if there is candidate, read the candidate, else the char
+//                                        if (candidates.size() > 0) {
+//                                            tts(candidates.get(0).alias);
+//                                        } else {
+//                                            if (nowCh >= 'a' && nowCh <= 'z')
+//                                                playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
+//                                        }
+//                                    }
                                     if (nowCh != KEY_NOT_FOUND) {
                                         write("enter " + nowCh + " " + ((nowPredictDownSaved != KEY_NOT_FOUND) ? nowPredictDownSaved : '*') + " " + ((nowBaseLineDownSaved != KEY_NOT_FOUND) ? nowBaseLineDownSaved : '*'));
                                         currentWord += nowCh;
@@ -1577,7 +1792,36 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                     predict(currentWord);
                                     refresh();
+
+                                    //swn: what to read when release the key?
+                                    if (autoreadMode == AUTOREAD_ON) {
+                                        if (languageMode == LANG_MODE_ENG) {
+                                            currentCandidate = -1;
+                                            if (nowCh >= 'a' && nowCh <= 'z') {
+                                                stopVoice();
+                                                playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
+                                            } else {
+                                                //maybe play 出界
+                                                //tts("出界");
+                                            }
+                                        } else { //cn: if there is candidate read the candidate
+                                            if (candidates.size() > 0) {
+                                                currentCandidate = 0;
+                                                tts(candidates.get(0).alias + getChnHint(candidates.get(0).alias));
+                                            } else {
+                                                if (nowCh >= 'a' && nowCh <= 'z') {
+                                                    stopVoice();
+                                                    playMedia("ios11_" + voiceSpeed, nowCh - 'a', true);
+                                                }
+                                            }
+                                        }
+                                    }
+
+
+
                                 }
+
+
                             }
                             else{
                                 if (checkLeftwipe(x, y, tempTime)) {
@@ -1617,12 +1861,13 @@ public class MainActivity extends AppCompatActivity {
                                         nowPredictDownSaved = nowPredictDown;
                                         nowBaseLineDownSaved = nowBaseLineDown;
                                         nowChBaselineSaved = autoKeyboard.getKeyByPosition(x, y - location[1],autoKeyboard.INIT_LAYOUT);
+
                                     }
                                 }
                             }
                             if (currentCandidate >= 0 && currentCandidate < candidates.size())
                                 tts(candidates.get(currentCandidate).alias + getChnHint(candidates.get(currentCandidate).alias));
-                            write("word " + currentWord);
+                            write("word " + currentWord +" " + ((currentCandidate>=0&& currentCandidate < candidates.size())?candidates.get(currentCandidate).alias:" "));
                             nowCh = KEY_NOT_FOUND;
                             break;
                     }
@@ -1974,9 +2219,10 @@ public class MainActivity extends AppCompatActivity {
         KEY keys[]; // A-Z
 
         void defaultPara(){// set the parameters to default value
-            keyboardHeight=800*screen_height_ratio;
+            keyboardHeight=760*screen_height_ratio;
             keyboardWidth=1440*screen_width_ratio;
             topThreshold=0*screen_height_ratio;
+            topThreshold = 50;
             bottomThreshold=907*screen_height_ratio;
             minWidthRatio=1F/2F;
             minHeightRatio=1F/2F;
@@ -2645,6 +2891,7 @@ public class MainActivity extends AppCompatActivity {
             for (int i:allChar) {
                 this.keys[i].init_height=this.keyboardHeight/4F;
                 this.keys[i].init_width=this.keyboardWidth/10F;
+                //System.out.println("swnieian" + i + "," + this.keys[i].init_x + "," + this.keys[i].init_y);
             }
             // SHIFT
             this.keys[SHIFT].init_height=this.keyboardHeight/4F;
@@ -3055,8 +3302,13 @@ public class MainActivity extends AppCompatActivity {
                     case RECORD_MODE_STOPED:{
                         recordMode = RECORD_MODE_STARTED;
                         filename = getFilename();
-                        Collections.shuffle(testcases);
+//                        Collections.shuffle(testcases);
+//                        Collections.shuffle(eng_testcases);
+                        Collections.shuffle(testCases_cn);
+                        Collections.shuffle(testCases_en);
                         currentTestcase = -1;
+                        currentTestWordNo = -1;
+                        recordResult.reset();
                         nextTestcase();
                         break;
                     }
