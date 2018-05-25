@@ -1,11 +1,13 @@
 package com.example.fansy.audiokeyboard;
 
+import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -21,6 +23,8 @@ import android.os.RemoteException;
 import android.os.Vibrator;
 import android.speech.tts.TextToSpeech;
 import android.support.annotation.RequiresApi;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -139,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
     //int currentCandidate = autoreadMode;
     int currentCandidate = -1;
     public ArrayList<Word> candidates = new ArrayList<Word>();
+    final int PERMISSION_REQUEST_STORAGE = 0;
 
     ImageView keyboard;
     TextView text, candidatesView, readListView, voiceSpeedText, elapsedTimeText;
@@ -1041,6 +1046,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }*/
     }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_STORAGE:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    //
+                } else {
+                    Toast.makeText(this, "Storage Permission Failed!", Toast.LENGTH_SHORT).show();
+                }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -1078,6 +1094,12 @@ public class MainActivity extends AppCompatActivity {
         });
         ttsCHN.setSpeechRate(ttsVoiceSpeed);
         ttsCHN.setPitch(1.0f);
+
+        //swn: permission require
+        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_STORAGE);
+        }
 
 
         //startPinyinDecoderService
