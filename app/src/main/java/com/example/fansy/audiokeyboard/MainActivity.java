@@ -2242,9 +2242,10 @@ public class MainActivity extends AppCompatActivity {
 
         void defaultPara(){// set the parameters to default value
             keyboardHeight=760*screen_height_ratio;
+            keyboardHeight = 680;
             keyboardWidth=1440*screen_width_ratio;
             topThreshold=0*screen_height_ratio;
-            topThreshold = 50;
+            //topThreshold = 50;
             bottomThreshold=907*screen_height_ratio;
             minWidthRatio=1F/2F;
             minHeightRatio=1F/2F;
