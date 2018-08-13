@@ -648,14 +648,14 @@ public class MainActivity extends AppCompatActivity {
             Log.i("init", "read testcases failed");
         }
 
-        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.t_20)));
+        reader = new BufferedReader(new InputStreamReader(getResources().openRawResource(R.raw.t_40)));
         try {
             int lineNo = 0;
             while ((line = reader.readLine()) != null) {
                 lineNo ++;
                 testCases_en.add(new TestCase(line));
                 //eng_testcases.add(line);
-                if (lineNo == 20)
+                if (lineNo == 40)
                     break;
                 //testcases.shuffle();
             }
