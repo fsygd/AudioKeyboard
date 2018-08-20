@@ -1999,7 +1999,7 @@ public class MainActivity extends AppCompatActivity {
         ImageView keyboard;
         Canvas canvas;
         Bitmap baseBitmap;
-        Paint backgroundPaint,textPaint,boundPaint,movePaint,originPaint,rankingPaint;
+        Paint backgroundPaint,textPaint,boundPaint,movePaint,originPaint,currentPaint, rankingPaint;
         boolean Visibility=true;
         boolean Outline = false;
         boolean Ranking = true;
@@ -2989,8 +2989,13 @@ public class MainActivity extends AppCompatActivity {
                 for (int i=0;i<KEYNUM;i++){
                     RectF rect = new RectF(this.keys[i].getLeft(CURR_LAYOUT)+5*screen_width_ratio,this.keys[i].getTop(CURR_LAYOUT)+10*screen_height_ratio,this.keys[i].getRight(CURR_LAYOUT)-5*screen_width_ratio,this.keys[i].getBottom(CURR_LAYOUT)-10*screen_height_ratio);
                     this.canvas.drawRoundRect(rect,10,10,this.backgroundPaint);
+                    if (Outline) {
+                        this.canvas.drawCircle((this.keys[i].getLeft(CURR_LAYOUT) + this.keys[i].getRight(CURR_LAYOUT)) / 2.0f,
+                                (this.keys[i].getTop(CURR_LAYOUT) + this.keys[i].getBottom(CURR_LAYOUT)) / 2.0f, 5, this.currentPaint);
+                    }
                 }
                 // 画原始边框
+/*
                 if(Outline){
                     for (int i=0;i<KEYNUM;i++){
 
@@ -3002,12 +3007,13 @@ public class MainActivity extends AppCompatActivity {
                         this.canvas.drawLine(left,top,left,bottom,this.originPaint);
                         this.canvas.drawLine(right,top,right,bottom,this.originPaint);
                         this.canvas.drawLine(left,bottom,right,bottom,this.originPaint);
-                    /*
+                    *//*
                     RectF rect = new RectF(this.keys[i].getLeft(INIT_LAYOUT)+5*screen_width_ratio,this.keys[i].getTop(INIT_LAYOUT)+10*screen_height_ratio,this.keys[i].getRight(INIT_LAYOUT)-5*screen_width_ratio,this.keys[i].getBottom(INIT_LAYOUT)-10*screen_height_ratio);
                     this.canvas.drawRoundRect(rect,10,10,this.originPaint);
-                    */
+                    *//*
                     }
-                }
+                }*/
+
 
                 // 画A-Z
                 for (int i:allChar){
@@ -3079,6 +3085,22 @@ public class MainActivity extends AppCompatActivity {
                         this.canvas.drawText(String.valueOf(ranking),keys[pos].getLeft_tap(CURR_LAYOUT),keys[pos].getTop_tap(CURR_LAYOUT)-fonttop/2-fontbottom/2,rankingPaint);
                     }
                 }
+
+                //draw central red circle
+                //added by fsy 2018/8/13
+                if(Outline){
+                    for (int i=0;i<KEYNUM;i++){
+                        float left=this.keys[i].getLeft(INIT_LAYOUT)+5*screen_width_ratio;
+                        float top=this.keys[i].getTop(INIT_LAYOUT)+10*screen_height_ratio;
+                        float right=this.keys[i].getRight(INIT_LAYOUT)-5*screen_width_ratio;
+                        float bottom=this.keys[i].getBottom(INIT_LAYOUT)-10*screen_height_ratio;
+                        this.canvas.drawCircle((left + right) / 2.0f, (top + bottom) / 2.0f, 5, this.originPaint);
+                    /*
+                    RectF rect = new RectF(this.keys[i].getLeft(INIT_LAYOUT)+5*screen_width_ratio,this.keys[i].getTop(INIT_LAYOUT)+10*screen_height_ratio,this.keys[i].getRight(INIT_LAYOUT)-5*screen_width_ratio,this.keys[i].getBottom(INIT_LAYOUT)-10*screen_height_ratio);
+                    this.canvas.drawRoundRect(rect,10,10,this.originPaint);
+                    */
+                    }
+                }
                 this.keyboard.setImageBitmap(this.baseBitmap);
 
             }else{
@@ -3105,13 +3127,22 @@ public class MainActivity extends AppCompatActivity {
             this.backgroundPaint.setStrokeWidth(3);
 
             this.originPaint=new Paint();
-            this.originPaint.setColor(Color.rgb(231,88,113));
+            //this.originPaint.setColor(Color.rgb(231,88,113));
+            this.originPaint.setColor(Color.rgb(255, 0, 0));
             //this.originPaint.setColor(Color.rgb(239,239,239));
             this.originPaint.setStrokeJoin(Paint.Join.ROUND);
             this.originPaint.setStrokeCap(Paint.Cap.ROUND);
             this.originPaint.setStrokeWidth(3);
             this.originPaint.setStrokeWidth(3);
-            this.originPaint.setAlpha(50);
+            //this.originPaint.setAlpha(50);
+
+            this.currentPaint=new Paint();
+            this.currentPaint.setColor(Color.BLUE);
+            this.currentPaint.setStrokeJoin(Paint.Join.ROUND);
+            this.currentPaint.setStrokeCap(Paint.Cap.ROUND);
+            this.currentPaint.setStrokeWidth(3);
+            this.currentPaint.setStrokeWidth(3);
+            //this.currentPaint.setAlpha(50);
 
             this.textPaint=new Paint();
             this.textPaint.setColor(Color.BLACK);
